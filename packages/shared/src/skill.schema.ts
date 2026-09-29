@@ -21,3 +21,9 @@ export const CreateSkillSchema = z
 
 // The TypeScript type is derived from the schema — never written by hand.
 export type CreateSkillInput = z.infer<typeof CreateSkillSchema>;
+
+export const UpdateSkillSchema = CreateSkillSchema.partial()
+  .strict()
+  .refine((data) => Object.keys(data).length > 0, { message: 'Provide at least one field to update' });
+
+export type UpdateSkillInput = z.infer<typeof UpdateSkillSchema>;

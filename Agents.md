@@ -163,7 +163,10 @@ points below are the design decisions it encodes, which the file alone doesn't e
   both. Prisma can't express this, so it is enforced by a hand-written `CHECK`
   constraint (`chk_evidence_single_source`) in its own migration, and again in the Zod
   schema. Keep that migration if migrations are ever regenerated.
-- **`Skill` is unique per `(userId, name)`** — no duplicate "React" / "React.js" rows.
+- **`Skill` is unique per `(userId, lower(name))`** — "React" and "react" collide. The
+  Prisma `@@unique([userId, name])` is case-sensitive, so the case-insensitive index is
+  another raw-SQL migration. (Aliases like "React" / "React.js" are not caught — that
+  needs a canonical-name mapping, not an index.)
 - **`Job` is unique per `(userId, dedupeHash)`** — the same posting from multiple
   sources collapses to one row.
 - **`RefreshToken` stores only a hash** of each refresh token, so tokens can be revoked
@@ -315,11 +318,18 @@ always imports compiled schemas and a current Prisma client.
   `TailoredResume`. Two migrations exist — `init` and the `SkillEvidence`
   single-origin `CHECK` constraint — and are applied to a **local** Postgres. Neon is
   not set up yet.
+- Skills + SkillEvidence CRUD (`apps/api/src/skills/`, `apps/api/src/evidence/`),
+  Prisma-backed and scoped to the signed-in user, enforcing §6 in code:
+  evidence is always created unverified; `POST /evidence/:id/verify` is the only path
+  that sets `isVerified` (with `/unverify` to undo); editing evidence un-verifies it;
+  **renaming a skill un-verifies all of its evidence** (otherwise evidence verified for
+  "React" would vouch for whatever the skill is renamed to — the Azure-incident shape);
+  evidence can only link to the user's own WorkExperience/Project; `lastUsed` can't be
+  in the future; another user's resources return 404, not 403.
 - `apps/api` has: environment validation at boot (`src/config/env.ts` — requires a
   Postgres `DATABASE_URL`, loads `apps/api/.env` via Node's built-in
   `process.loadEnvFile()` when the file exists, fails fast on bad config), a generic
-  `ZodValidationPipe` (`src/common/pipes/`), a `GET /health` endpoint, and a placeholder
-  `POST /api/v1/skills` that validates input and echoes it back (not yet using Prisma).
+  `ZodValidationPipe` (`src/common/pipes/`), and a `GET /health` endpoint.
 - Hand-rolled JWT auth (`apps/api/src/auth/`): register, login, refresh, logout, and
   `GET /auth/me`. bcrypt password hashing (with a dummy-hash compare so login timing
   doesn't reveal which emails exist); 15-minute HS256 access tokens; opaque refresh
@@ -330,17 +340,15 @@ always imports compiled schemas and a current Prisma client.
 - Global route prefix `api/v1` is set, with `/health` excluded from it.
 - Unit tests (Vitest) for the validation pipe, env loader, and token service; e2e
   tests (Vitest + Supertest, against the real database) for health, the full auth
-  flow, and the skills endpoint. All passing. `tsc --noEmit` passes
+  flow, skills, and evidence (one test per §6 rule). All passing. `tsc --noEmit` passes
   with `strict: true`; oxlint is clean.
 - Uses Nest 12 defaults: ESM output (import paths end in `.js` even in `.ts` source —
   this is required by Node's ESM resolution, not a mistake), Vitest instead of Jest,
   oxlint instead of ESLint.
 
 **Not yet built — in order:**
-1. Skills + SkillEvidence CRUD, replacing the current echo endpoint with real
-   Prisma-backed persistence — this is where §6's rules must be enforced in code
-   (e.g. `isVerified` never accepted from the request body), plus the explicit
-   verification action that is the only way to set it.
+1. WorkExperience + Project CRUD (evidence can already link to them, but they can
+   only be created directly in the database for now).
 2. Seed the database with the real verified career data from §6.
 3. `apps/web` — React + Vite PWA shell.
 4. `apps/worker` — the discovery/extraction/matching/tailoring pipeline itself,

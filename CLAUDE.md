@@ -47,11 +47,14 @@ packages/db       Prisma schema, migrations, re-exported PrismaClient
 - **Auth is hand-rolled JWT** (`src/auth/`). Do not use `@nestjs/passport` — understanding the mechanism is a stated goal. A global `AuthGuard` (`APP_GUARD`) protects **every** route; public routes opt out with `@Public()`. Get the caller with `@CurrentUser() user: AuthUser` and scope every query by `user.id`. Access tokens: HS256 JWT, 15 min, verified with a pinned algorithm. Refresh tokens: opaque random, stored as SHA-256 hash, rotated on every use; reuse of a revoked token revokes all the user's sessions. Never select `passwordHash` into a response — use `PUBLIC_USER_SELECT`.
 - **Worker stays a separate process.** Slow Claude calls and job fetches must never run on the API's event loop. Redis is queue-only; Postgres is the only store of record. The Claude API key belongs only in the worker's env.
 - **Data model** has two halves — career "truth" (`User`, `WorkExperience`, `Project`, `Skill`, `SkillEvidence`) and machine-generated jobs (`JobSource`, `DiscoveryRun`, `Job`, `JobRequirement`) — joined only through `JobMatch`. Job sources are toggled by data (`JobSource.isEnabled`), never by code. A `DiscoveryRun` row is created in `RUNNING` state *before* fetching so a failed source is distinguishable from "no jobs".
-- Constraints Prisma can't express go in hand-written SQL migrations (e.g. `chk_evidence_single_source` on `SkillEvidence`). Keep them if you regenerate migrations.
+- Constraints Prisma can't express go in hand-written SQL migrations (`chk_evidence_single_source` on `SkillEvidence`; the case-insensitive `Skill_userId_lower_name_key` index). Create them with `prisma migrate dev --create-only`, then edit the SQL. Keep them if you regenerate migrations.
+- **Never point `--shadow-database-url` (or any `migrate diff`/`migrate reset`) at the dev database** — Prisma wipes the shadow database.
+- **Ownership:** every query filters by the caller's `userId` (evidence goes through `skill: { userId }`). Another user's resource is a 404, never a 403.
 
 ## Truthfulness rules (hard constraints)
 
 - `SkillEvidence.isVerified` defaults to `false` and must **never** be accepted from a client request body. Only a dedicated verification action may set it. Keep it out of every create/update schema.
+- `isVerified` is set only by `POST /evidence/:id/verify`. Editing evidence, or renaming its skill, resets it to `false` — keep that true for any new write path.
 - Any resume/AI generation code reads only `isVerified = true` evidence, and every generated bullet must trace to a user-written `whatIDid`.
 - Context/depth placement rules (e.g. PERSONAL/ACADEMIC never becomes an Experience bullet; EXPOSURE older than 2 years is omitted) are in `Agents.md` §6.
 - "Azure B2C" and "Node.js/Express at CloudCard" are known false claims; if either appears in generated output, it's a bug.
@@ -60,6 +63,6 @@ packages/db       Prisma schema, migrations, re-exported PrismaClient
 
 - **ESM throughout** (`"type": "module"`, `nodenext`). Relative imports in `.ts` source end in `.js` — this is required, not a mistake.
 - Nest 12 defaults: **Vitest** (with globals) instead of Jest, **oxlint** instead of ESLint, Prettier for formatting. `typescript/no-floating-promises` is an error.
-- Unit tests: `*.spec.ts` next to the source. E2E tests: `apps/api/test/*.e2e-spec.ts` using Supertest against the real database; create users with the `@e2e.shortlist.test` email domain so `afterAll` can delete exactly what the suite made.
+- Unit tests: `*.spec.ts` next to the source. E2E tests: `apps/api/test/*.e2e-spec.ts` using Supertest against the real database. Use `createTestApp()` from `test/helpers.ts`: it registers users, tracks their IDs, and `close()` deletes only those (files run in parallel, so never bulk-delete by email domain).
 - Commit messages and PRs carry no Claude attribution (no `Co-Authored-By: Claude`, no "Generated with Claude Code").
 - The user wants to understand each layer — when adding an interview-relevant mechanism (queues, auth, idempotency, validation boundaries), briefly explain why the pattern is used, and prefer a hand-rolled implementation over a library that hides it.
