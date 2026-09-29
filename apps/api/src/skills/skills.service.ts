@@ -1,6 +1,7 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import type { CreateSkillInput, UpdateSkillInput } from '@shortlist/shared';
 import { isUniqueViolation } from '../common/prisma-errors.js';
+import { UNVERIFIED } from '../common/verification.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 const DUPLICATE = 'You already have a skill with this name';
@@ -51,7 +52,7 @@ export class SkillsService {
         if (renamed) {
           await tx.skillEvidence.updateMany({
             where: { skillId: id, isVerified: true },
-            data: { isVerified: false, verifiedAt: null },
+            data: UNVERIFIED,
           });
         }
         return tx.skill.update({

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { NON_EMPTY_UPDATE_MESSAGE, PastDate, nonEmptyUpdate } from './common.schema.js';
 
 export const EvidenceContext = z.enum(['COMMERCIAL', 'PERSONAL', 'ACADEMIC']);
 export type EvidenceContext = z.infer<typeof EvidenceContext>;
@@ -6,10 +7,7 @@ export type EvidenceContext = z.infer<typeof EvidenceContext>;
 export const EvidenceDepth = z.enum(['PRODUCTION', 'WORKING', 'MAINTENANCE', 'EXPOSURE']);
 export type EvidenceDepth = z.infer<typeof EvidenceDepth>;
 
-// Checked per request (not `.max(new Date())`, which would freeze "now" at import time).
-const LastUsed = z.coerce
-  .date()
-  .refine((d) => d.getTime() <= Date.now(), 'lastUsed cannot be in the future');
+const LastUsed = PastDate;
 
 export const CreateSkillEvidenceSchema = z
   .object({
@@ -41,7 +39,7 @@ export const UpdateSkillEvidenceSchema = z
     // isVerified is intentionally omitted.
   })
   .strict()
-  .refine((data) => Object.keys(data).length > 0, { message: 'Provide at least one field to update' })
+  .refine(nonEmptyUpdate, { message: NON_EMPTY_UPDATE_MESSAGE })
   .refine(
     (data) => !(data.workExperienceId && data.projectId),
     { message: 'Evidence cannot be linked to both a work experience and a project' },

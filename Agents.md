@@ -326,6 +326,15 @@ always imports compiled schemas and a current Prisma client.
   "React" would vouch for whatever the skill is renamed to — the Azure-incident shape);
   evidence can only link to the user's own WorkExperience/Project; `lastUsed` can't be
   in the future; another user's resources return 404, not 403.
+- WorkExperience + Project CRUD (`apps/api/src/work-experience/`, `apps/api/src/projects/`).
+  Editing a field that changes what linked evidence claims (a role's company, title,
+  or dates; a project's name, description, shipped status, or dates) un-verifies that
+  evidence — otherwise "CloudCard, Frontend Dev" edited to "Google, Senior Engineer"
+  would carry verified bullets with it. Cosmetic fields (location, URLs) don't.
+  Deleting a role/project keeps its evidence (FK is SET NULL) but un-verifies it.
+  Date rules: nothing starts in the future; end ≥ start; a role is either current or
+  has an end date (checked on the merged row for PATCHes). Project URLs must be
+  http(s) — a `javascript:` URL would be an XSS vector once rendered as a link.
 - `apps/api` has: environment validation at boot (`src/config/env.ts` — requires a
   Postgres `DATABASE_URL`, loads `apps/api/.env` via Node's built-in
   `process.loadEnvFile()` when the file exists, fails fast on bad config), a generic
@@ -340,23 +349,21 @@ always imports compiled schemas and a current Prisma client.
 - Global route prefix `api/v1` is set, with `/health` excluded from it.
 - Unit tests (Vitest) for the validation pipe, env loader, and token service; e2e
   tests (Vitest + Supertest, against the real database) for health, the full auth
-  flow, skills, and evidence (one test per §6 rule). All passing. `tsc --noEmit` passes
+  flow, skills, evidence, work experience, and projects (one test per §6 rule). All passing. `tsc --noEmit` passes
   with `strict: true`; oxlint is clean.
 - Uses Nest 12 defaults: ESM output (import paths end in `.js` even in `.ts` source —
   this is required by Node's ESM resolution, not a mistake), Vitest instead of Jest,
   oxlint instead of ESLint.
 
 **Not yet built — in order:**
-1. WorkExperience + Project CRUD (evidence can already link to them, but they can
-   only be created directly in the database for now).
-2. Seed the database with the real verified career data from §6.
-3. `apps/web` — React + Vite PWA shell.
-4. `apps/worker` — the discovery/extraction/matching/tailoring pipeline itself,
+1. Seed the database with the real verified career data from §6.
+2. `apps/web` — React + Vite PWA shell.
+3. `apps/worker` — the discovery/extraction/matching/tailoring pipeline itself,
    starting with exactly one `JobSource` (one Greenhouse board) end to end before
    adding more sources.
-5. Move the database to Neon when deploying (step 2 of the original plan was done
+4. Move the database to Neon when deploying (step 2 of the original plan was done
    against local Postgres instead).
-6. Rate-limit `/auth/login` and `/auth/register` (Redis-backed counters, once Redis
+5. Rate-limit `/auth/login` and `/auth/register` (Redis-backed counters, once Redis
    is in place for the queue).
 
 ---
