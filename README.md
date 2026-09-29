@@ -17,6 +17,12 @@ Coming next: apps/worker (queues, scheduler), apps/web (React + Vite PWA).
     cp apps/api/.env.example apps/api/.env         # set DATABASE_URL (used by the API at runtime)
     pnpm db:migrate:dev
 
+Seed your career data (register the account through the API first; everything is
+created unverified, so review and verify each item afterwards):
+
+    SEED_USER_EMAIL=you@example.com pnpm --filter @shortlist/db db:seed:career --dry-run
+    SEED_USER_EMAIL=you@example.com pnpm --filter @shortlist/db db:seed:career
+
 ## Run
 
     pnpm dev:api          # http://localhost:3000/health

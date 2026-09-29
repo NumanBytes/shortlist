@@ -17,6 +17,9 @@ pnpm test               # unit tests (*.spec.ts) in every package — does NOT r
 
 pnpm db:generate        # regenerate Prisma client after editing schema.prisma
 pnpm db:migrate:dev     # create + apply a migration (needs DATABASE_URL in packages/db/.env)
+SEED_USER_EMAIL=you@x.com pnpm --filter @shortlist/db db:seed:career [--dry-run]
+                        # seed Agents.md §6 career data into an existing account, all unverified
+pnpm --filter @shortlist/db test   # seed truthfulness guards (node:test)
 
 # API-only (apps/api)
 pnpm --filter @shortlist/api test:e2e                         # *.e2e-spec.ts — hits the real DB in apps/api/.env
@@ -55,6 +58,7 @@ packages/db       Prisma schema, migrations, re-exported PrismaClient
 
 - `SkillEvidence.isVerified` defaults to `false` and must **never** be accepted from a client request body. Only a dedicated verification action may set it. Keep it out of every create/update schema.
 - `isVerified` is set only by `POST /evidence/:id/verify`. Any write that changes what evidence claims resets it with `UNVERIFIED` (`src/common/verification.ts`): editing the evidence, renaming its skill, editing claim fields on its linked WorkExperience/Project (`claimChanged()` + each service's `CLAIM_FIELDS`), or deleting that WorkExperience/Project. Any new write path must do the same.
+- Seed data (`packages/db/prisma/seed/career-data.ts`) must pass `findSeedProblems()` in `guards.ts`, and must never set `isVerified`. Seed scripts run on Node's type stripping: use `.ts` import extensions and erasable-only syntax (checked by `tsconfig.seed.json`).
 - Any resume/AI generation code reads only `isVerified = true` evidence, and every generated bullet must trace to a user-written `whatIDid`.
 - Context/depth placement rules (e.g. PERSONAL/ACADEMIC never becomes an Experience bullet; EXPOSURE older than 2 years is omitted) are in `Agents.md` §6.
 - "Azure B2C" and "Node.js/Express at CloudCard" are known false claims; if either appears in generated output, it's a bug.
