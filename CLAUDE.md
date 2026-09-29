@@ -19,7 +19,7 @@ pnpm db:generate        # regenerate Prisma client after editing schema.prisma
 pnpm db:migrate:dev     # create + apply a migration (needs DATABASE_URL in packages/db/.env)
 
 # API-only (apps/api)
-pnpm --filter @shortlist/api test:e2e                         # *.e2e-spec.ts via vitest.config.e2e.ts
+pnpm --filter @shortlist/api test:e2e                         # *.e2e-spec.ts — hits the real DB in apps/api/.env
 pnpm --filter @shortlist/api lint                             # oxlint --type-aware
 pnpm --filter @shortlist/api exec vitest run src/common/pipes/zod-validation.pipe.spec.ts   # single file
 pnpm --filter @shortlist/api exec vitest run -t "returns 400"                               # single test by name
@@ -42,8 +42,9 @@ packages/db       Prisma schema, migrations, re-exported PrismaClient
 - **One validation system: Zod.** Request bodies, Claude API responses, and env vars are all validated with Zod. Do not introduce `class-validator`/`class-transformer`. Schemas live in `packages/shared/src/*.schema.ts`; export the schema and `z.infer` the type — never hand-write a duplicate interface. New schema files must also be re-exported from `packages/shared/src/index.ts`. Request schemas use `.strict()` so unknown fields are rejected, not dropped.
 - **Validation in controllers** is per-parameter: `@Body(new ZodValidationPipe(Schema))` (`apps/api/src/common/pipes/zod-validation.pipe.ts`). Errors come back as 400 with `{ message, errors: [{ path, message }] }`.
 - **Env config** is parsed at boot by `apps/api/src/config/env.ts` before Nest starts; add every new env var to that schema so a missing value fails fast.
-- **Routing:** global prefix `api/v1`, with `health` excluded. This is set in `main.ts` and **must be mirrored in e2e test setup** (`test/app.e2e-spec.ts`), since `createNestApplication()` does not run `main.ts`.
-- **Auth is hand-rolled JWT** (access token + refresh token stored hashed in `RefreshToken` for revocation). Do not use `@nestjs/passport` — understanding the mechanism is a stated goal.
+- **Routing:** global prefix `api/v1`, with `health` excluded. App-wide setup lives in `configureApp()` (`src/app.setup.ts`), called by both `main.ts` and the e2e tests — put new global settings there, not in `main.ts`.
+- **Config/DB injection:** services get validated env via `@Inject(ENV) env: Env` (global `ConfigModule`) and the database via the global `PrismaService`. Don't read `process.env` directly.
+- **Auth is hand-rolled JWT** (`src/auth/`). Do not use `@nestjs/passport` — understanding the mechanism is a stated goal. A global `AuthGuard` (`APP_GUARD`) protects **every** route; public routes opt out with `@Public()`. Get the caller with `@CurrentUser() user: AuthUser` and scope every query by `user.id`. Access tokens: HS256 JWT, 15 min, verified with a pinned algorithm. Refresh tokens: opaque random, stored as SHA-256 hash, rotated on every use; reuse of a revoked token revokes all the user's sessions. Never select `passwordHash` into a response — use `PUBLIC_USER_SELECT`.
 - **Worker stays a separate process.** Slow Claude calls and job fetches must never run on the API's event loop. Redis is queue-only; Postgres is the only store of record. The Claude API key belongs only in the worker's env.
 - **Data model** has two halves — career "truth" (`User`, `WorkExperience`, `Project`, `Skill`, `SkillEvidence`) and machine-generated jobs (`JobSource`, `DiscoveryRun`, `Job`, `JobRequirement`) — joined only through `JobMatch`. Job sources are toggled by data (`JobSource.isEnabled`), never by code. A `DiscoveryRun` row is created in `RUNNING` state *before* fetching so a failed source is distinguishable from "no jobs".
 - Constraints Prisma can't express go in hand-written SQL migrations (e.g. `chk_evidence_single_source` on `SkillEvidence`). Keep them if you regenerate migrations.
@@ -59,5 +60,6 @@ packages/db       Prisma schema, migrations, re-exported PrismaClient
 
 - **ESM throughout** (`"type": "module"`, `nodenext`). Relative imports in `.ts` source end in `.js` — this is required, not a mistake.
 - Nest 12 defaults: **Vitest** (with globals) instead of Jest, **oxlint** instead of ESLint, Prettier for formatting. `typescript/no-floating-promises` is an error.
-- Unit tests: `*.spec.ts` next to the source. E2E tests: `apps/api/test/*.e2e-spec.ts` using Supertest.
+- Unit tests: `*.spec.ts` next to the source. E2E tests: `apps/api/test/*.e2e-spec.ts` using Supertest against the real database; create users with the `@e2e.shortlist.test` email domain so `afterAll` can delete exactly what the suite made.
+- Commit messages and PRs carry no Claude attribution (no `Co-Authored-By: Claude`, no "Generated with Claude Code").
 - The user wants to understand each layer — when adding an interview-relevant mechanism (queues, auth, idempotency, validation boundaries), briefly explain why the pattern is used, and prefer a hand-rolled implementation over a library that hides it.

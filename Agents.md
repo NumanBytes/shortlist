@@ -320,29 +320,36 @@ always imports compiled schemas and a current Prisma client.
   `process.loadEnvFile()` when the file exists, fails fast on bad config), a generic
   `ZodValidationPipe` (`src/common/pipes/`), a `GET /health` endpoint, and a placeholder
   `POST /api/v1/skills` that validates input and echoes it back (not yet using Prisma).
-- Auth dependencies chosen: `bcrypt` for password hashing, `jsonwebtoken` for tokens.
-  No auth code written yet.
+- Hand-rolled JWT auth (`apps/api/src/auth/`): register, login, refresh, logout, and
+  `GET /auth/me`. bcrypt password hashing (with a dummy-hash compare so login timing
+  doesn't reveal which emails exist); 15-minute HS256 access tokens; opaque refresh
+  tokens stored as SHA-256 hashes and rotated on every use, with reuse detection that
+  revokes all of a user's sessions. A global guard protects every route; `@Public()`
+  opts out. Refresh tokens currently travel in the JSON body — moving them to an
+  httpOnly cookie is a follow-up once `apps/web` exists.
 - Global route prefix `api/v1` is set, with `/health` excluded from it.
-- Unit tests (Vitest) for the validation pipe and env loader; e2e tests (Vitest +
-  Supertest) for the health and skills endpoints. All passing. `tsc --noEmit` passes
+- Unit tests (Vitest) for the validation pipe, env loader, and token service; e2e
+  tests (Vitest + Supertest, against the real database) for health, the full auth
+  flow, and the skills endpoint. All passing. `tsc --noEmit` passes
   with `strict: true`; oxlint is clean.
 - Uses Nest 12 defaults: ESM output (import paths end in `.js` even in `.ts` source —
   this is required by Node's ESM resolution, not a mistake), Vitest instead of Jest,
   oxlint instead of ESLint.
 
 **Not yet built — in order:**
-1. Hand-rolled JWT auth module (register, login, refresh, logout/revoke).
-2. Skills + SkillEvidence CRUD, replacing the current echo endpoint with real
+1. Skills + SkillEvidence CRUD, replacing the current echo endpoint with real
    Prisma-backed persistence — this is where §6's rules must be enforced in code
    (e.g. `isVerified` never accepted from the request body), plus the explicit
    verification action that is the only way to set it.
-3. Seed the database with the real verified career data from §6.
-4. `apps/web` — React + Vite PWA shell.
-5. `apps/worker` — the discovery/extraction/matching/tailoring pipeline itself,
+2. Seed the database with the real verified career data from §6.
+3. `apps/web` — React + Vite PWA shell.
+4. `apps/worker` — the discovery/extraction/matching/tailoring pipeline itself,
    starting with exactly one `JobSource` (one Greenhouse board) end to end before
    adding more sources.
-6. Move the database to Neon when deploying (step 2 of the original plan was done
+5. Move the database to Neon when deploying (step 2 of the original plan was done
    against local Postgres instead).
+6. Rate-limit `/auth/login` and `/auth/register` (Redis-backed counters, once Redis
+   is in place for the queue).
 
 ---
 
