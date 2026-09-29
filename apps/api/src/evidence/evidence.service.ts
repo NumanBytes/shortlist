@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import type { CreateSkillEvidenceInput, UpdateSkillEvidenceInput } from '@shortlist/shared';
+import { UNVERIFIED } from '../common/verification.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 const NOT_FOUND = 'Evidence not found';
@@ -40,7 +41,7 @@ export class EvidenceService {
 
     return this.prisma.skillEvidence.update({
       where: { id },
-      data: { ...input, isVerified: false, verifiedAt: null },
+      data: { ...input, ...UNVERIFIED },
     });
   }
 
@@ -59,7 +60,7 @@ export class EvidenceService {
     await this.findOwned(userId, id);
     return this.prisma.skillEvidence.update({
       where: { id },
-      data: { isVerified: false, verifiedAt: null },
+      data: UNVERIFIED,
     });
   }
 

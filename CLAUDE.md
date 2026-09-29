@@ -54,7 +54,7 @@ packages/db       Prisma schema, migrations, re-exported PrismaClient
 ## Truthfulness rules (hard constraints)
 
 - `SkillEvidence.isVerified` defaults to `false` and must **never** be accepted from a client request body. Only a dedicated verification action may set it. Keep it out of every create/update schema.
-- `isVerified` is set only by `POST /evidence/:id/verify`. Editing evidence, or renaming its skill, resets it to `false` — keep that true for any new write path.
+- `isVerified` is set only by `POST /evidence/:id/verify`. Any write that changes what evidence claims resets it with `UNVERIFIED` (`src/common/verification.ts`): editing the evidence, renaming its skill, editing claim fields on its linked WorkExperience/Project (`claimChanged()` + each service's `CLAIM_FIELDS`), or deleting that WorkExperience/Project. Any new write path must do the same.
 - Any resume/AI generation code reads only `isVerified = true` evidence, and every generated bullet must trace to a user-written `whatIDid`.
 - Context/depth placement rules (e.g. PERSONAL/ACADEMIC never becomes an Experience bullet; EXPOSURE older than 2 years is omitted) are in `Agents.md` §6.
 - "Azure B2C" and "Node.js/Express at CloudCard" are known false claims; if either appears in generated output, it's a bug.

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { NON_EMPTY_UPDATE_MESSAGE, nonEmptyUpdate } from './common.schema.js';
 
 // Mirrors the SkillCategory enum in the Prisma schema.
 // Defined once here; the API, worker, and web app all import it.
@@ -24,6 +25,6 @@ export type CreateSkillInput = z.infer<typeof CreateSkillSchema>;
 
 export const UpdateSkillSchema = CreateSkillSchema.partial()
   .strict()
-  .refine((data) => Object.keys(data).length > 0, { message: 'Provide at least one field to update' });
+  .refine(nonEmptyUpdate, { message: NON_EMPTY_UPDATE_MESSAGE });
 
 export type UpdateSkillInput = z.infer<typeof UpdateSkillSchema>;
