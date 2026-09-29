@@ -355,8 +355,18 @@ always imports compiled schemas and a current Prisma client.
   this is required by Node's ESM resolution, not a mistake), Vitest instead of Jest,
   oxlint instead of ESLint.
 
+- Career-data seed (`packages/db/prisma/seed/`): §6 as data — 1 role (CloudCard), 1
+  project (Manzil), 28 skills, 29 evidence items — seeded into an existing account by
+  `SEED_USER_EMAIL`. **Everything is seeded unverified**; the user reviews, rewords,
+  and verifies each item through the API. Guards refuse to write anything if the data
+  mentions Azure, marks Node.js/Express.js/MongoDB as commercial, or carries
+  verification. Additive and re-runnable: never overwrites edits or verifications.
+  Dates the user supplied: university stack last used 2023 (so stale under the
+  2-year rule); MERN projects 2024, picked back up in 2026.
+
 **Not yet built — in order:**
-1. Seed the database with the real verified career data from §6.
+1. Verify the seeded career data (a manual review by the user, item by item). The
+   "API integration" skill is a placeholder name for the Ruby B2C-layer knowledge.
 2. `apps/web` — React + Vite PWA shell.
 3. `apps/worker` — the discovery/extraction/matching/tailoring pipeline itself,
    starting with exactly one `JobSource` (one Greenhouse board) end to end before
