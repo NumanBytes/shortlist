@@ -5,11 +5,26 @@ import { z } from 'zod';
 const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(3000),
+  DATABASE_URL: z.string().url().startsWith('postgres', 'DATABASE_URL must be a PostgreSQL connection string'),
 });
 
 export type Env = z.infer<typeof EnvSchema>;
 
-export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
+// Loads .env from the working directory if present. In production the host
+// injects real environment variables and there is no file, which is fine.
+function loadDotEnvFile(): void {
+  try {
+    process.loadEnvFile();
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
+  }
+}
+
+export function loadEnv(source?: NodeJS.ProcessEnv): Env {
+  if (!source) {
+    loadDotEnvFile();
+    source = process.env;
+  }
   const result = EnvSchema.safeParse(source);
   if (!result.success) {
     const problems = result.error.issues

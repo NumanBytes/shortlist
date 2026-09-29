@@ -4,9 +4,11 @@
   "packageManager": "pnpm@12.5.1",
   "engines": { "node": ">=22" },
   "scripts": {
-    "dev:api": "pnpm --filter @shortlist/shared build && pnpm --filter @shortlist/api start:dev",
-    "build": "pnpm --filter @shortlist/shared build && pnpm --filter @shortlist/api build",
-    "typecheck": "pnpm --filter @shortlist/shared build && pnpm -r typecheck",
-    "test": "pnpm --filter @shortlist/shared build && pnpm -r test"
+    "dev:api": "pnpm --filter @shortlist/shared build && pnpm --filter @shortlist/db build && pnpm --filter @shortlist/api start:dev",
+    "build": "pnpm --filter @shortlist/shared build && pnpm --filter @shortlist/db build && pnpm --filter @shortlist/api build",
+    "typecheck": "pnpm --filter @shortlist/shared build && pnpm --filter @shortlist/db build && pnpm -r typecheck",
+    "test": "pnpm --filter @shortlist/shared build && pnpm --filter @shortlist/db build && pnpm -r test",
+    "db:migrate:dev": "pnpm --filter @shortlist/db db:migrate:dev",
+    "db:generate": "pnpm --filter @shortlist/db db:generate"
   }
 }

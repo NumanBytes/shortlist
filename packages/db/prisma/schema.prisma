@@ -1,0 +1,321 @@
+// PostgreSQL + Prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SkillCategory {
+  LANGUAGE
+  FRAMEWORK
+  LIBRARY
+  DATABASE
+  TOOL
+  PLATFORM
+  CONCEPT
+}
+
+// WHERE the experience came from.
+enum EvidenceContext {
+  COMMERCIAL // paid work
+  PERSONAL // side projects, self-learning
+  ACADEMIC // university coursework
+}
+
+// HOW DEEP the experience goes — separates "I built with it" from "I kept it running".
+enum EvidenceDepth {
+  PRODUCTION // built features that shipped and are in use
+  WORKING // can build independently, not shipped commercially
+  MAINTENANCE // upgraded / fixed / operated, but did not build
+  EXPOSURE // tutorials, coursework, small experiments
+}
+
+enum RequirementImportance {
+  REQUIRED
+  PREFERRED
+  BONUS
+}
+
+enum GapSeverity {
+  BLOCKING // core stack missing — do not apply
+  MODERATE // learnable, will be probed in interview
+  MINOR // peripheral, unlikely to block an offer
+}
+
+enum JobStatus {
+  DISCOVERED
+  INTERESTED
+  SKIPPED
+  APPLIED
+  ASSESSMENT
+  INTERVIEWING
+  REJECTED
+  OFFER
+  WITHDRAWN
+}
+
+enum JobSourceType {
+  ATS_BOARD
+  AGGREGATOR_API
+  EMAIL_INBOX
+  MANUAL
+}
+
+enum DiscoveryRunStatus {
+  RUNNING
+  SUCCESS
+  FAILED
+  EMPTY
+}
+
+model User {
+  id           String  @id @default(uuid())
+  email        String  @unique
+  passwordHash String
+  name         String
+  headline     String?
+  targetRole   String?
+  location     String?
+
+  refreshTokens   RefreshToken[]
+  workExperiences WorkExperience[]
+  skills          Skill[]
+  projects        Project[]
+  jobSources      JobSource[]
+  jobs            Job[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Hand-rolled auth: refresh tokens are stored so they can be revoked.
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model WorkExperience {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company   String
+  title     String
+  startDate DateTime
+  endDate   DateTime?
+  isCurrent Boolean   @default(false)
+  location  String?
+
+  evidence SkillEvidence[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Project {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  liveUrl     String?
+  repoUrl     String?
+  isShipped   Boolean   @default(false)
+  startDate   DateTime?
+  endDate     DateTime?
+
+  evidence SkillEvidence[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Skill {
+  id       String        @id @default(uuid())
+  userId   String
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name     String
+  category SkillCategory
+
+  evidence SkillEvidence[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // One row per skill name per user — no duplicate "React" / "React.js" entries.
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+// THE CORE TABLE. One skill can carry several different truths at once —
+// e.g. PostgreSQL: COMMERCIAL/PRODUCTION at work AND PERSONAL/WORKING on a side project.
+model SkillEvidence {
+  id      String @id @default(uuid())
+  skillId String
+  skill   Skill  @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  context EvidenceContext
+  depth   EvidenceDepth
+
+  // What was actually done, in the user's own words.
+  // This is the ONLY source a resume bullet may be derived from. Never invented.
+  whatIDid String
+
+  lastUsed DateTime
+
+  // Optionally linked to where the evidence came from (at most one should be set).
+  workExperienceId String?
+  workExperience   WorkExperience? @relation(fields: [workExperienceId], references: [id], onDelete: SetNull)
+  projectId        String?
+  project          Project?        @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  // Nothing renders onto a resume until the user has confirmed it out loud.
+  // THIS IS THE AZURE-INCIDENT SAFEGUARD. Do not weaken this default.
+  isVerified Boolean   @default(false)
+  verifiedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([skillId])
+  @@index([context, depth])
+  @@index([isVerified])
+}
+
+// Toggleable job source — disabling a source is a data change, never a code change.
+model JobSource {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type   JobSourceType
+  config Json // per-source settings, e.g. company slug for a Greenhouse board
+
+  isEnabled     Boolean   @default(true)
+  lastRunAt     DateTime?
+  lastRunStatus String?
+
+  discoveryRuns DiscoveryRun[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// Opened in RUNNING state BEFORE the fetch starts — an empty or failed source must
+// be visibly distinguishable from "no run today."
+model DiscoveryRun {
+  id          String    @id @default(uuid())
+  jobSourceId String
+  jobSource   JobSource @relation(fields: [jobSourceId], references: [id], onDelete: Cascade)
+
+  status       DiscoveryRunStatus @default(RUNNING)
+  startedAt    DateTime           @default(now())
+  finishedAt   DateTime?
+  jobsFound    Int                @default(0)
+  jobsNew      Int                @default(0)
+  errorMessage String?
+
+  @@index([jobSourceId])
+}
+
+model Job {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title    String
+  company  String
+  location String?
+  workMode String?
+
+  source    String?
+  sourceUrl String?
+  rawJD     String  @db.Text
+
+  // Guards against the same posting appearing from multiple sources.
+  dedupeHash String
+
+  status       JobStatus @default(DISCOVERED)
+  postedAt     DateTime?
+  discoveredAt DateTime  @default(now())
+  appliedAt    DateTime?
+
+  requirements JobRequirement[]
+  match        JobMatch?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, dedupeHash])
+  @@index([userId, status])
+}
+
+model JobRequirement {
+  id    String @id @default(uuid())
+  jobId String
+  job   Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  skillName     String
+  importance    RequirementImportance
+  yearsRequired Int?
+
+  @@index([jobId])
+}
+
+model JobMatch {
+  id    String @id @default(uuid())
+  jobId String @unique
+  job   Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  overallScore    Int // 0-100
+  commercialScore Int
+  verdict         String // APPLY | STRETCH | SKIP
+
+  strengths String @db.Text
+  risks     String @db.Text
+
+  gaps           SkillGap[]
+  tailoredResume TailoredResume?
+
+  computedAt DateTime @default(now())
+}
+
+model SkillGap {
+  id         String   @id @default(uuid())
+  jobMatchId String
+  jobMatch   JobMatch @relation(fields: [jobMatchId], references: [id], onDelete: Cascade)
+
+  skillName String
+  severity  GapSeverity
+  note      String?
+
+  @@index([jobMatchId])
+  @@index([skillName])
+}
+
+model TailoredResume {
+  id         String   @id @default(uuid())
+  jobMatchId String   @unique
+  jobMatch   JobMatch @relation(fields: [jobMatchId], references: [id], onDelete: Cascade)
+
+  bullets String  @db.Text // generated bullet content
+  pdfUrl  String? // reference to the rendered PDF
+
+  createdAt DateTime @default(now())
+}
