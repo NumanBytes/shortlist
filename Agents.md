@@ -296,7 +296,7 @@ experience). Next.js — currently in active use building a separate side projec
 | Validation | **Zod**, used at three distinct boundaries | (1) API request bodies, (2) Claude API responses — parsed and rejected/retried if malformed before anything touches Postgres, (3) environment variables at process startup, so a missing `DATABASE_URL` fails immediately with a clear error instead of failing mysteriously on the first request. |
 | Queue | Redis + BullMQ | Standard pairing with `@nestjs/bullmq`; holds nothing that isn't safely re-derivable. |
 | AI | Claude API — Haiku for extraction/matching, Sonnet for tailoring | Split by cost/quality need — extraction and matching are structured-output tasks Haiku handles well and cheaply; tailoring needs Sonnet's writing quality. Batch API + prompt caching used specifically because the pipeline runs overnight on a schedule. |
-| Deployment (target, not yet done) | Vercel (web) + Render/Railway (api, worker) + Neon (Postgres) + Upstash (Redis) | Free tiers where available; the worker needs an always-on host since cron cannot run on something that sleeps. |
+| Deployment (target, not yet done) | Vercel (web) + Render/Railway (api, worker) + Neon (Postgres) + Upstash (Redis) | Free tiers where available; the worker needs an always-on host since cron cannot run on something that sleeps. **Web and API must share a site** — e.g. `app.getshortlist.com` + `api.getshortlist.com`, or a Vercel rewrite of `/api` to the API — because the refresh cookie is `SameSite=Strict`. `*.vercel.app` → `*.onrender.com` is cross-site and would break sign-in. |
 
 **Monorepo tooling:** pnpm workspaces. Root `package.json` orchestrates
 `apps/*` and `packages/*`. `packages/shared` and `packages/db` are compiled to `dist/`
@@ -344,8 +344,9 @@ always imports compiled schemas and a current Prisma client.
   doesn't reveal which emails exist); 15-minute HS256 access tokens; opaque refresh
   tokens stored as SHA-256 hashes and rotated on every use, with reuse detection that
   revokes all of a user's sessions. A global guard protects every route; `@Public()`
-  opts out. Refresh tokens currently travel in the JSON body — moving them to an
-  httpOnly cookie is a follow-up once `apps/web` exists.
+  opts out. The refresh token travels only in an httpOnly, `SameSite=Strict` cookie
+  scoped to `/api/v1/auth` — never in a response body, so page scripts (and any XSS)
+  can't read it. The access token is returned in the body and kept in memory only.
 - Global route prefix `api/v1` is set, with `/health` excluded from it.
 - Unit tests (Vitest) for the validation pipe, env loader, and token service; e2e
   tests (Vitest + Supertest, against the real database) for health, the full auth

@@ -14,7 +14,17 @@ describe('loadEnv', () => {
       JWT_ACCESS_TTL_SECONDS: 900,
       REFRESH_TOKEN_TTL_DAYS: 30,
       BCRYPT_ROUNDS: 12,
+      WEB_ORIGINS: ['http://localhost:5173'],
     });
+  });
+
+  it('parses a comma-separated origin allowlist', () => {
+    const env = loadEnv({ ...valid, WEB_ORIGINS: 'https://app.getshortlist.com, http://localhost:5173' });
+    expect(env.WEB_ORIGINS).toEqual(['https://app.getshortlist.com', 'http://localhost:5173']);
+  });
+
+  it('rejects an origin with a path or trailing slash', () => {
+    expect(() => loadEnv({ ...valid, WEB_ORIGINS: 'https://app.getshortlist.com/' })).toThrow(/bare origin/);
   });
 
   it('fails fast when DATABASE_URL is missing', () => {

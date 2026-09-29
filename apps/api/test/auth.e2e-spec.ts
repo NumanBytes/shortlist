@@ -1,4 +1,4 @@
-import { TEST_PASSWORD, createTestApp, uniqueEmail, type TestApp } from './helpers.js';
+import { TEST_PASSWORD, createTestApp, refreshCookieFrom, uniqueEmail, type TestApp } from './helpers.js';
 
 const email = uniqueEmail;
 const PASSWORD = TEST_PASSWORD;
@@ -25,8 +25,9 @@ describe('Auth & health (e2e)', () => {
     it('creates a user, returns tokens, and never returns the password hash', async () => {
       const body = await register();
       expect(body.accessToken).toEqual(expect.any(String));
-      expect(body.refreshToken).toEqual(expect.any(String));
       expect(body.user).not.toHaveProperty('passwordHash');
+      // The refresh token travels only in the cookie — never readable by page scripts.
+      expect(body).not.toHaveProperty('refreshToken');
     });
 
     it('normalises email case so the same address cannot register twice', async () => {
@@ -81,37 +82,89 @@ describe('Auth & health (e2e)', () => {
     });
   });
 
+  describe('refresh cookie', () => {
+    it('is httpOnly, SameSite=Strict, and scoped to the auth path', async () => {
+      const res = await http()
+        .post('/api/v1/auth/register')
+        .send({ email: email(), password: PASSWORD, name: 'Cookie' })
+        .expect(201);
+      const header = (res.headers['set-cookie'] as unknown as string[]).find((c) => c.startsWith('shortlist_refresh='))!;
+      expect(header).toMatch(/HttpOnly/);
+      expect(header).toMatch(/SameSite=Strict/);
+      expect(header).toMatch(/Path=\/api\/v1\/auth/);
+      expect(header).toMatch(/Max-Age=2592000/); // 30 days
+      await t.prisma.user.deleteMany({ where: { id: res.body.user.id } });
+    });
+
+    it('login sets a fresh cookie', async () => {
+      const { user } = await register();
+      const res = await http().post('/api/v1/auth/login').send({ email: user.email, password: PASSWORD }).expect(200);
+      expect(refreshCookieFrom(res)).toMatch(/^shortlist_refresh=/);
+      expect(res.body).not.toHaveProperty('refreshToken');
+    });
+  });
+
   describe('refresh rotation', () => {
-    it('issues a new pair and makes the old refresh token single-use', async () => {
+    const refresh = (cookie?: string) => {
+      const req = http().post('/api/v1/auth/refresh');
+      return cookie ? req.set('Cookie', cookie) : req;
+    };
+
+    it('issues a new access token and rotates the cookie', async () => {
       const first = await register();
-      const res = await http().post('/api/v1/auth/refresh').send({ refreshToken: first.refreshToken }).expect(200);
-      expect(res.body.refreshToken).not.toBe(first.refreshToken);
+      const res = await refresh(first.refreshCookie).expect(200);
+      expect(res.body.accessToken).toEqual(expect.any(String));
+      expect(res.body).not.toHaveProperty('refreshToken');
+      expect(refreshCookieFrom(res)).not.toBe(first.refreshCookie);
+    });
+
+    it('401s with no cookie', async () => {
+      await refresh().expect(401);
+    });
+
+    it('401s with an unknown cookie, and clears it', async () => {
+      const res = await refresh('shortlist_refresh=nope').expect(401);
+      expect(refreshCookieFrom(res)).toBe('shortlist_refresh=');
     });
 
     it('treats reuse of a rotated token as theft and revokes every session', async () => {
       const first = await register();
-      const second = await http()
-        .post('/api/v1/auth/refresh')
-        .send({ refreshToken: first.refreshToken })
-        .expect(200);
+      const second = await refresh(first.refreshCookie).expect(200);
 
       // An attacker replays the stolen, already-rotated token...
-      await http().post('/api/v1/auth/refresh').send({ refreshToken: first.refreshToken }).expect(401);
+      await refresh(first.refreshCookie).expect(401);
       // ...so even the legitimate user's newer token is now dead.
-      await http().post('/api/v1/auth/refresh').send({ refreshToken: second.body.refreshToken }).expect(401);
+      await refresh(refreshCookieFrom(second)).expect(401);
     });
 
-    it('rejects an unknown refresh token', async () => {
-      await http().post('/api/v1/auth/refresh').send({ refreshToken: 'nope' }).expect(401);
+    it('ignores a refresh token sent in the body — only the cookie counts', async () => {
+      const { refreshCookie } = await register();
+      const token = refreshCookie.split('=')[1];
+      await http().post('/api/v1/auth/refresh').send({ refreshToken: token }).expect(401);
     });
   });
 
   describe('logout', () => {
-    it('revokes the refresh token and is idempotent', async () => {
-      const { refreshToken } = await register();
-      await http().post('/api/v1/auth/logout').send({ refreshToken }).expect(204);
-      await http().post('/api/v1/auth/logout').send({ refreshToken }).expect(204);
-      await http().post('/api/v1/auth/refresh').send({ refreshToken }).expect(401);
+    it('revokes the refresh token, clears the cookie, and is idempotent', async () => {
+      const { refreshCookie } = await register();
+      const res = await http().post('/api/v1/auth/logout').set('Cookie', refreshCookie).expect(204);
+      expect(refreshCookieFrom(res)).toBe('shortlist_refresh=');
+      await http().post('/api/v1/auth/logout').set('Cookie', refreshCookie).expect(204);
+      await http().post('/api/v1/auth/logout').expect(204);
+      await http().post('/api/v1/auth/refresh').set('Cookie', refreshCookie).expect(401);
+    });
+  });
+
+  describe('CORS', () => {
+    it('allows credentialed requests from an allowlisted origin', async () => {
+      const res = await http().get('/health').set('Origin', 'http://localhost:5173').expect(200);
+      expect(res.headers['access-control-allow-origin']).toBe('http://localhost:5173');
+      expect(res.headers['access-control-allow-credentials']).toBe('true');
+    });
+
+    it('does not grant access to any other origin', async () => {
+      const res = await http().get('/health').set('Origin', 'https://evil.example').expect(200);
+      expect(res.headers['access-control-allow-origin']).toBeUndefined();
     });
   });
 });
