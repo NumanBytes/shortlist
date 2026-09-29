@@ -8,6 +8,7 @@ import {
 import type { LoginInput, RegisterInput } from '@shortlist/shared';
 import { Prisma } from '@shortlist/db';
 import bcrypt from 'bcrypt';
+import { isUniqueViolation } from '../common/prisma-errors.js';
 import { ENV } from '../config/config.module.js';
 import type { Env } from '../config/env.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -63,8 +64,8 @@ export class AuthService implements OnModuleInit {
       return { user, ...(await this.issueTokens(user.id)) };
     } catch (err) {
       // Rely on the unique index rather than a "check, then insert" — two concurrent
-      // registrations could both pass the check. P2002 = unique constraint violation.
-      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+      // registrations could both pass the check.
+      if (isUniqueViolation(err)) {
         throw new ConflictException('An account with this email already exists');
       }
       throw err;

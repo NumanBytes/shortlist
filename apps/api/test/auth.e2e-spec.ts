@@ -1,40 +1,19 @@
-import { Test } from '@nestjs/testing';
-import type { INestApplication } from '@nestjs/common';
-import request from 'supertest';
-import { AppModule } from '../src/app.module.js';
-import { configureApp } from '../src/app.setup.js';
-import { PrismaService } from '../src/prisma/prisma.service.js';
+import { TEST_PASSWORD, createTestApp, uniqueEmail, type TestApp } from './helpers.js';
 
-// Runs against the real database in apps/api/.env. Every user created here uses this
-// domain so afterAll can remove exactly what the suite created (tokens cascade).
-const TEST_DOMAIN = '@e2e.shortlist.test';
-const email = () => `user-${crypto.randomUUID()}${TEST_DOMAIN}`;
-const PASSWORD = 'correct horse battery';
+const email = uniqueEmail;
+const PASSWORD = TEST_PASSWORD;
 
-describe('API (e2e)', () => {
-  let app: INestApplication;
-  let prisma: PrismaService;
-  const http = () => request(app.getHttpServer());
-
-  async function register(overrides: Record<string, unknown> = {}) {
-    const res = await http()
-      .post('/api/v1/auth/register')
-      .send({ email: email(), password: PASSWORD, name: 'Test User', ...overrides })
-      .expect(201);
-    return res.body as { user: { id: string; email: string }; accessToken: string; refreshToken: string };
-  }
+describe('Auth & health (e2e)', () => {
+  let t: TestApp;
+  const http = () => t.http();
+  const register = (overrides?: Record<string, unknown>) => t.register(overrides);
 
   beforeAll(async () => {
-    process.env.BCRYPT_ROUNDS = '4'; // hashing speed isn't under test here
-    const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
-    app = configureApp(moduleRef.createNestApplication());
-    await app.init();
-    prisma = app.get(PrismaService);
+    t = await createTestApp();
   });
 
   afterAll(async () => {
-    await prisma.user.deleteMany({ where: { email: { endsWith: TEST_DOMAIN } } });
-    await app.close();
+    await t.close();
   });
 
   it('GET /health is public and reports ok', async () => {
@@ -133,32 +112,6 @@ describe('API (e2e)', () => {
       await http().post('/api/v1/auth/logout').send({ refreshToken }).expect(204);
       await http().post('/api/v1/auth/logout').send({ refreshToken }).expect(204);
       await http().post('/api/v1/auth/refresh').send({ refreshToken }).expect(401);
-    });
-  });
-
-  describe('skills (placeholder, now protected)', () => {
-    it('401s without a token', async () => {
-      await http().post('/api/v1/skills').send({ name: 'TypeScript', category: 'LANGUAGE' }).expect(401);
-    });
-
-    it('accepts a valid skill when authenticated', async () => {
-      const { accessToken } = await register();
-      const res = await http()
-        .post('/api/v1/skills')
-        .set('Authorization', `Bearer ${accessToken}`)
-        .send({ name: 'TypeScript', category: 'LANGUAGE' })
-        .expect(201);
-      expect(res.body.received.name).toBe('TypeScript');
-    });
-
-    it('returns 400 with field-level errors', async () => {
-      const { accessToken } = await register();
-      const res = await http()
-        .post('/api/v1/skills')
-        .set('Authorization', `Bearer ${accessToken}`)
-        .send({ name: '', category: 'nope' })
-        .expect(400);
-      expect(res.body.errors.map((e: { path: string }) => e.path)).toEqual(['name', 'category']);
     });
   });
 });
