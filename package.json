@@ -8,7 +8,9 @@
   "scripts": {
     "dev:api": "pnpm --filter @shortlist/shared build && pnpm --filter @shortlist/db build && pnpm --filter @shortlist/api start:dev",
     "dev:web": "pnpm --filter @shortlist/shared build && pnpm --filter @shortlist/web dev",
-    "build": "pnpm --filter @shortlist/shared build && pnpm --filter @shortlist/db build && pnpm --filter @shortlist/api build && pnpm --filter @shortlist/web build",
+    "dev:worker": "pnpm --filter @shortlist/shared build && pnpm --filter @shortlist/db build && pnpm --filter @shortlist/worker start:dev",
+    "discover": "pnpm --filter @shortlist/worker build && pnpm --filter @shortlist/worker discover",
+    "build": "pnpm --filter @shortlist/shared build && pnpm --filter @shortlist/db build && pnpm --filter @shortlist/api build && pnpm --filter @shortlist/worker build && pnpm --filter @shortlist/web build",
     "typecheck": "pnpm --filter @shortlist/shared build && pnpm --filter @shortlist/db build && pnpm -r typecheck",
     "test": "pnpm --filter @shortlist/shared build && pnpm --filter @shortlist/db build && pnpm -r test",
     "db:migrate:dev": "pnpm --filter @shortlist/db db:migrate:dev",

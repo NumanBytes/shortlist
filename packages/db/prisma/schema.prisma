@@ -87,6 +87,7 @@ model User {
   projects        Project[]
   jobSources      JobSource[]
   jobs            Job[]
+  discoveryPrefs  DiscoveryPreferences?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -202,18 +203,24 @@ model JobSource {
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  type   JobSourceType
-  config Json // per-source settings, e.g. company slug for a Greenhouse board
+  // Stable identity, e.g. "greenhouse:gomotive" — what seeding and re-seeding match on.
+  key  String
+  name String // display name, e.g. "Motive"
 
-  isEnabled     Boolean   @default(true)
+  type   JobSourceType
+  config Json // validated by JobSourceConfigSchema in @shortlist/shared
+
+  isEnabled     Boolean             @default(true)
   lastRunAt     DateTime?
-  lastRunStatus String?
+  lastRunStatus DiscoveryRunStatus?
 
   discoveryRuns DiscoveryRun[]
+  jobs          Job[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([userId, key])
   @@index([userId])
 }
 
@@ -227,11 +234,14 @@ model DiscoveryRun {
   status       DiscoveryRunStatus @default(RUNNING)
   startedAt    DateTime           @default(now())
   finishedAt   DateTime?
-  jobsFound    Int                @default(0)
-  jobsNew      Int                @default(0)
+  jobsFound    Int                @default(0) // everything the source returned
+  jobsMatched  Int                @default(0) // passed the rule filter
+  jobsNew      Int                @default(0) // matched and not seen before
   errorMessage String?
 
-  @@index([jobSourceId])
+  jobs Job[] // jobs first discovered by this run
+
+  @@index([jobSourceId, startedAt])
 }
 
 model Job {
@@ -244,16 +254,22 @@ model Job {
   location String?
   workMode String?
 
-  source    String?
-  sourceUrl String?
+  source    String? // provider, e.g. "greenhouse", "remoteok" — shown as attribution
+  sourceUrl String? // the original posting; "Apply" always links here
   rawJD     String  @db.Text
 
   // Guards against the same posting appearing from multiple sources.
   dedupeHash String
 
+  jobSourceId     String?
+  jobSource       JobSource?    @relation(fields: [jobSourceId], references: [id], onDelete: SetNull)
+  discoveryRunId  String? // the run that first found it
+  discoveryRun    DiscoveryRun? @relation(fields: [discoveryRunId], references: [id], onDelete: SetNull)
+
   status       JobStatus @default(DISCOVERED)
   postedAt     DateTime?
   discoveredAt DateTime  @default(now())
+  lastSeenAt   DateTime  @default(now()) // bumped on every run that still lists it
   appliedAt    DateTime?
 
   requirements JobRequirement[]
@@ -264,6 +280,26 @@ model Job {
 
   @@unique([userId, dedupeHash])
   @@index([userId, status])
+  @@index([userId, discoveredAt])
+}
+
+// The cheap, no-AI rule filter that runs before anything reaches a model (Agents.md §5).
+// Data, not code: tuning what gets through is an update, never a redeploy. A user
+// without a row gets DEFAULT_DISCOVERY_PREFERENCES from @shortlist/shared.
+model DiscoveryPreferences {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  titleInclude         String[] // title must contain one of these
+  titleExclude         String[] // ...and none of these
+  stackKeywords        String[] // title or description must mention one of these
+  onsiteLocations      String[] // on-site/hybrid roles must be in one of these
+  allowRemote          Boolean
+  remoteExcludeRegions String[] // remote roles restricted to these regions are dropped
+  maxPostingAgeDays    Int
+
+  updatedAt DateTime @updatedAt
 }
 
 model JobRequirement {

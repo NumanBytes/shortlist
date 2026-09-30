@@ -1,0 +1,331 @@
+{
+ "jobs": [
+  {
+   "absolute_url": "https://boards.greenhouse.io/careem/jobs/8805501002?gh_jid=8805501002",
+   "data_compliance": [
+    {
+     "type": "gdpr",
+     "requires_consent": false,
+     "requires_processing_consent": false,
+     "requires_retention_consent": false,
+     "retention_period": null,
+     "demographic_data_consent_applies": false
+    }
+   ],
+   "internal_job_id": 6523731002,
+   "location": {
+    "name": "Lahore, Pakistan"
+   },
+   "metadata": [
+    {
+     "id": 4471783002,
+     "name": "Division",
+     "value": "Logistics & Care",
+     "value_type": "single_select"
+    },
+    {
+     "id": 4221047002,
+     "name": "Sub-Division",
+     "value": "Central Care",
+     "value_type": "single_select"
+    },
+    {
+     "id": 10033485002,
+     "name": "Sub-Department",
+     "value": "Care Rides",
+     "value_type": "single_select"
+    },
+    {
+     "id": 22986410002,
+     "name": "Hiring Manager",
+     "value": "shamsa.arif@careem.com",
+     "value_type": "short_text"
+    },
+    {
+     "id": 12565152002,
+     "name": "Job Family",
+     "value": "Care",
+     "value_type": "single_select"
+    },
+    {
+     "id": 15653543002,
+     "name": "Tribe",
+     "value": null,
+     "value_type": "single_select"
+    },
+    {
+     "id": 15653550002,
+     "name": "Squad",
+     "value": null,
+     "value_type": "single_select"
+    },
+    {
+     "id": 24594952002,
+     "name": "Country",
+     "value": "Pakistan",
+     "value_type": "single_select"
+    },
+    {
+     "id": 24436433002,
+     "name": "Evergreen Role (TA)",
+     "value": false,
+     "value_type": "yes_no"
+    },
+    {
+     "id": 22868282002,
+     "name": "SOURCER (TA)",
+     "value": null,
+     "value_type": "short_text"
+    }
+   ],
+   "id": 8805501002,
+   "updated_at": "2026-09-28T08:54:25-04:00",
+   "requisition_id": "9989",
+   "title": "Care & Service Operations Lead ",
+   "company_name": "Careem",
+   "first_published": "2026-09-28T08:54:25-04:00",
+   "language": "en",
+   "application_deadline": null,
+   "content": "&lt;div class=&quot;content-intro&quot;&gt;&lt;p&gt;&lt;span style=&quot;font-family: helvetica, arial, sans-serif; font-size: 12pt;&quot;&gt;Careem is building the Everything App for the greater Middle East — making it easy to move around, order food and groceries, manage payments, and more. Our purpose is simple: to simplify and improve people’s lives and build an awesome organisation that inspires.&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-family: helvetica, arial, sans-serif; font-size: 12pt;&quot;&gt;Since 2012, Careem has enabled earnings for over 2.5 million Captains, simplified the lives of more than 70 million customers, and built a platform where the region’s best talent and entrepreneurs thrive. We operate in 70+ cities across 10 countries, from Morocco to Pakistan.&lt;/span&gt;&lt;/p&gt;\n&lt;p&gt;&lt;span style=&quot;font-family: helvetica, arial, sans-serif; font-size: 12pt;&quot;&gt;&lt;strong data-stringify-type=&quot;bold&quot;&gt;&lt;em data-stringify-type=&quot;italic&quot;&gt;We’re now entering our next chapter — one powered by AI. We’re looking for AI talent: curious problem-solvers who know how to apply AI to build tools, automate workflows, and create real impact. Whether it’s streamlining operations, enhancing customer experience, or reimagining internal systems — we want people who can make Careem work smarter and move faster.&lt;/em&gt;&lt;/strong&gt;&lt;/span&gt;&lt;/p&gt;&lt;/div&gt;&lt;p&gt;&lt;strong&gt;About the team&lt;/strong&gt;&lt;/p&gt;\n&lt;p&gt;As part of Careem’s mission to simplify and improve lives across the greater Middle East, the Care Operations team serves as the backbone of operational excellence. The team is responsible for ensuring that every customer and Captain interaction reflects the trust people place in Careem—resolving issues with speed and empathy and continuously optimizing the journey experience across all services.&amp;nbsp;&lt;/p&gt;\n&lt;p&gt;&lt;strong&gt;About the Role&lt;/strong&gt;&lt;/p&gt;\n&lt;p&gt;We are seeking a highly analytical, hands-on, and results-driven Care &amp;amp; Service Operations Lead to drive operational precision, vendor governance, and service quality across our customer and Captain support ecosystem. In this role, you will hold end-to-end accountability for queue health, SLA performance, and CSAT integrity, serving as the critical bridge between Care Operations, Product, Tech, and external vendor partners.&lt;/p&gt;\n&lt;p&gt;&lt;strong&gt;What you&#39;ll do&lt;/strong&gt;&lt;/p&gt;\n&lt;ul&gt;\n&lt;li&gt;Query raw system data (SQL/Trino) to investigate SLA breaches, CSAT fluctuations, and operational anomalies beyond surface-level dashboards.&lt;/li&gt;\n&lt;li&gt;Own vendor accountability across BPO partners, executing independent audits frameworks and calibration sessions to safeguard quality standards.&lt;/li&gt;\n&lt;li&gt;Create and update step-by-step SOPs and process flows to keep team procedures accurate&amp;nbsp;&lt;/li&gt;\n&lt;li&gt;Query raw system data (SQL/Trino) to investigate SLA breaches, CSAT fluctuations, and operational anomalies beyond surface-level dashboards.&lt;/li&gt;\n&lt;li&gt;Monitor daily Customer and Captain SLA performance, proactively mitigating breaches and eliminating backlog bottlenecks across cross-functional handoffs.&lt;/li&gt;\n&lt;li&gt;Partner with Product and Tech to scope, test (UAT), and launch workflow automations, authoring comprehensive SOPs for high-friction processes.&lt;/li&gt;\n&lt;li&gt;Build weekly performance decks, translate complaint trends into scalable agent coaching, and align cross-functional leads on operational priorities.&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;&lt;strong&gt;What you&#39;ll need&lt;/strong&gt;&lt;/p&gt;\n&lt;ul&gt;\n&lt;li&gt;Master&#39;s degree in Business Administration, Data Analytics, Operations Management, or a related field.&amp;nbsp;&lt;/li&gt;\n&lt;li&gt;2-3 years in Care Operations, Quality Assurance, or Customer Experience, ideally within a high-volume, multi-vendor mobility or tech environment.&lt;/li&gt;\n&lt;li&gt;Strong analytical mindset with hands-on ability to query raw databases (SQL/Trino) to conduct independent root-cause deep dives beyond high-level dashboard summaries.&lt;/li&gt;\n&lt;li&gt;Proven track record in mapping end-to-end customer and Captain journeys, identifying operational friction points, and converting insights into structural workflow fixes.&lt;/li&gt;\n&lt;li&gt;Exceptional written communication skills with expertise in drafting clear, comprehensive SOPs, executive escalation write-ups, and process flows to support platform migrations.&lt;/li&gt;\n&lt;li&gt;Direct experience in managing third-party vendor partners (BPOs), holding partners accountable to stringent QA/SLA benchmarks, and running calibration programs.&lt;/li&gt;\n&lt;li&gt;Strong stakeholder management skills, capable of serving as the primary operational bridge between Care Ops, Product, Tech, Marketing, and ground teams.&lt;/li&gt;\n&lt;li&gt;Excellent verbal and visual communication skills, with proficiency in building executive-ready decks and documents (Google Workspace / MS Office Suite) and delivering on-floor training.&lt;/li&gt;\n&lt;li&gt;Able to break down complex operational issues into clear, data-backed solutions.&amp;nbsp;&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;&lt;strong&gt;What we’ll provide you&lt;/strong&gt;&lt;/p&gt;\n&lt;p&gt;We offer colleagues the opportunity to drive impact in the region while they learn and grow. As a full time Careem colleague, you will be able to:&lt;/p&gt;\n&lt;ul&gt;\n&lt;li&gt;Work and learn from great minds by joining a community of inspiring colleagues.&lt;/li&gt;\n&lt;li&gt;Put your passion to work in a purposeful organisation dedicated to creating impact in a region with a lot of untapped potential.&lt;/li&gt;\n&lt;li&gt;Explore new opportunities to learn and grow every day.&lt;/li&gt;\n&lt;li&gt;Work 4 days a week in office &amp;amp; 1 day from home, and remotely from any country in the world for 30 days a year with unlimited vacation days per year. (If you are in an individual contributor role in tech, you will have 2 office days a week and 3 to work from home.)&lt;/li&gt;\n&lt;li&gt;Access to healthcare benefits and fitness reimbursements for health activities including gym, health club, and training classes.&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;&amp;nbsp;&lt;/p&gt;",
+   "departments": [
+    {
+     "id": 4137858002,
+     "name": "Experience & Optimisation",
+     "child_ids": [],
+     "parent_id": null
+    }
+   ],
+   "offices": [
+    {
+     "id": 4002872002,
+     "name": "Lahore",
+     "location": "Lahore, Pakistan",
+     "child_ids": [],
+     "parent_id": 4004468002
+    }
+   ],
+   "ai_disclaimer": null,
+   "include_ai_disclaimer": false,
+   "ai_opt_out_request_url": null
+  },
+  {
+   "absolute_url": "https://boards.greenhouse.io/careem/jobs/8598718002?gh_jid=8598718002",
+   "data_compliance": [
+    {
+     "type": "gdpr",
+     "requires_consent": false,
+     "requires_processing_consent": false,
+     "requires_retention_consent": false,
+     "retention_period": null,
+     "demographic_data_consent_applies": false
+    }
+   ],
+   "internal_job_id": 6434318002,
+   "location": {
+    "name": "Karachi, Pakistan"
+   },
+   "metadata": [
+    {
+     "id": 4471783002,
+     "name": "Division",
+     "value": "Groceries",
+     "value_type": "single_select"
+    },
+    {
+     "id": 4221047002,
+     "name": "Sub-Division",
+     "value": "Groceries Category Management",
+     "value_type": "single_select"
+    },
+    {
+     "id": 10033485002,
+     "name": "Sub-Department",
+     "value": "Groceries Category Management",
+     "value_type": "single_select"
+    },
+    {
+     "id": 22986410002,
+     "name": "Hiring Manager",
+     "value": "ali.hodroj@careem.com",
+     "value_type": "short_text"
+    },
+    {
+     "id": 12565152002,
+     "name": "Job Family",
+     "value": "Category management",
+     "value_type": "single_select"
+    },
+    {
+     "id": 15653543002,
+     "name": "Tribe",
+     "value": null,
+     "value_type": "single_select"
+    },
+    {
+     "id": 15653550002,
+     "name": "Squad",
+     "value": null,
+     "value_type": "single_select"
+    },
+    {
+     "id": 24594952002,
+     "name": "Country",
+     "value": "Pakistan",
+     "value_type": "single_select"
+    },
+    {
+     "id": 24436433002,
+     "name": "Evergreen Role (TA)",
+     "value": false,
+     "value_type": "yes_no"
+    },
+    {
+     "id": 22868282002,
+     "name": "SOURCER (TA)",
+     "value": null,
+     "value_type": "short_text"
+    }
+   ],
+   "id": 8598718002,
+   "updated_at": "2026-09-14T02:22:32-04:00",
+   "requisition_id": "9869",
+   "title": "Category Assistant",
+   "company_name": "Careem",
+   "first_published": "2026-09-11T05:34:48-04:00",
+   "language": "en",
+   "application_deadline": null,
+   "content": "&lt;div class=&quot;content-intro&quot;&gt;&lt;p&gt;&lt;span style=&quot;font-family: helvetica, arial, sans-serif; font-size: 12pt;&quot;&gt;Careem is building the Everything App for the greater Middle East — making it easy to move around, order food and groceries, manage payments, and more. Our purpose is simple: to simplify and improve people’s lives and build an awesome organisation that inspires.&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-family: helvetica, arial, sans-serif; font-size: 12pt;&quot;&gt;Since 2012, Careem has enabled earnings for over 2.5 million Captains, simplified the lives of more than 70 million customers, and built a platform where the region’s best talent and entrepreneurs thrive. We operate in 70+ cities across 10 countries, from Morocco to Pakistan.&lt;/span&gt;&lt;/p&gt;\n&lt;p&gt;&lt;span style=&quot;font-family: helvetica, arial, sans-serif; font-size: 12pt;&quot;&gt;&lt;strong data-stringify-type=&quot;bold&quot;&gt;&lt;em data-stringify-type=&quot;italic&quot;&gt;We’re now entering our next chapter — one powered by AI. We’re looking for AI talent: curious problem-solvers who know how to apply AI to build tools, automate workflows, and create real impact. Whether it’s streamlining operations, enhancing customer experience, or reimagining internal systems — we want people who can make Careem work smarter and move faster.&lt;/em&gt;&lt;/strong&gt;&lt;/span&gt;&lt;/p&gt;&lt;/div&gt;&lt;div&gt;\n&lt;p&gt;&lt;strong&gt;&lt;br&gt;About the Company&lt;/strong&gt;&lt;strong&gt;&lt;br&gt;&lt;/strong&gt;&lt;br&gt;Careem is building the Everything App for the greater Middle East, making it easier than ever to move around, order food and groceries, manage payments, and more. Careem is led by a powerful purpose to simplify and improve the lives of people and build an awesome organisation that inspires. Since 2012, Careem has created earnings for over 2.5 million Captains, simplified the lives of over 70 million customers, and built a platform for the region&#39;s best talent to thrive and for entrepreneurs to scale their businesses. Careem operates in over 70 cities across 10 countries, from Morocco to Pakistan.&lt;/p&gt;\n&lt;p&gt;&lt;strong&gt;&lt;br&gt;&lt;br&gt;About The Team&lt;/strong&gt;&lt;strong&gt;&lt;br&gt;&lt;/strong&gt;&lt;br&gt;The Careem Groceries team is transforming the way people shop for everyday essentials by offering a fast, reliable, and seamless Q-commerce experience. Within this fast-paced environment, the Category Management team is responsible for building the right assortment, pricing, and promotions that delight customers while driving business growth.&lt;/p&gt;\n&lt;strong&gt;&lt;br&gt;&lt;br&gt;What you&#39;ll do&lt;/strong&gt;&lt;/div&gt;\n&lt;ul&gt;\n&lt;li&gt;Create new items selected by CM &amp;amp; CE and ensuring high quality content meeting the guidelines and standards&lt;/li&gt;\n&lt;li&gt;Coordinate with SC when required&lt;/li&gt;\n&lt;li&gt;Collect the required info from the suppliers to complete the creation of new or relisted items&lt;/li&gt;\n&lt;li&gt;Take care of the suppliers requests to update the items info in oracle in timely manner&lt;/li&gt;\n&lt;li&gt;Pick the internal feedback, verify it and proceed with the correction if required&lt;/li&gt;\n&lt;li&gt;Pick tags updates based on SC &amp;amp; Suppliers feedback for stock availability matters&lt;/li&gt;\n&lt;li&gt;Frequent checks on items content and mapping in the categories&lt;/li&gt;\n&lt;li&gt;Quarterly full master data audits to improve the content quality&lt;/li&gt;\n&lt;/ul&gt;\n&lt;div&gt;&lt;strong&gt;&amp;nbsp;&lt;br&gt;&lt;br&gt;What you&#39;ll need&lt;/strong&gt;&lt;/div&gt;\n&lt;ul&gt;\n&lt;li&gt;Education : Any Undergraduate/Postgraduate. Business background is needed&lt;/li&gt;\n&lt;li&gt;Experience 1-2 years of experience in catalog management, business development, or account management .&lt;/li&gt;\n&lt;/ul&gt;",
+   "departments": [
+    {
+     "id": 4137868002,
+     "name": "Groceries Category Management",
+     "child_ids": [],
+     "parent_id": null
+    }
+   ],
+   "offices": [
+    {
+     "id": 4002871002,
+     "name": "Karachi",
+     "location": "Karachi, Pakistan",
+     "child_ids": [],
+     "parent_id": 4004468002
+    }
+   ],
+   "ai_disclaimer": null,
+   "include_ai_disclaimer": false,
+   "ai_opt_out_request_url": null
+  },
+  {
+   "absolute_url": "https://boards.greenhouse.io/careem/jobs/8618945002?gh_jid=8618945002",
+   "data_compliance": [
+    {
+     "type": "gdpr",
+     "requires_consent": false,
+     "requires_processing_consent": false,
+     "requires_retention_consent": false,
+     "retention_period": null,
+     "demographic_data_consent_applies": false
+    }
+   ],
+   "internal_job_id": 6442292002,
+   "location": {
+    "name": "Dubai, United Arab Emirates"
+   },
+   "metadata": [
+    {
+     "id": 4471783002,
+     "name": "Division",
+     "value": "Strategic Partnerships",
+     "value_type": "single_select"
+    },
+    {
+     "id": 4221047002,
+     "name": "Sub-Division",
+     "value": "Strategic Partnerships",
+     "value_type": "single_select"
+    },
+    {
+     "id": 10033485002,
+     "name": "Sub-Department",
+     "value": "Ads Commercial",
+     "value_type": "single_select"
+    },
+    {
+     "id": 22986410002,
+     "name": "Hiring Manager",
+     "value": "dana.elzein@careem.com",
+     "value_type": "short_text"
+    },
+    {
+     "id": 12565152002,
+     "name": "Job Family",
+     "value": "Partnership",
+     "value_type": "single_select"
+    },
+    {
+     "id": 15653543002,
+     "name": "Tribe",
+     "value": null,
+     "value_type": "single_select"
+    },
+    {
+     "id": 15653550002,
+     "name": "Squad",
+     "value": null,
+     "value_type": "single_select"
+    },
+    {
+     "id": 24594952002,
+     "name": "Country",
+     "value": "United Arab Emirates",
+     "value_type": "single_select"
+    },
+    {
+     "id": 24436433002,
+     "name": "Evergreen Role (TA)",
+     "value": false,
+     "value_type": "yes_no"
+    },
+    {
+     "id": 22868282002,
+     "name": "SOURCER (TA)",
+     "value": null,
+     "value_type": "short_text"
+    }
+   ],
+   "id": 8618945002,
+   "updated_at": "2026-09-14T02:22:32-04:00",
+   "requisition_id": "9887",
+   "title": "Associate Director of Ads Sales",
+   "company_name": "Careem",
+   "first_published": "2026-07-13T05:10:34-04:00",
+   "language": "en",
+   "application_deadline": null,
+   "content": "&lt;div class=&quot;content-intro&quot;&gt;&lt;p&gt;&lt;span style=&quot;font-family: helvetica, arial, sans-serif; font-size: 12pt;&quot;&gt;Careem is building the Everything App for the greater Middle East — making it easy to move around, order food and groceries, manage payments, and more. Our purpose is simple: to simplify and improve people’s lives and build an awesome organisation that inspires.&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-family: helvetica, arial, sans-serif; font-size: 12pt;&quot;&gt;Since 2012, Careem has enabled earnings for over 2.5 million Captains, simplified the lives of more than 70 million customers, and built a platform where the region’s best talent and entrepreneurs thrive. We operate in 70+ cities across 10 countries, from Morocco to Pakistan.&lt;/span&gt;&lt;/p&gt;\n&lt;p&gt;&lt;span style=&quot;font-family: helvetica, arial, sans-serif; font-size: 12pt;&quot;&gt;&lt;strong data-stringify-type=&quot;bold&quot;&gt;&lt;em data-stringify-type=&quot;italic&quot;&gt;We’re now entering our next chapter — one powered by AI. We’re looking for AI talent: curious problem-solvers who know how to apply AI to build tools, automate workflows, and create real impact. Whether it’s streamlining operations, enhancing customer experience, or reimagining internal systems — we want people who can make Careem work smarter and move faster.&lt;/em&gt;&lt;/strong&gt;&lt;/span&gt;&lt;/p&gt;&lt;/div&gt;&lt;p&gt;Careem Ads is redefining how brands connect with consumers across the region&#39;s leading super-app ecosystem. We&#39;re hiring an Agency Partnerships Lead to drive agency adoption of Careem Ads and build the agency-led commercialization model across the UAE, KSA, and Egypt turning agency relationships into a structured, multi-million dollar revenue channel.&lt;/p&gt;\n&lt;h4&gt;What You&#39;ll Lead&lt;/h4&gt;\n&lt;p&gt;&lt;strong style=&quot;font-size: 14px;&quot;&gt;1. Set the Agency GTM Strategy for the Region&lt;/strong&gt;&lt;/p&gt;\n&lt;ul&gt;\n&lt;li&gt;Develop and own the UAE, KSA and Egypt GTM strategy across the Big 6 holding groups including annual JBPs, reseller models, and multi-market expansion plans&lt;/li&gt;\n&lt;li&gt;Own and evangelize Careem Ads&#39; value proposition - equip agencies with the narrative, data, and proof points to pitch Careem Ads confidently to clients&lt;/li&gt;\n&lt;li&gt;Manage strategic relationships with agency leadership and own a defined agency revenue pipeline target&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;&lt;strong&gt;2. Lead &amp;amp; Mentor the Agency Partnerships Function&lt;/strong&gt;&lt;/p&gt;\n&lt;ul&gt;\n&lt;li&gt;Manage and develop a growing team of Agency Partner Managers&lt;/li&gt;\n&lt;li&gt;Drive excellence in pipeline planning, forecasting, relationship mapping, and quarterly business reviews (QBRs)Establish the operating rhythm, success metrics, and governance for the function (e.g. pipeline coverage, solution adoption goals, roadshows, JBP attainment)&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;&lt;strong&gt;3. Drive Enterprise-Level Revenue Growth&lt;/strong&gt;&lt;/p&gt;\n&lt;ul&gt;\n&lt;li&gt;Influence Careem Ads&#39; revenue plan for non-endemic businesses by scaling agency-led buying unlocking multimillion-dollar contributions through structured partnerships, playbooks, and new channel expansion&lt;/li&gt;\n&lt;li&gt;Deliver revenue directly across your agency portfolio and identify untapped growth opportunities&lt;/li&gt;\n&lt;li&gt;Contribute to shaping our scalable sales enablement material and run agency roadshows&amp;nbsp;&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;&lt;strong&gt;4. Shape Product + Market Fit&lt;/strong&gt;&lt;/p&gt;\n&lt;ul&gt;\n&lt;li&gt;Lead strategic feedback to Product, Measurement, Creative Ops, and Finance - guiding prioritization of formats, measurement solutions, and reporting needs for agencies&lt;/li&gt;\n&lt;li&gt;Drive agency demand for new innovation and beta pilots&lt;/li&gt;\n&lt;/ul&gt;\n&lt;h4&gt;5. Be a Foundational Builder&lt;/h4&gt;\n&lt;ul&gt;\n&lt;li&gt;Act as a core member of the founding team building Careem Ads&#39; infrastructure, playbooks, brand narrative, and GTM&amp;nbsp;&lt;/li&gt;\n&lt;li&gt;Represent Careem Ads to build market presence and credibility&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;&lt;strong&gt;Qualifications&lt;/strong&gt;&lt;/p&gt;\n&lt;ul&gt;\n&lt;li&gt;12-15+ years in media sales, digital advertising, or agency partnerships (across tech), with a proven track record of building and scaling agency ecosystems and exceeding revenue targets&lt;/li&gt;\n&lt;li&gt;Strong analytical skills - comfortable using data and tools (Excel/BI) to build forecasts and defend commercial plansWorking knowledge of the competitive media landscape particularly digital (Meta, Google, TikTok, Snap, Amazone) and retail media&lt;/li&gt;\n&lt;li&gt;Executive presence: capable of influencing senior stakeholders including C-suite across agencies and large advertisers&lt;/li&gt;\n&lt;li&gt;Fluency in English and Arabic&lt;/li&gt;\n&lt;li&gt;Entrepreneurial, strategic thinker comfortable in ambiguous, 0-to-1 environments&lt;/li&gt;\n&lt;li&gt;Experience with non-endemic categories &amp;amp; brand advertising ecosystems.&lt;/li&gt;\n&lt;li&gt;Experience integrating AI tools into workflows (forecasting, reporting, campaign operations) to drive efficiency gains.&lt;/li&gt;\n&lt;li&gt;Experience building or scaling a partnership function from scratch, not just operating within an existing one.&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;&lt;strong&gt;Why This Role Matters&lt;/strong&gt;&lt;/p&gt;\n&lt;p&gt;You will architect the agency ecosystem for Careem Ads, shaping the operating model as the business scales across a multi-market regionYour impact will be measurable and tied directly to Careem Ads&#39; revenue growth&lt;/p&gt;\n&lt;p&gt;&amp;nbsp;&lt;/p&gt;\n&lt;p&gt;&lt;strong&gt;What we’ll provide you&lt;/strong&gt;&lt;/p&gt;\n&lt;p&gt;We offer colleagues the opportunity to drive impact in the region while they learn and grow. As a full time Careem colleague, you will be able to:&lt;/p&gt;\n&lt;ul&gt;\n&lt;li&gt;Work and learn from great minds by joining a community of inspiring colleagues.&lt;/li&gt;\n&lt;li&gt;Put your passion to work in a purposeful organisation dedicated to creating impact in a region with a lot of untapped potential.&lt;/li&gt;\n&lt;li&gt;Explore new opportunities to learn and grow every day.&lt;/li&gt;\n&lt;li&gt;Work 4 days a week in office &amp;amp; 1 day from home, and remotely from any country in the world for 30 days a year with unlimited vacation days per year. (If you are in an individual contributor role in tech, you will have 2 office days a week and 3 to work from home.)&lt;/li&gt;\n&lt;li&gt;Access to healthcare benefits and fitness reimbursements for health activities including gym, health club, and training classes.&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;&amp;nbsp;&lt;/p&gt;",
+   "departments": [
+    {
+     "id": 4078148002,
+     "name": "Ads",
+     "child_ids": [],
+     "parent_id": null
+    }
+   ],
+   "offices": [
+    {
+     "id": 4014188002,
+     "name": "Dubai",
+     "location": "Dubai, United Arab Emirates",
+     "child_ids": [],
+     "parent_id": 4002851002
+    }
+   ],
+   "ai_disclaimer": null,
+   "include_ai_disclaimer": false,
+   "ai_opt_out_request_url": null
+  }
+ ],
+ "meta": {
+  "total": 16
+ }
+}

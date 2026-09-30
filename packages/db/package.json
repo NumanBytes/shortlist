@@ -20,10 +20,12 @@
     "db:studio": "prisma studio",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.seed.json",
     "test": "node --experimental-strip-types --no-warnings --test prisma/seed/*.test.ts",
-    "db:seed:career": "node --env-file=.env --experimental-strip-types --no-warnings prisma/seed/seed-career.ts"
+    "db:seed:career": "node --env-file=.env --experimental-strip-types --no-warnings prisma/seed/seed-career.ts",
+    "db:seed:sources": "node --env-file=.env --experimental-strip-types --no-warnings prisma/seed/seed-sources.ts"
   },
   "dependencies": {
-    "@prisma/client": "^6.9.0"
+    "@prisma/client": "^6.9.0",
+    "@shortlist/shared": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^24.13.6",

@@ -1,0 +1,73 @@
+{
+ "total": 2,
+ "results": [
+  {
+   "id": 5957327,
+   "shortcode": "B02DA69C8F",
+   "title": "Senior Software Engineer, iOS",
+   "remote": false,
+   "location": {
+    "country": "Greece",
+    "countryCode": "GR",
+    "city": "Athens",
+    "region": "Attica",
+    "display": "Athens, Greece"
+   },
+   "locations": [
+    {
+     "country": "Greece",
+     "countryCode": "GR",
+     "city": "Athens",
+     "region": "Attica",
+     "hidden": false
+    }
+   ],
+   "state": "published",
+   "isInternal": false,
+   "code": null,
+   "published": "2026-09-24T00:00:00.000Z",
+   "type": "full",
+   "language": "en",
+   "department": [
+    "Shared Services"
+   ],
+   "accountUid": "91dbb93a-9802-4b3d-89b7-80e7243d0ba2",
+   "approvalStatus": "approved",
+   "workplace": "hybrid"
+  },
+  {
+   "id": 4811050,
+   "shortcode": "DF694D45CA",
+   "title": "Operations Lead - New York City",
+   "remote": false,
+   "location": {
+    "country": "United States",
+    "countryCode": "US",
+    "city": "New York",
+    "region": "New York",
+    "display": "New York, New York, United States"
+   },
+   "locations": [
+    {
+     "country": "United States",
+     "countryCode": "US",
+     "city": "New York",
+     "region": "New York",
+     "hidden": false
+    }
+   ],
+   "state": "published",
+   "isInternal": false,
+   "code": "",
+   "published": "2026-09-23T00:00:00.000Z",
+   "type": "full",
+   "language": "en",
+   "department": [
+    "City Core"
+   ],
+   "accountUid": "91dbb93a-9802-4b3d-89b7-80e7243d0ba2",
+   "approvalStatus": "approved",
+   "workplace": "on_site"
+  }
+ ]
+}

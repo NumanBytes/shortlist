@@ -1,0 +1,193 @@
+{
+ "offset": 0,
+ "limit": 100,
+ "totalFound": 3,
+ "content": [
+  {
+   "id": "744000094846166",
+   "name": "Full Stack Software Engineer (MERN)",
+   "uuid": "6f79fd91-6a6f-42e2-a4ec-a4737a0c1e5b",
+   "jobAdId": "f711fc49-3a35-4494-9d0c-561d3686c6fb",
+   "defaultJobAd": true,
+   "refNumber": "REF3R",
+   "company": {
+    "identifier": "SeptemSystems",
+    "name": "Septem Systems"
+   },
+   "releasedDate": "2025-11-21T13:29:11.629Z",
+   "location": {
+    "city": "Lahore",
+    "region": "Punjab",
+    "country": "pk",
+    "address": "31 - Queens Road, Crown Complex, 3rd Floor",
+    "remote": false,
+    "hybrid": false,
+    "fullLocation": "Lahore, Punjab, Pakistan"
+   },
+   "industry": {
+    "id": "computer_software",
+    "label": "Computer Software"
+   },
+   "department": {},
+   "function": {
+    "id": "information_technology",
+    "label": "Information Technology"
+   },
+   "typeOfEmployment": {
+    "id": "permanent",
+    "label": "Full-time"
+   },
+   "experienceLevel": {
+    "id": "mid_senior_level",
+    "label": "Mid-Senior Level"
+   },
+   "customField": [
+    {
+     "fieldId": "COUNTRY",
+     "fieldLabel": "Country/Region",
+     "valueId": "pk",
+     "valueLabel": "Pakistan"
+    },
+    {
+     "fieldId": "60fda731f299a343a878baed",
+     "fieldLabel": "Brands",
+     "valueId": "default",
+     "valueLabel": "Septem Systems"
+    }
+   ],
+   "visibility": "PUBLIC",
+   "ref": "https://api.smartrecruiters.com/v1/companies/SeptemSystems/postings/744000094846166",
+   "language": {
+    "code": "en",
+    "label": "English",
+    "labelNative": "English (US)"
+   }
+  },
+  {
+   "id": "744000136454634",
+   "name": "HR Executive",
+   "uuid": "000b8eb9-d27e-4d6a-a488-14f7c8048825",
+   "jobAdId": "b38b05d2-7fd3-4006-90ac-6a0e8c8251b8",
+   "defaultJobAd": true,
+   "refNumber": "REF65V",
+   "company": {
+    "identifier": "SeptemSystems",
+    "name": "Septem Systems"
+   },
+   "releasedDate": "2026-07-08T12:15:12.552Z",
+   "location": {
+    "city": "Lahore",
+    "region": "Punjab",
+    "country": "pk",
+    "address": "Mozang Road",
+    "postalCode": "54000",
+    "remote": false,
+    "hybrid": false,
+    "latitude": "31.5560272",
+    "longitude": "74.3191165",
+    "fullLocation": "Lahore, Punjab, Pakistan"
+   },
+   "industry": {
+    "id": "computer_software",
+    "label": "Computer Software"
+   },
+   "department": {},
+   "function": {
+    "id": "human_resources",
+    "label": "Human Resources"
+   },
+   "typeOfEmployment": {
+    "id": "permanent",
+    "label": "Full-time"
+   },
+   "experienceLevel": {
+    "id": "entry_level",
+    "label": "Entry Level"
+   },
+   "customField": [
+    {
+     "fieldId": "COUNTRY",
+     "fieldLabel": "Country/Region",
+     "valueId": "pk",
+     "valueLabel": "Pakistan"
+    },
+    {
+     "fieldId": "60fda731f299a343a878baed",
+     "fieldLabel": "Brands",
+     "valueId": "default",
+     "valueLabel": "Septem Systems"
+    }
+   ],
+   "visibility": "PUBLIC",
+   "ref": "https://api.smartrecruiters.com/v1/companies/SeptemSystems/postings/744000136454634",
+   "language": {
+    "code": "en",
+    "label": "English",
+    "labelNative": "English (US)"
+   }
+  },
+  {
+   "id": "744000136296338",
+   "name": "HR Generalist",
+   "uuid": "2cc19eda-0292-465e-bce9-7eb7775310b9",
+   "jobAdId": "ba5b9bef-9d24-45a6-9743-74d7e20d6e5c",
+   "defaultJobAd": true,
+   "refNumber": "REF64P",
+   "company": {
+    "identifier": "SeptemSystems",
+    "name": "Septem Systems"
+   },
+   "releasedDate": "2026-07-07T17:30:42.523Z",
+   "location": {
+    "city": "Lahore",
+    "region": "Punjab",
+    "country": "pk",
+    "address": "Mozang Road",
+    "postalCode": "54000",
+    "remote": false,
+    "hybrid": false,
+    "latitude": "31.5560272",
+    "longitude": "74.3191165",
+    "fullLocation": "Lahore, Punjab, Pakistan"
+   },
+   "industry": {
+    "id": "computer_software",
+    "label": "Computer Software"
+   },
+   "department": {},
+   "function": {
+    "id": "human_resources",
+    "label": "Human Resources"
+   },
+   "typeOfEmployment": {
+    "id": "permanent",
+    "label": "Full-time"
+   },
+   "experienceLevel": {
+    "id": "entry_level",
+    "label": "Entry Level"
+   },
+   "customField": [
+    {
+     "fieldId": "COUNTRY",
+     "fieldLabel": "Country/Region",
+     "valueId": "pk",
+     "valueLabel": "Pakistan"
+    },
+    {
+     "fieldId": "60fda731f299a343a878baed",
+     "fieldLabel": "Brands",
+     "valueId": "default",
+     "valueLabel": "Septem Systems"
+    }
+   ],
+   "visibility": "PUBLIC",
+   "ref": "https://api.smartrecruiters.com/v1/companies/SeptemSystems/postings/744000136296338",
+   "language": {
+    "code": "en",
+    "label": "English",
+    "labelNative": "English (US)"
+   }
+  }
+ ]
+}

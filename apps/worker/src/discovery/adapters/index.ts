@@ -1,0 +1,27 @@
+import type { AdapterRegistry } from '../types.js';
+import { arbeitnow } from './arbeitnow.js';
+import { greenhouse } from './greenhouse.js';
+import { himalayas } from './himalayas.js';
+import { jobicy } from './jobicy.js';
+import { lever } from './lever.js';
+import { remoteok } from './remoteok.js';
+import { remotive } from './remotive.js';
+import { smartrecruiters } from './smartrecruiters.js';
+import { weworkremotely } from './weworkremotely.js';
+import { workable } from './workable.js';
+
+// Adding a source for an existing provider is a data change (a JobSource row).
+// Adding a provider is one adapter here + one entry in ImplementedSourceConfigSchema;
+// the AdapterRegistry type makes the compiler insist they stay in sync.
+export const ADAPTERS: AdapterRegistry = {
+  greenhouse,
+  lever,
+  smartrecruiters,
+  workable,
+  remoteok,
+  remotive,
+  arbeitnow,
+  himalayas,
+  jobicy,
+  weworkremotely,
+};
