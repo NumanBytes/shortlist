@@ -16,6 +16,14 @@ const EnvSchema = z.object({
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(30),
   // Each +1 doubles hashing time. 12 is ~250ms; tests lower it to keep suites fast.
   BCRYPT_ROUNDS: z.coerce.number().int().min(4).max(15).default(12),
+
+  // Browser origins allowed to call the API with credentials (the refresh cookie).
+  // Comma-separated, exact origins — e.g. "https://app.getshortlist.com".
+  WEB_ORIGINS: z
+    .string()
+    .default('http://localhost:5173')
+    .transform((v) => v.split(',').map((o) => o.trim()).filter(Boolean))
+    .pipe(z.array(z.url().refine((o) => new URL(o).origin === o, 'Must be a bare origin, no path or trailing slash'))),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

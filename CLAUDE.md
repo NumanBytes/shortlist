@@ -11,6 +11,7 @@ pnpm workspace (pnpm 12, Node >= 22). Run from the repo root unless noted.
 ```bash
 pnpm install
 pnpm dev:api            # builds shared, generates Prisma client, starts Nest in watch mode (:3000/health)
+pnpm dev:web            # Vite on :5173; proxies /api to :3000 (run dev:api alongside)
 pnpm build              # shared -> prisma generate -> api
 pnpm typecheck          # tsc --noEmit across all packages
 pnpm test               # unit tests (*.spec.ts) in every package — does NOT run e2e
@@ -37,7 +38,7 @@ Env files: `packages/db/.env` is read by the Prisma CLI; `apps/api/.env` is load
 ```
 apps/api          NestJS HTTP API — auth, CRUD, owns identity
 apps/worker       (planned) NestJS with no HTTP server — BullMQ consumer running the discovery/AI pipeline
-apps/web          (planned) React + Vite PWA
+apps/web          React + Vite PWA — Tailwind v4, TanStack Query, react-router
 packages/shared   Zod schemas + inferred types, imported by every app
 packages/db       Prisma schema, migrations, re-exported PrismaClient
 ```
@@ -47,12 +48,16 @@ packages/db       Prisma schema, migrations, re-exported PrismaClient
 - **Env config** is parsed at boot by `apps/api/src/config/env.ts` before Nest starts; add every new env var to that schema so a missing value fails fast.
 - **Routing:** global prefix `api/v1`, with `health` excluded. App-wide setup lives in `configureApp()` (`src/app.setup.ts`), called by both `main.ts` and the e2e tests — put new global settings there, not in `main.ts`.
 - **Config/DB injection:** services get validated env via `@Inject(ENV) env: Env` (global `ConfigModule`) and the database via the global `PrismaService`. Don't read `process.env` directly.
-- **Auth is hand-rolled JWT** (`src/auth/`). Do not use `@nestjs/passport` — understanding the mechanism is a stated goal. A global `AuthGuard` (`APP_GUARD`) protects **every** route; public routes opt out with `@Public()`. Get the caller with `@CurrentUser() user: AuthUser` and scope every query by `user.id`. Access tokens: HS256 JWT, 15 min, verified with a pinned algorithm. Refresh tokens: opaque random, stored as SHA-256 hash, rotated on every use; reuse of a revoked token revokes all the user's sessions. Never select `passwordHash` into a response — use `PUBLIC_USER_SELECT`.
+- **Auth is hand-rolled JWT** (`src/auth/`). Do not use `@nestjs/passport` — understanding the mechanism is a stated goal. A global `AuthGuard` (`APP_GUARD`) protects **every** route; public routes opt out with `@Public()`. Get the caller with `@CurrentUser() user: AuthUser` and scope every query by `user.id`. Access tokens: HS256 JWT, 15 min, verified with a pinned algorithm. Refresh tokens: opaque random, stored as SHA-256 hash, rotated on every use; reuse of a revoked token revokes all the user's sessions. The refresh token is only ever in the httpOnly `shortlist_refresh` cookie (`src/auth/refresh-cookie.ts`, `SameSite=Strict`, `Path=/api/v1/auth`) — never put it in a response body. CORS allows credentials only for the exact origins in `WEB_ORIGINS`. Never select `passwordHash` into a response — use `PUBLIC_USER_SELECT`.
 - **Worker stays a separate process.** Slow Claude calls and job fetches must never run on the API's event loop. Redis is queue-only; Postgres is the only store of record. The Claude API key belongs only in the worker's env.
 - **Data model** has two halves — career "truth" (`User`, `WorkExperience`, `Project`, `Skill`, `SkillEvidence`) and machine-generated jobs (`JobSource`, `DiscoveryRun`, `Job`, `JobRequirement`) — joined only through `JobMatch`. Job sources are toggled by data (`JobSource.isEnabled`), never by code. A `DiscoveryRun` row is created in `RUNNING` state *before* fetching so a failed source is distinguishable from "no jobs".
 - Constraints Prisma can't express go in hand-written SQL migrations (`chk_evidence_single_source` on `SkillEvidence`; the case-insensitive `Skill_userId_lower_name_key` index). Create them with `prisma migrate dev --create-only`, then edit the SQL. Keep them if you regenerate migrations.
 - **Never point `--shadow-database-url` (or any `migrate diff`/`migrate reset`) at the dev database** — Prisma wipes the shadow database.
 - **Ownership:** every query filters by the caller's `userId` (evidence goes through `skill: { userId }`). Another user's resource is a 404, never a 403.
+
+- **Web auth (`apps/web/src/lib/api.ts`):** the access token lives in a module variable only — never localStorage/sessionStorage. The session is restored on load from the refresh cookie. All refreshes go through `refreshSession()`, which is single-flight in the tab and wrapped in a `navigator.locks` lock across tabs: two concurrent refreshes with the same cookie would trip the API's reuse detection and revoke every session. Never call `/auth/refresh` directly.
+- **Web data:** server state via TanStack Query hooks in `src/lib/queries.ts`. Request bodies are validated client-side with the same `@shortlist/shared` schemas the API uses. Response types are hand-written in `src/lib/types.ts` (dates as ISO strings). Verification is never optimistic — the UI shows "verified" only after the server confirms.
+- **PWA:** the service worker precaches the app shell only; `/api` is excluded from navigation fallback and there is no runtime caching, so per-user data is never served from cache.
 
 ## Truthfulness rules (hard constraints)
 
@@ -67,6 +72,7 @@ packages/db       Prisma schema, migrations, re-exported PrismaClient
 
 - **ESM throughout** (`"type": "module"`, `nodenext`). Relative imports in `.ts` source end in `.js` — this is required, not a mistake.
 - Nest 12 defaults: **Vitest** (with globals) instead of Jest, **oxlint** instead of ESLint, Prettier for formatting. `typescript/no-floating-promises` is an error.
+- Web tests: Vitest + jsdom + Testing Library (`apps/web/src/**/*.test.ts(x)`), with `fetch` stubbed via `vi.stubGlobal`.
 - Unit tests: `*.spec.ts` next to the source. E2E tests: `apps/api/test/*.e2e-spec.ts` using Supertest against the real database. Use `createTestApp()` from `test/helpers.ts`: it registers users, tracks their IDs, and `close()` deletes only those (files run in parallel, so never bulk-delete by email domain).
 - Commit messages and PRs carry no Claude attribution (no `Co-Authored-By: Claude`, no "Generated with Claude Code").
 - The user wants to understand each layer — when adding an interview-relevant mechanism (queues, auth, idempotency, validation boundaries), briefly explain why the pattern is used, and prefer a hand-rolled implementation over a library that hides it.
