@@ -85,7 +85,13 @@ export function ReviewPage() {
         {skills.isPending && <p className="text-slate-500">Loading…</p>}
         {skills.isError && <p className="text-red-600">Couldn't load your skills: {skills.error.message}</p>}
         {skills.isSuccess && all.length === 0 && (
-          <p className="text-slate-500">No evidence yet. Seed your career data or add some to get started.</p>
+          <div className="space-y-2 text-sm text-slate-600">
+            <p>No evidence yet. New accounts start empty — load your career data with the seed, then refresh:</p>
+            <pre className="overflow-x-auto rounded-lg bg-slate-900 p-3 text-xs text-slate-100">
+              {`SEED_USER_EMAIL=${state.status === 'signedIn' ? state.user.email : 'you@example.com'} pnpm --filter @shortlist/db db:seed:career`}
+            </pre>
+            <p>Everything it adds starts unverified.</p>
+          </div>
         )}
         {skills.isSuccess && all.length > 0 && visible.length === 0 && (
           <p className="text-slate-500">{filter === 'unverified' ? 'Everything is verified. 🎉' : 'Nothing here yet.'}</p>
