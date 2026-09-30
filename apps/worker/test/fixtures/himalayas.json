@@ -1,0 +1,147 @@
+{
+ "comments": "21/08/2026: Cursor pagination is now available and is the preferred way to page through the feed. Pass the nextCursor value from each response back as ?cursor=. It is faster than offset and will never return the same job twice. The offset parameter is deprecated and will be removed in a future release. 13/03/2026: The API has been updated to include the companySlug field in the response.",
+ "updatedAt": 1790793295,
+ "offset": 0,
+ "limit": 5,
+ "totalCount": 92564,
+ "nextCursor": null,
+ "jobs": [
+  {
+   "title": "AI Engineer",
+   "excerpt": "NUWAVE POSITION SUMMARY NUWAVE is a market leader in unified communications as a service and enterprise voice for Microsoft Teams.",
+   "companyName": "Nuwave Communications, Inc.",
+   "companySlug": "nuwave-communications-inc",
+   "companyLogo": "https://cdn-images.himalayas.app/yrv3xhr8g7s5ohl2cax7tt8zqzrf",
+   "employmentType": "Full Time",
+   "minSalary": null,
+   "maxSalary": null,
+   "salaryPeriod": "annual",
+   "seniority": [
+    "Senior"
+   ],
+   "currency": null,
+   "locationRestrictions": [
+    "United States"
+   ],
+   "timezoneRestrictions": [
+    -10,
+    -9,
+    -8,
+    -7,
+    -6,
+    -5,
+    14
+   ],
+   "categories": [
+    "AI-Engineer",
+    "Machine-Learning-Engineer",
+    "Software-Engineer",
+    "Python-Developer",
+    "Cloud-Engineer",
+    "Artificial-Intelligence-Engineer",
+    "AI-ML-Engineer",
+    "AI-Engineering-Specialist",
+    "AI-Engineering",
+    "Artificial-Intelligence-Engineering",
+    "Python-AI-Engineer",
+    "AI-Engineering-Jobs",
+    "AI-Agent-Engineer"
+   ],
+   "parentCategories": [
+    "Data Science",
+    "Developer"
+   ],
+   "description": "<strong>NUWAVE POSITION SUMMARY</strong><br>NUWAVE is a market leader in unified communications as a service and enterprise voice for Microsoft Teams. <br>We deliver carrier-grade communications to enterprises and service providers worldwide. Our platforms are <br>backed by BSI-certified management systems, including ISO/IEC 42001 for AI governance.<br>We are looking for an AI Engineer for a full-time, U.S.-remote role helping build and operate Nebula, <br>NUWAVE's governed conversational AI workspace. Nebula combines a GraphRAG knowledge engine, business <br>applications, and agent workflows across the web and Microsoft Teams.<br>This role works closely with the Director of AI Infrastructure to turn Jira issues into verified production <br>changes. You will use AI coding agents as part of the daily engineering workflow while remaining accountable <br>for system design, code review, testing, deployment discipline, and operational judgment. This is a hands-on <br>engineering role, not a prompt-writing position.<br><em>Why Join NUWAVE</em><br>You will inherit a working AI-first engineering system and receive direct mentorship. As you grow, you will <br>take ownership of significant Nebula workstreams and help shape how NUWAVE builds and operates AI <br>products.<br><br><strong>ESSENTIAL DUTIES AND RESPONSIBILITIES</strong><br>• Build, test, and maintain AI applications, cloud services, and supporting infrastructure for Nebula.<br>• Translate Jira issues and product requirements into scoped technical changes with clear acceptance criteria.<br>• Use AI coding agents to accelerate implementation while reviewing their output for correctness, security, and <br>maintainability.<br>• Develop and debug Python services and contribute to TypeScript applications when needed.<br>• Operate workloads across AWS and Azure, including serverless, container, identity, data, and observability services.<br>• Work with retrieval-augmented generation, GraphRAG, vector search, graph databases, and agent workflows.<br>• Write infrastructure as code and follow disciplined source-control, review, release, and rollback practices.<br>• Verify changes through automated tests, logs, metrics, and direct functional checks before considering work <br>complete.<br>• Document designs, operational procedures, decisions, and status clearly enough for others to act without a <br>meeting.<br>• Participate in production support, incident response, and occasional after-hours work when required.<br><br><strong>OTHER DUTIES AND RESPONSIBILITIES</strong><br>Some on-call work, including weekends or holidays, may be required.<br><br><strong>SUPERVISORY RESPONSIBILITIES</strong><br>None.<br><br><strong>MINIMUM QUALIFICATIONS KNOWLEDGE SKILLS AND ABILITIES</strong><br>• Strong software engineering fundamentals and working fluency in Python, including the ability to read, debug, <br>and review unfamiliar code.<br>• Hands-on experience with at least one major cloud platform, preferably AWS or Azure.<br>• Practical experience using AI coding tools such as Claude Code, Codex, Cursor, or similar agentic tools.<br>• Demonstrated ownership: able to turn a goal into a plan, identify blockers early, and carry work through <br>verification.<br>• Sound Git, testing, deployment, and operational discipline, with clear evidence of what changed and how it <br>was validated.<br>• Clear written and verbal communication with technical and nontechnical partners.<br><em>Preferred Qualifications</em><br>• Experience with LangGraph, LangChain, RAG or GraphRAG systems, vector search, or graph databases.<br>• Experience with Terraform, OpenTofu, or another infrastructure-as-code framework.<br>• Experience building on Microsoft 365 or Teams, including Microsoft Graph, Teams apps, or Microsoft Entra ID.<br>• Exposure to multi-agent orchestration patterns or development of internal agent tooling.<br>• Security-minded engineering and familiarity with formal management systems such as ISO/IEC 42001.<br>• Experience with TypeScript, containerized services, serverless systems, or distributed systems.<br><br><strong>PHYSICAL DEMANDS AND WORK CONDITIONS AND ENVIRONMENT</strong><br>None.<br><br><strong>EQUIPMENT NECESSARY TO COMPLETE JOB RESPONSIBILITIES</strong><br>Desk Phone ☐ Yes ☒ No<br>Mobile Phone ☒ Yes ☐ No<br>Computer or Laptop ☒ Yes ☐ No<br>Internet Connection ☒ Yes ☐ No<br><br><strong>NOTE</strong><br>This job description does not state or imply that these are the only duties of this position. Employees must <br>follow other job-related instructions and perform other job-related duties assigned by authorized persons. <br>Duties and responsibilities may be modified to reasonably accommodate individuals with disabilities. The <br>employee must possess the skills, aptitudes, and abilities to perform each duty proficiently. Requirements <br>may exclude individuals who pose a direct threat or significant risk to their own health or safety or that of <br>others. The requirements listed are the minimum levels of knowledge, skills, or abilities. This document does <br>not create an employment contract, implied or otherwise, other than an at-will relationship.<br><p>Originally posted on <a href=\"https://himalayas.app\">Himalayas</a></p>",
+   "pubDate": 1790793295,
+   "expiryDate": 1795977294,
+   "applicationLink": "https://himalayas.app/companies/nuwave-communications-inc/jobs/ai-engineer",
+   "guid": "https://himalayas.app/companies/nuwave-communications-inc/jobs/ai-engineer"
+  },
+  {
+   "title": "Amazon Product Research & Supplier Sourcing Specialist",
+   "excerpt": "Our Client, an international e-commerce company with a strong presence in the USA, is looking for an experienced Amazon Product Research Specialist to identify potential product opportunities on Amazon, analyze niches, and support decision-making through structured research.",
+   "companyName": "ScaleJet",
+   "companySlug": "scalejet",
+   "companyLogo": "https://cdn-images.himalayas.app/fi72679dk0z0uec79dqozfanm3le",
+   "employmentType": "Full Time",
+   "minSalary": null,
+   "maxSalary": null,
+   "salaryPeriod": "annual",
+   "seniority": [
+    "Mid-level"
+   ],
+   "currency": null,
+   "locationRestrictions": [
+    "Ukraine"
+   ],
+   "timezoneRestrictions": [
+    2,
+    3
+   ],
+   "categories": [
+    "Product-Researcher",
+    "Amazon-Researcher",
+    "Supplier-Sourcing-Specialist",
+    "E-Commerce-Analyst",
+    "Market-Research-Analyst",
+    "Product-Research-Specialist",
+    "Product-Sourcing-Analyst",
+    "Amazon-Product-Research",
+    "Product-Research-Expert",
+    "Product-Search-Specialist"
+   ],
+   "parentCategories": [
+    "Marketing"
+   ],
+   "description": "<p>Our Client, an international e-commerce company with a strong presence in the USA, is looking for an experienced Amazon Product Research Specialist to identify potential product opportunities on Amazon, analyze niches, and support decision-making through structured research.</p><p>The focus of this role is identifying promising product opportunities on Amazon, analyzing niche and market potential, and developing simple, practical improvement ideas. The role also includes sourcing and communicating with suppliers in China.</p><p>The ideal candidate has strong analytical skills, experience working with Chinese suppliers, and the ability to identify practical product improvement opportunities based on market and competitor analysis.</p><h3>About the Company:</h3><p>It is a fast-growing small company that manages Amazon accounts and runs its own brand, offering eco-friendly products. The team works fully remotely, allowing for flexibility and efficiency while maintaining strong collaboration.</p><p>The company operates in an international and rapidly evolving market, providing a dynamic work environment. It encourages creativity and initiative, giving team members the opportunity to bring new ideas to life and make a real impact.</p><h3>Key Responsibilities</h3><ul>\n<li>Conduct in-depth Amazon product research using tools such as Helium 10, Amazon Brand Analytics, and other relevant platforms.</li>\n<li>Identify and present a shortlist of 10–20 potential product opportunities.</li>\n<li>Analyze each opportunity based on estimated sales and revenue, competition level, review count, customer feedback, main keywords, traffic sources, organic and sponsored rankings, competitor strength, brand recognition, pricing, margins, and market potential.</li>\n<li>Create clear and detailed research reports that allow management to compare opportunities and make informed decisions.</li>\n<li>Identify simple product improvement opportunities based on customer feedback and competitor weaknesses (e.g. color variations, size options, packaging, bundling, or listing improvements).</li>\n<li>Contact suppliers and manufacturers in China to request quotations and product information.</li>\n<li>Compare suppliers, pricing, MOQs, production capabilities, and lead times.</li>\n<li>Communicate with factories regarding product specifications and samples.</li>\n<li>Maintain organized files, supplier records, product information, and research documentation.</li>\n</ul><h3>Requirements</h3><ul>\n<li>Proven experience in Amazon product research or similar analytical role.</li>\n<li>Strong experience using Helium 10, Amazon Brand Analytics, and other Amazon research tools.</li>\n<li>Proven experience working directly with suppliers and manufacturers in China.</li>\n<li>Ability to analyze markets, competitors, keywords, customer reviews, pricing, and profitability.</li>\n<li>Excellent organizational skills and strong attention to detail.</li>\n<li>Ability to create clear, structured, and detailed spreadsheets and reports.</li>\n<li>Strong written English and supplier communication skills.</li>\n<li>Creative thinking with the ability to suggest practical and simple product improvement ideas.</li>\n<li>Ability to independently manage multiple research and sourcing tasks.</li>\n</ul><h3>Preferred Qualifications</h3><ul>\n<li>Experience in the toys and children's products category is a plus.</li>\n<li>Experience with product compliance, testing, packaging, and quality control is an advantage.</li>\n<li>Experience working with private label products or Amazon FBA suppliers is a plus.</li>\n</ul><h3>Benefits:</h3><ul>\n<li>Work for a market-proven, fast-growing company.</li>\n<li>Competitive salary and bonus opportunities.</li>\n<li>Supportive and collaborative work environment.</li>\n<li>Opportunity to be part of something bigger, with autonomy over your work.</li>\n<li>Fully remote work with flexible hours (work from whatever place).</li>\n</ul><p>Originally posted on <a href=\"https://himalayas.app\">Himalayas</a></p>",
+   "pubDate": 1790793273,
+   "expiryDate": 1795977272,
+   "applicationLink": "https://himalayas.app/companies/scalejet/jobs/amazon-product-research-supplier-sourcing-specialist-1717533860",
+   "guid": "https://himalayas.app/companies/scalejet/jobs/amazon-product-research-supplier-sourcing-specialist-1717533860"
+  },
+  {
+   "title": "Applied AI Engineer - AI Finance Agent",
+   "excerpt": "About BJAKThe original mission of BJAK is we believe people deserve smarter ways to plan, save and grow their money.",
+   "companyName": "Bjak",
+   "companySlug": "bjak",
+   "companyLogo": "https://cdn-images.himalayas.app/8ub8wtihrfrm3vfivlkcojai4np3",
+   "employmentType": "Full Time",
+   "minSalary": null,
+   "maxSalary": null,
+   "salaryPeriod": "annual",
+   "seniority": [
+    "Mid-level",
+    "Senior"
+   ],
+   "currency": null,
+   "locationRestrictions": [
+    "Sweden"
+   ],
+   "timezoneRestrictions": [
+    1
+   ],
+   "categories": [
+    "Applied-AI-Agent-Engineer",
+    "AI-Agent-Engineer",
+    "Financial-AI-Engineering",
+    "Applied-AI-ML-Engineer",
+    "AI-Application-Engineer",
+    "Applied-AI-Engineering",
+    "AI-Agents-Engineer",
+    "AI-Finance-Specialist",
+    "AI-Agentic-Engineer",
+    "Applied-AI-Engineer-Jobs",
+    "AI-Engineer",
+    "Applied-AI-Engineer"
+   ],
+   "parentCategories": [
+    "Data Science"
+   ],
+   "description": "<h3><strong>About BJAK</strong></h3><p>The original mission of BJAK is we believe people deserve smarter ways to plan, save and grow their money. This is the origin of our name.<br><br>Started in 2019, we built the first mobile-first, insurance platform, enabling insurance to be accessible online by millions in the region. Today, its the leading insurance platform in Southeast Asia.<br><br>Today, we are expanding ways to help people in the region — this includes spending, saving, investing, exchanging, travelling, and more. Our mission is help people get more from their money every day.<br><br>We have teams working around the world, with over 20 nationalities from our offices and remotely, who truly enjoys their work. We are looking for the most talented and driven people we can find. We are looking for people who work for their passion, not counting hours. Who loves building great next-generation products, not status quo. Who cares about redefining how everyone around us can get the best financial applications, not for an exclusive few.<br><br>If you're this person, we'd love to talk to you.</p><h3><strong>The Role</strong></h3><p>We are looking for applied AI engineers to build AI-native systems for BJAK's AI Finance Agent.<br><br>This is not a research-only role. We need builders who can use AI to automate real workflows, improve products, reduce manual work and make financial services easier for users and teams.</p><h3><strong>What You'll Own</strong></h3><ul>\n<li><p>Build AI-powered workflows, assistants, agents and automation systems.</p></li>\n<li><p>Apply AI across customer support, CRM, onboarding, claims, renewals, payments, operations and internal tools.</p></li>\n<li><p>Work with product and engineering teams to turn manual processes into scalable AI-native systems.</p></li>\n<li><p>Build integrations with LLMs, internal data, APIs, documents, knowledge bases and business systems.</p></li>\n<li><p>Design evaluation, monitoring and fallback flows so AI outputs are useful, safe and reliable.</p></li>\n<li><p>Prototype quickly, test with users or operators, then productionize what works.</p></li>\n<li><p>Improve speed, quality and consistency across workflows using AI where it creates real business value.</p></li>\n</ul><h3><strong>What We're Looking For</strong></h3><ul>\n<li><p>Strong software engineering foundation, preferably with Python and backend systems.</p></li>\n<li><p>Hands-on experience building with LLM APIs, agents, RAG, workflow automation or AI tools.</p></li>\n<li><p>Able to connect AI systems with real product, data and operational workflows.</p></li>\n<li><p>Good judgement on where AI helps and where rule-based systems or human review are better.</p></li>\n<li><p>Understands evaluation, accuracy, latency, cost, privacy and failure modes.</p></li>\n<li><p>Fast builder who can prototype, test and ship practical systems.</p></li>\n<li><p>Experience in fintech, insurance, support automation, CRM or operations automation is a strong advantage.</p></li>\n</ul><h3><strong>The Kind of Builder We Want</strong></h3><ul>\n<li><p>Practical AI builder, not just a prompt experimenter.</p></li>\n<li><p>Thinks in workflows, systems and measurable quality.</p></li>\n<li><p>Can build quickly but still cares about guardrails and reliability.</p></li>\n<li><p>Comfortable working with messy real-world data and processes.</p></li>\n<li><h3>Honest about what AI can and cannot do.</h3></li>\n</ul><h3><strong>This Role Is Not For</strong></h3><ul>\n<li><p>People who only want research projects with no production ownership.</p></li>\n<li><p>Candidates who treat AI as demos instead of working systems.</p></li>\n<li><p>Engineers who do not care about evaluation, reliability or user impact.</p></li>\n<li><p>People who overclaim AI impact without evidence.</p></li>\n<li><p>Builders who cannot work with product, ops and business teams.</p></li>\n</ul><h3><strong>Location</strong></h3><p>This role is remote, but candidates must be based in <strong>Sweden</strong>. We are hiring specifically for this market, so applicants should already be based in <strong>Sweden.</strong></p><h3><strong>Language</strong></h3><p>English is our main working language across global teams. Strong English communication is required.</p><h3><strong>Interview Process</strong></h3><h3>Our process is designed to move fast:</h3><ol>\n<li><h3>Online assessment or practical task</h3></li>\n<li><h3>Technical interview</h3></li>\n<li><h3>CEO / final round</h3></li>\n</ol><p>For strong candidates, we aim to complete the process and make an offer within 1 week from the start of the interview process. Candidates who complete assessments quickly will be prioritized.</p><p>Originally posted on <a href=\"https://himalayas.app\">Himalayas</a></p>",
+   "pubDate": 1790793271,
+   "expiryDate": 1795977270,
+   "applicationLink": "https://himalayas.app/companies/bjak/jobs/applied-ai-engineer-ai-finance-agent-9429529650",
+   "guid": "https://himalayas.app/companies/bjak/jobs/applied-ai-engineer-ai-finance-agent-9429529650"
+  }
+ ]
+}

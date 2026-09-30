@@ -1,0 +1,87 @@
+{
+ "id": "744000094846166",
+ "name": "Full Stack Software Engineer (MERN)",
+ "uuid": "6f79fd91-6a6f-42e2-a4ec-a4737a0c1e5b",
+ "jobId": "0001bb79-7344-454a-94e7-ed22d59bc20b",
+ "jobAdId": "f711fc49-3a35-4494-9d0c-561d3686c6fb",
+ "defaultJobAd": true,
+ "refNumber": "REF3R",
+ "company": {
+  "name": "Septem Systems",
+  "identifier": "SeptemSystems"
+ },
+ "location": {
+  "city": "Lahore",
+  "region": "Punjab",
+  "country": "pk",
+  "address": "31 - Queens Road, Crown Complex, 3rd Floor",
+  "remote": false,
+  "hybrid": false,
+  "fullLocation": "Lahore, Punjab, Pakistan"
+ },
+ "customField": [
+  {
+   "fieldId": "COUNTRY",
+   "fieldLabel": "Country/Region",
+   "valueId": "pk",
+   "valueLabel": "Pakistan"
+  },
+  {
+   "fieldId": "60fda731f299a343a878baed",
+   "fieldLabel": "Brands",
+   "valueId": "default",
+   "valueLabel": "Septem Systems"
+  }
+ ],
+ "releasedDate": "2025-11-21T13:29:11.629Z",
+ "creator": {
+  "name": "",
+  "avatarUrl": ""
+ },
+ "postingUrl": "https://jobs.smartrecruiters.com/SeptemSystems/744000094846166-full-stack-software-engineer-mern-",
+ "applyUrl": "https://jobs.smartrecruiters.com/SeptemSystems/744000094846166-full-stack-software-engineer-mern-?oga=true",
+ "referralUrl": "https://jobs.smartrecruiters.com/external-referrals/company/SeptemSystems/publication/6f79fd91-6a6f-42e2-a4ec-a4737a0c1e5b?dcr_ci=SeptemSystems",
+ "jobAd": {
+  "sections": {
+   "companyDescription": {
+    "title": "Company Description",
+    "text": ""
+   },
+   "jobDescription": {
+    "title": "Job Description",
+    "text": "<p>Septem Systems is actively looking for<strong> </strong>skilled and experienced<strong> </strong><strong>𝐅𝐮𝐥𝐥</strong><strong> </strong><strong>𝐒𝐭𝐚𝐜𝐤</strong><strong> </strong><strong>𝐌𝐄𝐑𝐍</strong><strong> </strong><strong>𝐒𝐨𝐟𝐭𝐰𝐚𝐫𝐞</strong><strong> </strong><strong>𝐄𝐧𝐠𝐢𝐧𝐞𝐞𝐫𝐬</strong><strong> </strong><strong>𝐰𝐢𝐭𝐡</strong><strong> </strong><strong>𝐦𝐚𝐧𝐝𝐚𝐭𝐨𝐫𝐲</strong><strong> </strong><strong>𝐡𝐚𝐧𝐝𝐬</strong><strong>-</strong><strong>𝐨𝐧</strong><strong> </strong><strong>𝐞𝐱𝐩𝐞𝐫𝐢𝐞𝐧𝐜𝐞</strong><strong> </strong><strong>𝐢𝐧</strong><strong> </strong><strong>𝐍𝐞𝐬𝐭𝐉𝐒</strong><strong> </strong><strong>𝐚𝐧𝐝</strong><strong> </strong><strong>𝐚</strong><strong> </strong><strong>𝐬𝐭𝐫𝐨𝐧𝐠</strong><strong> </strong><strong>𝐜𝐨𝐦𝐦𝐚𝐧𝐝</strong><strong> </strong><strong>𝐨𝐟</strong><strong> </strong><strong>𝐌𝐲𝐒𝐐𝐋</strong><strong>.</strong> Join our growing engineering team to build scalable web applications, solve real-world problems, and contribute to products that make a difference!</p><p>𝐋𝐨𝐜𝐚𝐭𝐢𝐨𝐧: Queen’s Road, Lahore</p><p>𝐄𝐱𝐩𝐞𝐫𝐢𝐞𝐧𝐜𝐞: 2-3 Years</p><p>𝐉𝐨𝐛 𝐓𝐲𝐩𝐞: Full-Time, 𝐎𝐍𝐒𝐈𝐓𝐄.</p><p>𝐎𝐟𝐟𝐢𝐜𝐞 𝐓𝐢𝐦𝐢𝐧𝐠𝐬:&#xa0;11:00 AM to 8:00 PM</p><p>𝐊𝐞𝐲 𝐑𝐞𝐬𝐩𝐨𝐧𝐬𝐢𝐛𝐢𝐥𝐢𝐭𝐢𝐞𝐬:</p><ul><li>Develop, test, and deploy modern web applications using 𝐌𝐨𝐧𝐠𝐨𝐃𝐁, 𝐄𝐱𝐩𝐫𝐞𝐬𝐬.𝐣𝐬, 𝐑𝐞𝐚𝐜𝐭.𝐣𝐬, 𝐚𝐧𝐝 𝐍𝐨𝐝𝐞.𝐣𝐬.</li><li>Work on 𝐑𝐄𝐒𝐓𝐟𝐮𝐥 𝐀𝐏𝐈𝐬 and 𝐦𝐢𝐜𝐫𝐨 𝐬𝐞𝐫𝐯𝐢𝐜𝐞𝐬 with 𝐍𝐞𝐬𝐭.𝐣𝐬</li><li>Collaborate with cross-functional teams to design and deliver new features.</li><li>Optimize application performance and ensure responsiveness across devices.</li><li>Participate in code reviews, agile ceremonies, and deployment processes.</li><li>Troubleshoot and debug issues across the full stack.</li></ul><p>𝐑𝐞𝐪𝐮𝐢𝐫𝐞𝐦𝐞𝐧𝐭𝐬:</p><ul><li>𝟐–𝟒 𝐲𝐞𝐚𝐫𝐬 of professional experience as a Full Stack Developer.</li><li>Strong knowledge of the 𝐌𝐄𝐑𝐍 𝐬𝐭𝐚𝐜𝐤 (MongoDB, Express.js, React.js, Node.js)</li><li><strong>Hands-on </strong>𝐄𝐱𝐩𝐞𝐫𝐢𝐞𝐧𝐜𝐞&#xa0;𝐰𝐢𝐭𝐡 𝐍𝐞𝐬𝐭.𝐣𝐬 𝐟𝐨𝐫 𝐛𝐚𝐜𝐤𝐞𝐧𝐝 𝐚𝐫𝐜𝐡𝐢𝐭𝐞𝐜𝐭𝐮𝐫𝐞 and databases like&#xa0;<strong>𝐌𝐲𝐒𝐐𝐋.</strong></li><li>Proficient in 𝐉𝐚𝐯𝐚𝐒𝐜𝐫𝐢𝐩𝐭 and 𝐓𝐲𝐩𝐞𝐒𝐜𝐫𝐢𝐩𝐭</li><li>Understanding of 𝐑𝐄𝐒𝐓 𝐀𝐏𝐈𝐬, authentication (JWT/OAuth), and modern development tools (Git, Postman, Docker, etc.)</li><li>Experience with 𝐝𝐚𝐭𝐚𝐛𝐚𝐬𝐞 𝐝𝐞𝐬𝐢𝐠𝐧 and 𝐪𝐮𝐞𝐫𝐲 𝐨𝐩𝐭𝐢𝐦𝐢𝐳𝐚𝐭𝐢𝐨𝐧</li><li>Good understanding of software engineering best practices, including testing and CI/CD</li></ul><p>If you’re ready to take your career to the next level, send your resume now! Let’s build something amazing together!</p>"
+   },
+   "qualifications": {
+    "title": "Qualifications",
+    "text": ""
+   },
+   "additionalInformation": {
+    "title": "Additional Information",
+    "text": ""
+   }
+  }
+ },
+ "active": true,
+ "visibility": "PUBLIC",
+ "industry": {
+  "id": "computer_software",
+  "label": "Computer Software"
+ },
+ "function": {
+  "id": "information_technology",
+  "label": "Information Technology"
+ },
+ "experienceLevel": {
+  "id": "mid_senior_level",
+  "label": "Mid-Senior Level"
+ },
+ "typeOfEmployment": {
+  "id": "permanent",
+  "label": "Full-time"
+ },
+ "language": {
+  "code": "en",
+  "label": "English",
+  "labelNative": "English (US)"
+ }
+}

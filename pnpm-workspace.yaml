@@ -5,4 +5,5 @@ allowBuilds:
   '@prisma/client': true
   '@prisma/engines': true
   bcrypt: true
+  msgpackr-extract: false # optional BullMQ speed-up; pure-JS fallback is fine at our volume
   prisma: true

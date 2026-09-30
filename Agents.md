@@ -373,13 +373,34 @@ always imports compiled schemas and a current Prisma client.
   Vite proxies `/api` in development (same origin). The service worker caches the app
   shell only — never API responses.
 
+- `apps/worker` — discovery, Milestone 1 (no AI yet). NestJS application context (no HTTP),
+  BullMQ on Redis, nightly at 02:00 Asia/Karachi via a Redis-stored job scheduler.
+  10 platform adapters: Greenhouse, Lever, SmartRecruiters, Workable (company boards),
+  Remote OK, Remotive, Arbeitnow, Himalayas, Jobicy, We Work Remotely (aggregators).
+  Two-stage rule filter driven by `DiscoveryPreferences` (defaults in shared), dedupe by
+  normalized company+title hash, `DiscoveryRun` opened RUNNING before each fetch.
+  `packages/db/prisma/seed/job-sources.ts` records all 48 sources from the user's list
+  (13 enabled; 35 recorded for Milestones 2–3 with the platform each company uses).
+  First live run: 1,321 postings → 28 stored, incl. Septem's MERN role and Kwanso's
+  Full Stack / MERN roles in Lahore. Lesson from that run: posting age is only
+  enforced on aggregators — on a company's own board, a listed job is open.
+
+**Source inventory (probed 2026-10-01):** public APIs — Motive, Careem (Greenhouse);
+Educative, Kwanso (Lever); Septem Systems (SmartRecruiters); Programmers Force (Workable).
+Hosted ATS pages (Milestone 2) — VentureDive, NorthBay (JazzHR); ShopDev, Techlogix,
+SlashNext, Tintash (Zoho Recruit); Intagleo, i2c (OpenCATS-style); 7Vals, UWorx, Cogent
+Labs, Systemvent, Code District (one each). Custom sites (Milestone 3, change-detection +
+Haiku extraction) — 15 companies. Email alerts (Milestone 3) — Wellfound, LinkedIn,
+Rozee.pk, remote.co (no API / ToS forbids scraping). Turing is a vetting marketplace,
+not a feed. TCM blocks bots (403); Qbatch careers 404s; Conrad Labs' domain is dead.
+
 **Not yet built — in order:**
-1. Verify the seeded career data in the review screen. The "API integration" skill is
+1. Jobs screen + API (list discovered jobs with source attribution, status changes,
+   per-source last-run health, "run now"). Then verify the seeded career data. The "API integration" skill is
    a placeholder name for the Ruby B2C-layer knowledge. Skill renames and WorkExperience /
    Project editing have API endpoints but no UI yet.
-2. `apps/worker` — the discovery/extraction/matching/tailoring pipeline itself,
-   starting with exactly one `JobSource` (one Greenhouse board) end to end before
-   adding more sources.
+2. Discovery Milestone 2 (hosted ATS pages: JazzHR, Zoho Recruit, OpenCATS, …), then
+   AI extraction + match scoring (Haiku) and tailoring (Sonnet).
 3. Move the database to Neon when deploying (step 2 of the original plan was done
    against local Postgres instead).
 4. Rate-limit `/auth/login` and `/auth/register` (Redis-backed counters, once Redis
