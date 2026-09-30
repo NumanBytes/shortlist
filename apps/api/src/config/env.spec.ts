@@ -15,6 +15,7 @@ describe('loadEnv', () => {
       REFRESH_TOKEN_TTL_DAYS: 30,
       BCRYPT_ROUNDS: 12,
       WEB_ORIGINS: ['http://localhost:5173'],
+      REDIS_URL: 'redis://localhost:6379',
     });
   });
 

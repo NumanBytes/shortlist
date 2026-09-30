@@ -16,7 +16,7 @@ const FILTERS: { value: Filter; label: string }[] = [
 const matches = (e: Evidence, f: Filter) => f === 'all' || e.isVerified === (f === 'verified');
 
 export function ReviewPage() {
-  const { state, logout } = useAuth();
+  const { state } = useAuth();
   const skills = useSkills();
   const work = useWorkExperiences();
   const projects = useProjects();
@@ -37,17 +37,7 @@ export function ReviewPage() {
     .filter((s) => s.evidence.length > 0);
 
   return (
-    <div className="mx-auto max-w-2xl px-4 pb-16 pt-[max(1rem,env(safe-area-inset-top))]">
-      <header className="flex items-center justify-between py-3">
-        <div>
-          <h1 className="text-lg font-semibold">Career evidence</h1>
-          {state.status === 'signedIn' && <p className="text-sm text-slate-500">{state.user.name}</p>}
-        </div>
-        <Button variant="ghost" onClick={() => void logout()}>
-          Sign out
-        </Button>
-      </header>
-
+    <>
       <section className="rounded-xl border border-slate-200 bg-white p-4">
         <p className="text-sm text-slate-600">
           Only <strong>verified</strong> evidence can ever reach a resume. Verify an item only if it's true as worded —
@@ -112,6 +102,6 @@ export function ReviewPage() {
           </section>
         ))}
       </main>
-    </div>
+    </>
   );
 }

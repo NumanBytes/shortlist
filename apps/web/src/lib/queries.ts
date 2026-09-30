@@ -1,7 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UpdateSkillEvidenceInput } from '@shortlist/shared';
 import { api } from './api';
-import type { Evidence, Project, Skill, WorkExperience } from './types';
+import type {
+  DiscoverySource,
+  Evidence,
+  JobDetail,
+  JobListItem,
+  JobStatus,
+  Project,
+  RunNowResult,
+  Skill,
+  WorkExperience,
+} from './types';
 
 export const keys = {
   skills: ['skills'] as const,
@@ -44,3 +54,50 @@ export const useUpdateEvidence = () =>
   useEvidenceMutation(({ id, body }: { id: string; body: UpdateSkillEvidenceInput }) =>
     api<Evidence>(`/evidence/${id}`, { method: 'PATCH', body }),
   );
+
+// ── Jobs & discovery ─────────────────────────────────────────────────────────
+export const jobKeys = {
+  all: ['jobs'] as const,
+  list: (status?: JobStatus) => ['jobs', 'list', status ?? 'all'] as const,
+  detail: (id: string) => ['jobs', 'detail', id] as const,
+  sources: ['discovery', 'sources'] as const,
+};
+
+export const useJobs = (status?: JobStatus) =>
+  useQuery({
+    queryKey: jobKeys.list(status),
+    queryFn: () => api<JobListItem[]>(`/jobs${status ? `?status=${status}` : ''}`),
+  });
+
+export const useJobDetail = (id: string, enabled: boolean) =>
+  useQuery({ queryKey: jobKeys.detail(id), queryFn: () => api<JobDetail>(`/jobs/${id}`), enabled });
+
+export function useSetJobStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: JobStatus }) =>
+      api<JobListItem>(`/jobs/${id}`, { method: 'PATCH', body: { status } }),
+    // A status change moves the job between filtered lists; refetch them all.
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: jobKeys.all }),
+  });
+}
+
+export const useSources = () =>
+  useQuery({ queryKey: jobKeys.sources, queryFn: () => api<DiscoverySource[]>('/discovery/sources') });
+
+export function useRunDiscovery() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => api<RunNowResult>('/discovery/run', { method: 'POST' }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: jobKeys.sources }),
+  });
+}
+
+export function useSetSourceEnabled() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, isEnabled }: { id: string; isEnabled: boolean }) =>
+      api(`/discovery/sources/${id}`, { method: 'PATCH', body: { isEnabled } }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: jobKeys.sources }),
+  });
+}

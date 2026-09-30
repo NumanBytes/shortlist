@@ -394,9 +394,17 @@ Haiku extraction) — 15 companies. Email alerts (Milestone 3) — Wellfound, Li
 Rozee.pk, remote.co (no API / ToS forbids scraping). Turing is a vetting marketplace,
 not a feed. TCM blocks bots (403); Qbatch careers 404s; Conrad Labs' domain is dead.
 
+- Jobs screen + API: `/jobs` (list without descriptions; `/jobs/:id` with; status
+  changes — "I applied" only records what the user did), `/discovery/sources` (per-source
+  last-run health; enabling a platform with no adapter is refused), `/discovery/run`
+  ("run now": queues the user's enabled sources, skipping any that ran in the last
+  6 hours so manual runs can't break aggregator request limits). The API only enqueues;
+  a dead Redis returns 503 within 3s instead of hanging the request. Web: Jobs (New /
+  Interested / Applied / Skipped), Evidence, Sources. Every job credits its source and
+  "Open posting" goes to the original URL.
+
 **Not yet built — in order:**
-1. Jobs screen + API (list discovered jobs with source attribution, status changes,
-   per-source last-run health, "run now"). Then verify the seeded career data. The "API integration" skill is
+1. Verify the seeded career data (Evidence screen). The "API integration" skill is
    a placeholder name for the Ruby B2C-layer knowledge. Skill renames and WorkExperience /
    Project editing have API endpoints but no UI yet.
 2. Discovery Milestone 2 (hosted ATS pages: JazzHR, Zoho Recruit, OpenCATS, …), then
