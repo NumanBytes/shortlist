@@ -1,0 +1,47 @@
+import { z } from 'zod';
+
+export const JobStatus = z.enum([
+  'DISCOVERED',
+  'INTERESTED',
+  'SKIPPED',
+  'APPLIED',
+  'ASSESSMENT',
+  'INTERVIEWING',
+  'REJECTED',
+  'OFFER',
+  'WITHDRAWN',
+]);
+export type JobStatus = z.infer<typeof JobStatus>;
+
+export const ListJobsQuerySchema = z
+  .object({
+    status: JobStatus.optional(),
+  })
+  .strict();
+export type ListJobsQuery = z.infer<typeof ListJobsQuerySchema>;
+
+// The user moves a job through their pipeline. Shortlist never applies on its own —
+// APPLIED only ever records what the user did (Agents.md §1: the human clicks submit).
+export const UpdateJobSchema = z.object({ status: JobStatus }).strict();
+export type UpdateJobInput = z.infer<typeof UpdateJobSchema>;
+
+export const UpdateJobSourceSchema = z.object({ isEnabled: z.boolean() }).strict();
+export type UpdateJobSourceInput = z.infer<typeof UpdateJobSourceSchema>;
+
+// A manual "run now" skips sources that ran more recently than this. Protects the
+// aggregators' request limits (Remotive: at most ~4 requests a day).
+export const MANUAL_RUN_COOLDOWN_HOURS = 6;
+
+// Display names for attribution. Aggregators must be named and linked back to.
+export const PROVIDER_LABELS: Record<string, string> = {
+  greenhouse: 'Greenhouse',
+  lever: 'Lever',
+  smartrecruiters: 'SmartRecruiters',
+  workable: 'Workable',
+  remoteok: 'Remote OK',
+  remotive: 'Remotive',
+  arbeitnow: 'Arbeitnow',
+  himalayas: 'Himalayas',
+  jobicy: 'Jobicy',
+  weworkremotely: 'We Work Remotely',
+};

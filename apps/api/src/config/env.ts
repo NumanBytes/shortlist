@@ -19,6 +19,9 @@ const EnvSchema = z.object({
 
   // Browser origins allowed to call the API with credentials (the refresh cookie).
   // Comma-separated, exact origins — e.g. "https://app.getshortlist.com".
+  // The API only enqueues jobs (e.g. "run discovery now"); the worker consumes them.
+  REDIS_URL: z.string().regex(/^rediss?:\/\//, 'REDIS_URL must start with redis:// or rediss://').default('redis://localhost:6379'),
+
   WEB_ORIGINS: z
     .string()
     .default('http://localhost:5173')

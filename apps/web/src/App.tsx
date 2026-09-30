@@ -1,7 +1,10 @@
 import { Navigate, Outlet, Route, Routes } from 'react-router';
 import { useAuth } from './auth/AuthProvider';
+import { AppShell } from './components/AppShell';
 import { AuthForm } from './pages/AuthForm';
+import { JobsPage } from './pages/JobsPage';
 import { ReviewPage } from './pages/ReviewPage';
+import { SourcesPage } from './pages/SourcesPage';
 
 // Signed-in pages. While the session is being restored from the refresh cookie we
 // don't know yet, so render nothing rather than flashing the login page.
@@ -27,7 +30,11 @@ export function App() {
   return (
     <Routes>
       <Route element={<RequireAuth />}>
-        <Route index element={<ReviewPage />} />
+        <Route element={<AppShell />}>
+          <Route index element={<JobsPage />} />
+          <Route path="evidence" element={<ReviewPage />} />
+          <Route path="sources" element={<SourcesPage />} />
+        </Route>
       </Route>
       <Route element={<RedirectIfSignedIn />}>
         <Route path="login" element={<AuthForm mode="login" />} />

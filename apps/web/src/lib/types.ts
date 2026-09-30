@@ -50,3 +50,64 @@ export interface Project {
   id: string;
   name: string;
 }
+
+export type JobStatus =
+  | 'DISCOVERED'
+  | 'INTERESTED'
+  | 'SKIPPED'
+  | 'APPLIED'
+  | 'ASSESSMENT'
+  | 'INTERVIEWING'
+  | 'REJECTED'
+  | 'OFFER'
+  | 'WITHDRAWN';
+
+export interface JobListItem {
+  id: string;
+  title: string;
+  company: string;
+  location: string | null;
+  workMode: 'REMOTE' | 'HYBRID' | 'ONSITE' | null;
+  source: string | null;
+  sourceUrl: string | null;
+  status: JobStatus;
+  postedAt: string | null;
+  discoveredAt: string;
+  lastSeenAt: string;
+  appliedAt: string | null;
+  jobSource: { id: string; name: string } | null;
+}
+
+export interface JobDetail extends JobListItem {
+  rawJD: string;
+}
+
+export type RunStatus = 'RUNNING' | 'SUCCESS' | 'FAILED' | 'EMPTY';
+
+export interface DiscoverySource {
+  id: string;
+  key: string;
+  name: string;
+  type: 'ATS_BOARD' | 'AGGREGATOR_API' | 'EMAIL_INBOX' | 'MANUAL';
+  provider: string;
+  supported: boolean;
+  isEnabled: boolean;
+  lastRunAt: string | null;
+  lastRunStatus: RunStatus | null;
+  jobCount: number;
+  lastRun: {
+    status: RunStatus;
+    startedAt: string;
+    finishedAt: string | null;
+    jobsFound: number;
+    jobsMatched: number;
+    jobsNew: number;
+    errorMessage: string | null;
+  } | null;
+}
+
+export interface RunNowResult {
+  queued: string[];
+  skipped: string[];
+  cooldownHours: number;
+}
