@@ -365,17 +365,28 @@ always imports compiled schemas and a current Prisma client.
   Dates the user supplied: university stack last used 2023 (so stale under the
   2-year rule); MERN projects 2024, picked back up in 2026.
 
+- `apps/web` shell: React 19 + Vite 8 PWA, Tailwind v4, TanStack Query, react-router.
+  Sign in / register, and the evidence review screen (filter to-review / verified /
+  all, progress, verify / unverify / reword). Access token in memory only; session
+  restored from the refresh cookie; refreshes are single-flight per tab and serialized
+  across tabs with a Web Lock, so concurrent refreshes can't trip reuse detection.
+  Vite proxies `/api` in development (same origin). The service worker caches the app
+  shell only — never API responses.
+
 **Not yet built — in order:**
-1. Verify the seeded career data (a manual review by the user, item by item). The
-   "API integration" skill is a placeholder name for the Ruby B2C-layer knowledge.
-2. `apps/web` — React + Vite PWA shell.
-3. `apps/worker` — the discovery/extraction/matching/tailoring pipeline itself,
+1. Verify the seeded career data in the review screen. The "API integration" skill is
+   a placeholder name for the Ruby B2C-layer knowledge. Skill renames and WorkExperience /
+   Project editing have API endpoints but no UI yet.
+2. `apps/worker` — the discovery/extraction/matching/tailoring pipeline itself,
    starting with exactly one `JobSource` (one Greenhouse board) end to end before
    adding more sources.
-4. Move the database to Neon when deploying (step 2 of the original plan was done
+3. Move the database to Neon when deploying (step 2 of the original plan was done
    against local Postgres instead).
-5. Rate-limit `/auth/login` and `/auth/register` (Redis-backed counters, once Redis
+4. Rate-limit `/auth/login` and `/auth/register` (Redis-backed counters, once Redis
    is in place for the queue).
+5. Placement rules gap (§6): the table doesn't cover COMMERCIAL + WORKING (e.g. Ruby,
+   Docker at CloudCard), COMMERCIAL + EXPOSURE, or PERSONAL + PRODUCTION. Decide these
+   before the tailoring step reads evidence.
 
 ---
 

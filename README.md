@@ -5,10 +5,11 @@ Finds jobs worth your time, tailors a truthful resume for each, and notifies you
 ## Layout
 
     apps/api         NestJS HTTP API
+    apps/web         React + Vite PWA (Tailwind, TanStack Query)
     packages/shared  Zod schemas + types shared by every app
     packages/db      Prisma schema, migrations, and client
 
-Coming next: apps/worker (queues, scheduler), apps/web (React + Vite PWA).
+Coming next: apps/worker (queues, scheduler).
 
 ## Setup
 
@@ -26,5 +27,6 @@ created unverified, so review and verify each item afterwards):
 ## Run
 
     pnpm dev:api          # http://localhost:3000/health
+    pnpm dev:web          # http://localhost:5173 (proxies /api to the API)
     pnpm test
     pnpm typecheck

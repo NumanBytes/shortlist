@@ -11,6 +11,7 @@ pnpm workspace (pnpm 12, Node >= 22). Run from the repo root unless noted.
 ```bash
 pnpm install
 pnpm dev:api            # builds shared, generates Prisma client, starts Nest in watch mode (:3000/health)
+pnpm dev:web            # Vite on :5173; proxies /api to :3000 (run dev:api alongside)
 pnpm build              # shared -> prisma generate -> api
 pnpm typecheck          # tsc --noEmit across all packages
 pnpm test               # unit tests (*.spec.ts) in every package — does NOT run e2e
@@ -37,7 +38,7 @@ Env files: `packages/db/.env` is read by the Prisma CLI; `apps/api/.env` is load
 ```
 apps/api          NestJS HTTP API — auth, CRUD, owns identity
 apps/worker       (planned) NestJS with no HTTP server — BullMQ consumer running the discovery/AI pipeline
-apps/web          (planned) React + Vite PWA
+apps/web          React + Vite PWA — Tailwind v4, TanStack Query, react-router
 packages/shared   Zod schemas + inferred types, imported by every app
 packages/db       Prisma schema, migrations, re-exported PrismaClient
 ```
@@ -54,6 +55,10 @@ packages/db       Prisma schema, migrations, re-exported PrismaClient
 - **Never point `--shadow-database-url` (or any `migrate diff`/`migrate reset`) at the dev database** — Prisma wipes the shadow database.
 - **Ownership:** every query filters by the caller's `userId` (evidence goes through `skill: { userId }`). Another user's resource is a 404, never a 403.
 
+- **Web auth (`apps/web/src/lib/api.ts`):** the access token lives in a module variable only — never localStorage/sessionStorage. The session is restored on load from the refresh cookie. All refreshes go through `refreshSession()`, which is single-flight in the tab and wrapped in a `navigator.locks` lock across tabs: two concurrent refreshes with the same cookie would trip the API's reuse detection and revoke every session. Never call `/auth/refresh` directly.
+- **Web data:** server state via TanStack Query hooks in `src/lib/queries.ts`. Request bodies are validated client-side with the same `@shortlist/shared` schemas the API uses. Response types are hand-written in `src/lib/types.ts` (dates as ISO strings). Verification is never optimistic — the UI shows "verified" only after the server confirms.
+- **PWA:** the service worker precaches the app shell only; `/api` is excluded from navigation fallback and there is no runtime caching, so per-user data is never served from cache.
+
 ## Truthfulness rules (hard constraints)
 
 - `SkillEvidence.isVerified` defaults to `false` and must **never** be accepted from a client request body. Only a dedicated verification action may set it. Keep it out of every create/update schema.
@@ -67,6 +72,7 @@ packages/db       Prisma schema, migrations, re-exported PrismaClient
 
 - **ESM throughout** (`"type": "module"`, `nodenext`). Relative imports in `.ts` source end in `.js` — this is required, not a mistake.
 - Nest 12 defaults: **Vitest** (with globals) instead of Jest, **oxlint** instead of ESLint, Prettier for formatting. `typescript/no-floating-promises` is an error.
+- Web tests: Vitest + jsdom + Testing Library (`apps/web/src/**/*.test.ts(x)`), with `fetch` stubbed via `vi.stubGlobal`.
 - Unit tests: `*.spec.ts` next to the source. E2E tests: `apps/api/test/*.e2e-spec.ts` using Supertest against the real database. Use `createTestApp()` from `test/helpers.ts`: it registers users, tracks their IDs, and `close()` deletes only those (files run in parallel, so never bulk-delete by email domain).
 - Commit messages and PRs carry no Claude attribution (no `Co-Authored-By: Claude`, no "Generated with Claude Code").
 - The user wants to understand each layer — when adding an interview-relevant mechanism (queues, auth, idempotency, validation boundaries), briefly explain why the pattern is used, and prefer a hand-rolled implementation over a library that hides it.
