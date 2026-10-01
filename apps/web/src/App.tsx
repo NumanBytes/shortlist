@@ -2,7 +2,8 @@ import { Navigate, Outlet, Route, Routes } from 'react-router';
 import { useAuth } from './auth/AuthProvider';
 import { AppShell } from './components/AppShell';
 import { AuthForm } from './pages/AuthForm';
-import { JobsPage } from './pages/JobsPage';
+import { JobDetailPage } from './pages/JobDetailPage';
+import { JobsLayout, NoJobSelected } from './pages/JobsPage';
 import { ReviewPage } from './pages/ReviewPage';
 import { SourcesPage } from './pages/SourcesPage';
 
@@ -23,7 +24,7 @@ function RedirectIfSignedIn() {
 }
 
 function FullPageMessage({ children }: { children: React.ReactNode }) {
-  return <div className="flex min-h-dvh items-center justify-center text-slate-500">{children}</div>;
+  return <div className="flex min-h-dvh items-center justify-center text-muted">{children}</div>;
 }
 
 export function App() {
@@ -31,7 +32,10 @@ export function App() {
     <Routes>
       <Route element={<RequireAuth />}>
         <Route element={<AppShell />}>
-          <Route index element={<JobsPage />} />
+          <Route element={<JobsLayout />}>
+            <Route index element={<NoJobSelected />} />
+            <Route path="jobs/:jobId" element={<JobDetailPage />} />
+          </Route>
           <Route path="evidence" element={<ReviewPage />} />
           <Route path="sources" element={<SourcesPage />} />
         </Route>

@@ -2,6 +2,7 @@ import { LoginSchema, RegisterSchema } from '@shortlist/shared';
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 import { useAuth } from '../auth/AuthProvider';
+import { Logo } from '../components/Logo';
 import { Button, TextField } from '../components/ui';
 import { ApiError } from '../lib/api';
 
@@ -52,11 +53,12 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
   }
 
   return (
-    <div className="flex min-h-dvh items-center justify-center px-4">
-      <form onSubmit={onSubmit} noValidate className="w-full max-w-sm space-y-4 rounded-xl border border-slate-200 bg-white p-6">
+    <div className="flex min-h-dvh flex-col items-center justify-center gap-6 px-4 py-10">
+      <Logo />
+      <form onSubmit={onSubmit} noValidate className="w-full max-w-sm space-y-4 rounded-2xl border border-border bg-surface p-6 shadow-sm">
         <div>
-          <h1 className="text-xl font-semibold">{isRegister ? 'Create your account' : 'Sign in to Shortlist'}</h1>
-          <p className="mt-1 text-sm text-slate-500">Finds jobs worth your time. You make the final click.</p>
+          <h1 className="text-xl font-semibold text-fg">{isRegister ? 'Create your account' : 'Welcome back'}</h1>
+          <p className="mt-1 text-sm text-muted">Finds jobs worth your time. Tailors a truthful resume. You make the final click.</p>
         </div>
         {isRegister && (
           <TextField id="name" label="Name" autoComplete="name" value={fields.name} onChange={set('name')} error={errors.name} />
@@ -80,21 +82,21 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
           error={errors.password}
         />
         {formError && (
-          <p role="alert" className="text-sm text-red-600">
+          <p role="alert" className="text-sm text-danger-fg">
             {formError}
           </p>
         )}
-        <Button type="submit" disabled={submitting} className="w-full">
+        <Button type="submit" disabled={submitting} className="h-11 w-full">
           {submitting ? 'Please wait…' : isRegister ? 'Create account' : 'Sign in'}
         </Button>
-        <p className="text-center text-sm text-slate-600">
+        <p className="text-center text-sm text-muted">
           {isRegister ? (
             <>
-              Have an account? <Link className="font-medium text-slate-900 underline" to="/login">Sign in</Link>
+              Have an account? <Link className="font-medium text-fg underline" to="/login">Sign in</Link>
             </>
           ) : (
             <>
-              New here? <Link className="font-medium text-slate-900 underline" to="/register">Create an account</Link>
+              New here? <Link className="font-medium text-fg underline" to="/register">Create an account</Link>
             </>
           )}
         </p>

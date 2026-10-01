@@ -1,1 +1,91 @@
 @import 'tailwindcss';
+
+/* Semantic color tokens. Components use these names (bg-surface, text-muted, …) — never
+   raw palette colors — so light/dark and any future rebrand are one edit here. */
+:root {
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --surface-2: #f0f2f5;
+  --border: #e2e6ec;
+  --fg: #0f172a;
+  --muted: #586174;
+  --subtle: #8a93a3;
+  --primary: #0f172a;
+  --primary-fg: #ffffff;
+  --accent: #059669;
+  --apply: #10b981;
+  --apply-bg: #d1fae5;
+  --apply-fg: #065f46;
+  --stretch: #f59e0b;
+  --stretch-bg: #fef3c7;
+  --stretch-fg: #92400e;
+  --skip: #a3acba;
+  --skip-bg: #eceff3;
+  --skip-fg: #475467;
+  --danger: #dc2626;
+  --danger-bg: #fee2e2;
+  --danger-fg: #991b1b;
+  --ring-track: #e6e9ee;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0a0e16;
+    --surface: #121825;
+    --surface-2: #1a2131;
+    --border: #253047;
+    --fg: #e8edf4;
+    --muted: #a1abbb;
+    --subtle: #6f7a8d;
+    --primary: #e8edf4;
+    --primary-fg: #0a0e16;
+    --accent: #34d399;
+    --apply: #34d399;
+    --apply-bg: rgb(52 211 153 / 0.14);
+    --apply-fg: #6ee7b7;
+    --stretch: #fbbf24;
+    --stretch-bg: rgb(251 191 36 / 0.14);
+    --stretch-fg: #fcd34d;
+    --skip: #5b6678;
+    --skip-bg: #1f2738;
+    --skip-fg: #a1abbb;
+    --danger: #f87171;
+    --danger-bg: rgb(248 113 113 / 0.14);
+    --danger-fg: #fca5a5;
+    --ring-track: #253047;
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
+  --color-primary: var(--primary);
+  --color-primary-fg: var(--primary-fg);
+  --color-accent: var(--accent);
+  --color-apply: var(--apply);
+  --color-apply-bg: var(--apply-bg);
+  --color-apply-fg: var(--apply-fg);
+  --color-stretch: var(--stretch);
+  --color-stretch-bg: var(--stretch-bg);
+  --color-stretch-fg: var(--stretch-fg);
+  --color-skip: var(--skip);
+  --color-skip-bg: var(--skip-bg);
+  --color-skip-fg: var(--skip-fg);
+  --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
+  --color-danger-fg: var(--danger-fg);
+  --color-ring-track: var(--ring-track);
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  -webkit-tap-highlight-color: transparent;
+}

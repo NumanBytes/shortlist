@@ -568,7 +568,38 @@ Max-Age = 30 days`.
 - A 401 from a non-auth endpoint triggers one refresh and one retry; if refresh fails, the
   UI signs out. A 401 from `/auth/login` means wrong password and doesn't trigger refresh.
 
-### 8.4 Other security decisions
+### 8.4 Web UI design system (2026-10-02)
+
+Redesigned after reviewing every screen with the user's real scored jobs (before: ~2½
+jobs per phone screen, the score a small corner badge, three rows of controls above the
+first job, inline details pushing the list down, no overview, no dark mode).
+- **Semantic color tokens** (`apps/web/src/index.css`: `bg`, `surface`, `fg`, `muted`,
+  `accent`, `apply`/`stretch`/`skip`, `danger`, …) mapped into Tailwind with
+  `@theme inline`. Components use only these names, never raw palette colors, so **dark
+  mode is automatic** (`prefers-color-scheme`) and a rebrand is one file.
+- **Shared primitives** (`components/ui.tsx`): Button, IconButton (accessible name
+  required), Badge (tones), Card, Skeleton, Switch (`role="switch"`), Segmented
+  (`<fieldset>` + hidden legend), TextField, EmptyState. Icons: lucide-react
+  (tree-shaken).
+- **Navigation:** a bottom tab bar on phones (thumb reach, safe-area aware) and top
+  navigation on desktop; Evidence shows a "to review" count; sign-out lives in an
+  account menu.
+- **Jobs:** the **score ring** leads every row; one column of icon actions (open
+  posting, interested, skip); verdict filter chips with counts; with no filter and
+  best-match order, **SKIP jobs fold into "Show N weaker matches"** (never hidden for
+  good). Detail is its own route (`/jobs/:id`): **full screen on phones, a side panel
+  beside the list on desktop**; score card → why it fits → gaps → risks → description
+  (collapsed). **List state lives in the URL** (`?tab=&verdict=&sort=`), so back
+  navigation restores it.
+- **Honest display:** a company board's publish date is not shown (a listed job is open,
+  §9.6) — only aggregator posting ages; locations are normalized ("pk" → "PK"); a work-
+  mode badge is dropped when the location already says it.
+- **Sources:** AI spend as stat tiles; sources needing attention (FAILED/EMPTY) listed
+  first; healthy rows carry no badge; real switches.
+- Every screen was verified in a headless browser at phone and desktop sizes, in light
+  and dark, against a copy of the user's real data.
+
+### 8.5 Other security decisions
 
 - **PWA service worker:** precaches the app shell only; `/api` is excluded from the
   navigation fallback and there is no runtime caching, so one user's data is never served
@@ -1084,7 +1115,7 @@ behind each bullet, and the gaps.
 | UI styling | **Tailwind CSS v4** | Chosen by the user over Tailwind+shadcn, Ant Design and MUI: used in production at CloudCard, small bundle for a mobile-first PWA. |
 | Server state | **TanStack Query** | Chosen by the user over plain fetch: caching, refetch, loading/error states; widely asked for. |
 | Routing | **react-router** | Standard; simple nested routes for the app shell. |
-| PWA | **vite-plugin-pwa** | Manifest + service worker; app shell only (§8.4). |
+| PWA | **vite-plugin-pwa** | Manifest + service worker; app shell only (§8.5). |
 | AI | **Claude: Haiku** (extraction, scoring), **Sonnet** (tailoring) | Split by cost/quality need; Batch API + prompt caching because the pipeline runs overnight. |
 | RSS parsing | **fast-xml-parser** | We Work Remotely publishes RSS. |
 | Cookies | **cookie-parser** | Reads the refresh cookie. |
@@ -1162,7 +1193,7 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
 | 2026-09-30 | Refresh rotation with reuse detection; opaque tokens hashed with SHA-256 | §8.1 |
 | 2026-09-30 | Evidence edits and skill renames un-verify; verify is its own endpoint | §6.3 |
 | 2026-09-30 | Case-insensitive skill names via raw-SQL index | §5.2 |
-| 2026-09-30 | Role/project claim-field edits and deletes un-verify linked evidence; http(s)-only URLs | §6.3, §8.4 |
+| 2026-09-30 | Role/project claim-field edits and deletes un-verify linked evidence; http(s)-only URLs | §6.3, §8.5 |
 | 2026-09-30 | Career data seeded unverified with guards; dates supplied by the user | §7 |
 | 2026-09-30 | Never use the dev DB as a Prisma shadow database | Shadow-DB reset incident (§1.3) |
 | 2026-10-01 | Refresh token only in an httpOnly SameSite=Strict cookie; web and API must share a site | §8.2, §4 |
@@ -1201,6 +1232,8 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
 | 2026-10-02 | "Best match" ranks every scored job (two queries), not only the newest 200 | Code review |
 | 2026-10-02 | Career data: "API Integration" (Ruby → GraphQL) named by the user; GraphQL, Git, REST APIs, npm commercial; prompting commercial WORKING; pnpm personal; Next.js corrected to EXPOSURE; Shortlist stack added as EXPOSURE ("learning") | §7.1 — user-confirmed, all unverified until reviewed |
 | 2026-10-02 | Seed data first, verify, THEN score — scoring before verifying new skills would pay for every job twice | §12.1 re-analysis rule |
+| 2026-10-02 | First real scoring run: 30 jobs, $0.18 | §17.1 |
+| 2026-10-02 | UI redesign: semantic tokens + automatic dark mode, bottom tab bar on phones, score-ring rows, split list/detail, URL list state, SKIPs folded | §8.4 |
 
 ---
 
@@ -1248,6 +1281,14 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
 
 ### 17.3 Open decisions
 
+- **Scoring quality issues seen in the first real run (2026-10-02)** — awaiting the
+  user's go-ahead: (1) the model mapped "Prompt Engineering" as only *related* to the
+  user's verified "Prompt engineering" — fix: exact name matches always count as the
+  same, in code; (2) alternatives ("AWS / GCP / Azure / Digital Ocean / Firebase") were
+  extracted as five separate gaps — fix: prompt for one combined requirement; (3)
+  remote jobs limited to Poland, Argentina, France, South Africa, Nepal… passed the
+  filter — fix: an allow-list of regions for remote roles instead of a block-list.
+  (1) re-scores free; (2) needs re-analysis (~$0.18).
 - **Scoring weight calibration** (§12.1): PREFERRED/BONUS weights and the 45/70 verdict
   thresholds — tune on the user's real scored jobs, not a single sample.
 - **Career data completeness:** Git, REST APIs, npm, pnpm, prompting added

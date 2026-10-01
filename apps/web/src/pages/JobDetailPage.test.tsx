@@ -1,0 +1,64 @@
+import { screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { job } from '../test/fixtures';
+import type { JobDetail } from '../lib/types';
+import { mockFetch, renderWithProviders } from '../test/render';
+import { JobDetailPage } from './JobDetailPage';
+
+const detail: JobDetail = {
+  ...job,
+  rawJD: 'Build MERN apps.',
+  seniority: 'MID',
+  yearsRequired: 3,
+  analyzedAt: new Date().toISOString(),
+  requirements: [],
+  match: {
+    overallScore: 86,
+    commercialScore: 80,
+    verdict: 'APPLY',
+    strengths: ['React.js — React (commercial production, CloudCard Inc.)', 'Node.js — Node.js (personal working)'],
+    risks: ['Asks for 3+ years; you have about 2.4 commercial', 'Missing: GraphQL'],
+    computedAt: new Date().toISOString(),
+    gaps: [{ skillName: 'GraphQL', severity: 'MODERATE', note: 'related experience: REST APIs' }],
+  },
+};
+
+const open = (d: JobDetail) => {
+  const fetchMock = mockFetch(d);
+  renderWithProviders(<JobDetailPage />, { path: '/jobs/:jobId', route: '/jobs/j1' });
+  return fetchMock;
+};
+
+describe('JobDetailPage', () => {
+  it('shows the score, why it fits, the gaps and risks, with the description collapsed', async () => {
+    open(detail);
+    expect(await screen.findByText('A strong fit for your verified experience.')).toBeInTheDocument();
+    expect(screen.getByText('React.js')).toBeInTheDocument();
+    expect(screen.getByText('— your React')).toBeInTheDocument();
+    expect(screen.getByText('commercial production, CloudCard Inc.')).toBeInTheDocument();
+    expect(screen.getByText('GraphQL')).toBeInTheDocument();
+    expect(screen.getByText('related experience: REST APIs')).toBeInTheDocument();
+    expect(screen.getByText(/Asks for 3\+ years/)).toBeInTheDocument();
+    expect(screen.getByText('Build MERN apps.').closest('details')).not.toHaveAttribute('open');
+  });
+
+  it('records "I applied" for an interested job — the user applies themselves', async () => {
+    const fetchMock = open({ ...detail, status: 'INTERESTED' });
+    await userEvent.click(await screen.findByRole('button', { name: /I applied/ }));
+    await waitFor(() => expect(fetchMock.mock.calls.some(([, i]) => i?.method === 'PATCH')).toBe(true));
+    const patch = fetchMock.mock.calls.find(([, i]) => i?.method === 'PATCH')!;
+    expect(JSON.parse(patch[1]!.body as string)).toEqual({ status: 'APPLIED' });
+  });
+
+  it('explains a deferred score and lets the user retry', async () => {
+    const fetchMock = open({ ...detail, match: null, analysisStatus: 'DEFERRED', analysisError: 'Daily analysis cap reached (40 of 40)' });
+    expect(await screen.findByText('Daily analysis cap reached (40 of 40)')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /Retry/ }));
+    await waitFor(() => expect(fetchMock.mock.calls.some(([u]) => u === '/api/v1/jobs/j1/analyze')).toBe(true));
+  });
+
+  it('warns about a possible scam before anything else', async () => {
+    open({ ...detail, redFlags: ['asks for a registration fee'] });
+    expect(await screen.findByRole('alert')).toHaveTextContent(/Possible scam.*registration fee/);
+  });
+});
