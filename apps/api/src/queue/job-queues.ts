@@ -61,6 +61,9 @@ export class JobQueues implements OnModuleDestroy {
         ...RETRY,
         jobId: `analyze__${jobId}__${batchId}`,
         backoff: { type: 'exponential', delay: 120_000 },
+        // Same dedupe id as the worker uses: if this job is already queued, in retry
+        // backoff, or being analysed, "Retry" joins it instead of billing a second call.
+        deduplication: { id: `analyze-${jobId}` },
       }),
     );
   }

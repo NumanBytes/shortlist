@@ -63,6 +63,24 @@ describe('AI analysis API (e2e)', () => {
     await t.http().get('/api/v1/jobs?sort=random').set(user.auth).expect(400);
   });
 
+  it('"best match" ranks every scored job, not just the newest 200', async () => {
+    const user = await t.register();
+    const old = await scored(user, 95, 'Old but best');
+    await t.prisma.job.update({ where: { id: old.id }, data: { discoveredAt: new Date('2025-01-01') } });
+    await t.prisma.job.createMany({
+      data: Array.from({ length: 200 }, (_, i) => ({
+        userId: user.user.id,
+        title: `Newer unscored ${i}`,
+        company: 'Acme',
+        rawJD: '.',
+        dedupeHash: crypto.randomUUID(),
+      })),
+    });
+    const res = await t.http().get('/api/v1/jobs').set(user.auth).expect(200);
+    expect(res.body).toHaveLength(200);
+    expect(res.body[0].title).toBe('Old but best');
+  });
+
   it('job detail includes requirements, gaps, strengths and risks', async () => {
     const j = await scored(me, 72, 'Detailed');
     const res = await t.http().get(`/api/v1/jobs/${j.id}`).set(me.auth).expect(200);
@@ -88,9 +106,24 @@ describe('AI analysis API (e2e)', () => {
       await Promise.all(queued.map((q) => q.remove()));
     });
 
-    it('refuses to re-analyse (and re-bill) a job that is already done', async () => {
+    it('refuses to re-analyse (and re-bill) a job already analysed against the current verified skills', async () => {
       const j = await scored(me, 60, 'Done already');
       await t.http().post(`/api/v1/jobs/${j.id}/analyze`).set(me.auth).expect(409);
+    });
+
+    it('allows re-analysis once the user has verified a skill the last analysis never saw', async () => {
+      const user = await t.register();
+      const j = await scored(user, 60, 'Stale analysis');
+      const skill = await t.http().post('/api/v1/skills').set(user.auth).send({ name: 'React', category: 'LIBRARY' }).expect(201);
+      const ev = await t.http()
+        .post('/api/v1/evidence')
+        .set(user.auth)
+        .send({ skillId: skill.body.id, context: 'COMMERCIAL', depth: 'PRODUCTION', whatIDid: 'Built UIs', lastUsed: '2026-09-01' })
+        .expect(201);
+      await t.http().post(`/api/v1/evidence/${ev.body.id}/verify`).set(user.auth).expect(200);
+      await t.http().post(`/api/v1/jobs/${j.id}/analyze`).set(user.auth).expect(202);
+      const queued = (await queue.getJobs(['waiting', 'delayed'])).filter((q) => q.data.jobId === j.id);
+      await Promise.all(queued.map((q) => q.remove()));
     });
 
     it("404s for another user's job", async () => {

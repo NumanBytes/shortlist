@@ -76,3 +76,5 @@ ALTER TABLE "AiUsage" ADD CONSTRAINT "AiUsage_jobId_fkey" FOREIGN KEY ("jobId") 
 ALTER TABLE "JobRequirement" ADD COLUMN     "relatedSkillIds" TEXT[];
 -- AlterTable
 ALTER TABLE "Job" ADD COLUMN     "yearsRequired" INTEGER;
+-- AlterTable
+ALTER TABLE "Job" ADD COLUMN     "analyzedSkillIds" TEXT[];

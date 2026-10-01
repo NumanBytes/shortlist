@@ -304,6 +304,10 @@ model Job {
   seniority      String? // JUNIOR | MID | SENIOR | LEAD | UNKNOWN, as the posting states it
   yearsRequired  Int? // overall years the posting asks for, if stated
   redFlags       String[] // scam / suspicious-posting signals the model noticed
+  // The verified skills the model was shown. The model can only map requirements to
+  // these, so once the user verifies a skill outside this set, the job needs a fresh
+  // analysis (re-scoring the old mapping can't discover the new match).
+  analyzedSkillIds String[]
   aiUsage        AiUsage[]
 
   createdAt DateTime @default(now())

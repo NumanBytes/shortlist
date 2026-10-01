@@ -59,24 +59,52 @@ export class JobsService {
   ) {}
 
   async list(userId: string, query: ListJobsQuery) {
-    const jobs = await this.prisma.job.findMany({
-      where: { userId, ...(query.status ? { status: query.status } : {}) },
+    const where = { userId, ...(query.status ? { status: query.status } : {}) };
+    if (query.sort === 'recent') {
+      return this.prisma.job.findMany({ where, select: LIST_SELECT, orderBy: { discoveredAt: 'desc' }, take: LIST_LIMIT });
+    }
+    // Best match first across ALL scored jobs, then unscored ones (newest first) to fill
+    // the page. Two queries because Prisma can't order a relation field NULLS LAST, and
+    // Postgres puts NULLs first in a DESC sort.
+    const scored = await this.prisma.job.findMany({
+      where: { ...where, match: { isNot: null } },
       select: LIST_SELECT,
-      orderBy: { discoveredAt: 'desc' },
+      orderBy: [{ match: { overallScore: 'desc' } }, { discoveredAt: 'desc' }],
       take: LIST_LIMIT,
     });
-    if (query.sort === 'recent') return jobs;
-    // Best match first, unscored last. Sorted here because Prisma can't order a relation
-    // field with NULLS LAST, and Postgres puts NULLs first in a DESC sort.
-    return jobs.sort((a, b) => (b.match?.overallScore ?? -1) - (a.match?.overallScore ?? -1));
+    const room = LIST_LIMIT - scored.length;
+    const unscored =
+      room > 0
+        ? await this.prisma.job.findMany({
+            where: { ...where, match: { is: null } },
+            select: LIST_SELECT,
+            orderBy: { discoveredAt: 'desc' },
+            take: room,
+          })
+        : [];
+    return [...scored, ...unscored];
   }
 
   // Queue (or re-queue) one job for analysis — e.g. after a failure or a deferral. The
   // worker's budget guard still decides whether it actually runs.
   async analyze(userId: string, id: string) {
-    const job = await this.prisma.job.findFirst({ where: { id, userId }, select: { analysisStatus: true } });
+    const job = await this.prisma.job.findFirst({
+      where: { id, userId },
+      select: { analysisStatus: true, analyzedSkillIds: true },
+    });
     if (!job) throw new NotFoundException('Job not found');
-    if (job.analysisStatus === 'DONE') throw new ConflictException('This job is already analysed');
+    if (job.analysisStatus === 'DONE') {
+      // Re-analysis costs money, so it's only allowed when it can change the answer: the
+      // user has verified a skill the last analysis never saw.
+      const verified = await this.prisma.skill.findMany({
+        where: { userId, evidence: { some: { isVerified: true } } },
+        select: { id: true },
+      });
+      const seen = new Set(job.analyzedSkillIds);
+      if (verified.every((s) => seen.has(s.id))) {
+        throw new ConflictException('Already analysed against your current verified skills');
+      }
+    }
     await this.prisma.job.update({ where: { id }, data: { analysisStatus: 'PENDING', analysisError: null } });
     await this.queues.enqueueAnalysis(id, `manual-${Date.now()}`);
     return { queued: true };

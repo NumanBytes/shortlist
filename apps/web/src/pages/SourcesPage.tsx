@@ -79,7 +79,8 @@ function AiSpendCard() {
           className="mt-2 flex items-center gap-2"
           onSubmit={(e) => {
             e.preventDefault();
-            const value = Number(budget);
+            // Number('') is 0 — an emptied field must not silently set a $0 budget.
+            const value = budget.trim() === '' ? Number.NaN : Number(budget);
             if (Number.isFinite(value) && value >= 0) update.mutate({ monthlyBudgetUsd: value }, { onSuccess: () => setEditing(false) });
           }}
         >

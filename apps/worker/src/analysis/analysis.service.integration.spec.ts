@@ -234,11 +234,30 @@ describe('AnalysisService.rescoreUser', () => {
 
     // The user un-verifies their React evidence.
     await prisma.skillEvidence.updateMany({ where: { skillId: react.id }, data: { isVerified: false } });
-    expect(await svc.rescoreUser(user.id)).toBe(1);
+    expect(await svc.rescoreUser(user.id)).toEqual({ rescored: 1, needsReanalysis: [] });
 
     const after = await prisma.jobMatch.findUniqueOrThrow({ where: { jobId: job.id }, include: { gaps: true } });
     expect(after.overallScore).toBeLessThan(before.overallScore);
     expect(after.gaps.map((g) => g.skillName)).toContain('React');
     expect(analyzer.prompts).toHaveLength(1); // only the original analysis
+  });
+
+  it('sends a job back for ONE fresh analysis when the user verifies a skill the model never saw', async () => {
+    const { user, job } = await setup();
+    const { svc, analyzer } = service();
+    analyzer.next = (p) => ({ text: output(p.user) });
+    await svc.analyzeJob(job.id);
+    expect((await prisma.job.findUniqueOrThrow({ where: { id: job.id } })).analyzedSkillIds).toHaveLength(2);
+
+    // The user verifies their (previously unverified) Azure-named skill... any new skill.
+    await prisma.skillEvidence.updateMany({ where: { skill: { userId: user.id, name: 'Azure B2C' } }, data: { isVerified: true } });
+    expect(await svc.rescoreUser(user.id)).toEqual({ rescored: 0, needsReanalysis: [job.id] });
+    const pending = await prisma.job.findUniqueOrThrow({ where: { id: job.id }, include: { match: true } });
+    expect(pending.analysisStatus).toBe('PENDING');
+    expect(pending.match).not.toBeNull(); // the old score stays visible meanwhile
+
+    await svc.analyzeJob(job.id);
+    expect(analyzer.prompts).toHaveLength(2);
+    expect(analyzer.prompts[1]!.user).toContain('Azure B2C'); // now verified, so now shown
   });
 });

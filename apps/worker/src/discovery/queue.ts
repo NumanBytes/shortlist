@@ -16,5 +16,6 @@ export const SOURCE_JOB_OPTIONS: JobsOptions = {
   removeOnFail: { age: 30 * 24 * 3600 },
 };
 
-// BullMQ custom job ids can't contain ":".
-export const sourceJobId = (sourceId: string, batchId: string) => `${sourceId}__${batchId}`;
+// BullMQ custom job ids can't contain ":" — and a scheduler-fired batch id looks like
+// "repeat:<scheduler>:<millis>", so strip them.
+export const sourceJobId = (sourceId: string, batchId: string) => `${sourceId}__${batchId.replace(/:/g, '-')}`;

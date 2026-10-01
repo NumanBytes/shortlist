@@ -59,7 +59,7 @@ export class AnalysisProcessor extends WorkerHost implements OnModuleInit {
     let queued = 0;
     let rescored = 0;
     for (const { userId } of users) {
-      rescored += await this.analysis.rescoreUser(userId);
+      rescored += (await this.analysis.rescoreUser(userId)).rescored;
       const settings = await this.budget.settingsFor(userId);
       const room = Math.max(0, settings.maxAnalysesPerDay - (await this.budget.analysesLastDay(userId)));
       if (room === 0) continue;
@@ -77,15 +77,29 @@ export class AnalysisProcessor extends WorkerHost implements OnModuleInit {
   }
 }
 
-// Job ids include the batch so a job deferred today can be queued again tomorrow,
-// while a retried batch re-adding the same ids is a no-op. (No ":" allowed in ids.)
+// Two layers keep one job from being analysed (and billed) twice concurrently:
+// - `deduplication` (by job id): while an analysis for a job is waiting, delayed in retry
+//   backoff, or running, any further add — from discovery, the nightly sweep, or the
+//   API's "Retry" — returns the existing one instead of queuing another.
+// - The BullMQ job id still includes the batch, so once an analysis has finished (e.g.
+//   DEFERRED today), tomorrow's sweep can queue the job again.
 export async function enqueueAnalyses(queue: Queue, jobIds: string[], batchId: string) {
   if (jobIds.length === 0) return;
   await queue.addBulk(
     jobIds.map((jobId) => ({
       name: AnalysisJob.Job,
       data: { jobId } satisfies AnalyzeJobData,
-      opts: { ...ANALYZE_JOB_OPTIONS, jobId: `analyze__${jobId}__${batchId}` },
+      opts: {
+        ...ANALYZE_JOB_OPTIONS,
+        jobId: `analyze__${jobId}__${safeId(batchId)}`,
+        deduplication: { id: analysisDedupeId(jobId) },
+      },
     })),
   );
 }
+
+export const analysisDedupeId = (jobId: string) => `analyze-${jobId}`;
+
+// BullMQ custom ids can't contain ":", but scheduler-fired jobs have ids like
+// "repeat:<scheduler>:<millis>". (Two colons happen to be tolerated; don't rely on it.)
+export const safeId = (id: string) => id.replace(/:/g, '-');

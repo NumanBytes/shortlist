@@ -906,8 +906,23 @@ judge experience — only same / related / absent. Evidence text (`whatIDid`) is
   backoff); 400/401/403/404 → FAILED, not retried; **out of credit → DEFERRED** (runs
   after a top-up); invalid/truncated (`max_tokens`)/refused output → FAILED, not retried
   (it would likely fail again and cost again).
-- **Idempotent:** an analysed job is never analysed (or billed) again; "Retry" in the UI
-  re-queues only PENDING/DEFERRED/FAILED jobs.
+- **Never billed twice concurrently:** every enqueue path (discovery, nightly sweep, API
+  "Retry") uses BullMQ `deduplication` keyed by job ID, so while an analysis is waiting,
+  in retry backoff or running, further adds join it. The BullMQ job ID still includes
+  the batch, so a job deferred today can be queued again tomorrow. (Found in code review:
+  the sweep and "Retry" could otherwise start a second billed call for the same job.)
+- **Re-analysis only when it can change the answer:** each analysis records the
+  verified skills the model saw (`Job.analyzedSkillIds`). The nightly sweep re-scores
+  from the stored mapping when evidence is un-verified or edited (free), but when the
+  user has *verified a new skill* the model never saw, the stored mapping can't contain
+  it — the job goes back to PENDING for one fresh, budget-guarded analysis, its old
+  score visible meanwhile. "Retry" on an analysed job is allowed only in that case
+  (409 otherwise), so a click can't re-bill an unchanged analysis.
+- **Discovery isn't failed by analysis plumbing:** if queuing new jobs for analysis
+  fails, the discovery run still succeeds (retrying would re-fetch and find nothing
+  "new"); the nightly sweep picks the jobs up.
+- **Job IDs never contain ":"** — scheduler-fired batch IDs (`repeat:<id>:<millis>`) are
+  sanitized; BullMQ tolerating exactly two colons is a quirk, not a contract.
 - **Separate `analysis` queue** with concurrency 2 (`ANALYSIS_CONCURRENCY`), so model
   calls never compete with discovery and rate-limit pressure stays low.
 - **No prompt caching:** Haiku 4.5 caches only prefixes ≥ 4,096 tokens; ours is ~2–3K,
@@ -1170,6 +1185,8 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
 | 2026-10-02 | Out-of-credit → DEFERRED; invalid output → FAILED without retry; analysed jobs never re-billed | §12.1 |
 | 2026-10-02 | No prompt caching (below Haiku's 4,096-token minimum) and no Batch API yet (saving too small for the complexity) | §12.1 |
 | 2026-10-02 | Budget guard defaults: $4.50/month, 40 analyses/24h; deferred jobs retried nightly | §12.3 |
+| 2026-10-02 | Analysis deduplicated per job across all enqueue paths; re-analysis only after a newly verified skill | §12.1 (code review) |
+| 2026-10-02 | "Best match" ranks every scored job (two queries), not only the newest 200 | Code review |
 
 ---
 

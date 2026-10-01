@@ -105,6 +105,7 @@ export class AnalysisService {
           analyzedAt: new Date(),
           seniority: parsed.value.seniority,
           yearsRequired: parsed.value.yearsRequired,
+          analyzedSkillIds: skills.map((sk) => sk.id),
           redFlags: parsed.value.redFlags,
         },
       });
@@ -116,15 +117,25 @@ export class AnalysisService {
     return { status: 'DONE', overallScore: score.overallScore, verdict: score.verdict, costUsd: cost };
   }
 
-  // Re-score already-analysed jobs from their stored requirement mapping — no model call.
-  // Used after evidence changes (verify/unverify/edit): scores move, spend doesn't.
-  async rescoreUser(userId: string): Promise<number> {
+  // After evidence changes, for every analysed job:
+  // - if the user has since verified a skill the model never saw, the stored mapping
+  //   can't know about it → mark the job PENDING for ONE fresh analysis (budget-guarded);
+  //   its current score stays visible meanwhile;
+  // - otherwise re-score from the stored mapping — no model call (un-verifying, editing).
+  async rescoreUser(userId: string): Promise<{ rescored: number; needsReanalysis: string[] }> {
+    const verified = new Set((await this.verifiedSkills(userId)).map((s) => s.id));
     const jobs = await this.prisma.job.findMany({
       where: { userId, analysisStatus: 'DONE' },
       include: { requirements: true },
     });
-    let changed = 0;
+    let rescored = 0;
+    const needsReanalysis: string[] = [];
     for (const job of jobs) {
+      const seen = new Set(job.analyzedSkillIds);
+      if ([...verified].some((id) => !seen.has(id))) {
+        needsReanalysis.push(job.id);
+        continue;
+      }
       const reqs: ScoringRequirement[] = job.requirements.map((r) => ({
         skillName: r.skillName,
         importance: r.importance,
@@ -143,9 +154,15 @@ export class AnalysisService {
           update: { ...score, computedAt: new Date(), gaps: { create: score.gaps } },
         });
       });
-      changed++;
+      rescored++;
     }
-    return changed;
+    if (needsReanalysis.length) {
+      await this.prisma.job.updateMany({
+        where: { id: { in: needsReanalysis } },
+        data: { analysisStatus: 'PENDING', analysisError: 'New verified skills since the last analysis' },
+      });
+    }
+    return { rescored, needsReanalysis };
   }
 
   private async verifiedSkills(userId: string) {

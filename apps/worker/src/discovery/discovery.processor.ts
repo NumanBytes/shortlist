@@ -57,8 +57,15 @@ export class DiscoveryProcessor extends WorkerHost implements OnModuleInit {
   private async runSource(job: Job<DiscoverSourceData>) {
     try {
       const summary = await this.discovery.runSource(job.data.sourceId);
-      // New jobs go straight to analysis; the budget guard decides there, per job.
-      await enqueueAnalyses(this.analysisQueue, summary.newJobIds, `new-${job.id}`);
+      // New jobs go straight to analysis; the budget guard decides there, per job. If
+      // queuing them fails, the run itself still succeeded — failing it here would retry
+      // the fetch, record a spurious FAILED run, and find no "new" jobs the second time.
+      // The nightly sweep picks up anything left PENDING.
+      try {
+        await enqueueAnalyses(this.analysisQueue, summary.newJobIds, `new-${job.id}`);
+      } catch (err) {
+        this.logger.warn(`Couldn't queue ${summary.newJobIds.length} new jobs for analysis: ${(err as Error).message}`);
+      }
       return summary;
     } catch (err) {
       // Retrying a missing adapter or bad config can't succeed — fail once, clearly.
