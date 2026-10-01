@@ -715,7 +715,40 @@ by a **3-second timeout** and both failures return **503**.
 - Remotive asks for at most ~4 requests a day; the nightly run makes 1.
 - LinkedIn, Indeed, Glassdoor, Wellfound and remote.co are never scraped — email only.
 
-### 9.11 Planned discovery work
+### 9.11 Finding sources versus finding jobs (decided 2026-10-02)
+
+"Search every software house in Lahore and every remote board" is two different
+problems, solved differently:
+
+| Layer | What | How often | Cost |
+|---|---|---|---|
+| **1. Find sources** | Grow the list of companies/boards to watch | Monthly, or on demand | Cents (or free — see below) |
+| **2. Portal alerts** | LinkedIn, Rozee, Indeed, Glassdoor, Wellfound search thousands of companies against saved keywords and email the results (§10) | Continuous | Free |
+| **3. Poll known sources** | The platform adapters (§9.3) | Nightly | Free — no AI |
+| **4. Custom sites** | Change watcher; Haiku reads only changed pages | Nightly | Fractions of a cent per change |
+
+**Claude web search is never used for nightly job discovery.** Rejected because:
+it costs $10 per 1,000 searches plus tokens for every result page (dozens of searches a
+night ≈ $10–15/month, over budget); results are non-deterministic and miss companies
+silently — the "silent single-source search" failure of §1.3; they are dominated by
+LinkedIn/Indeed links that can't be fetched; and the portals' own alerts already search
+the whole market for free.
+
+**Where web search *is* used — layer 1, sparingly and targeted:**
+- **ATS-scoped searches** such as `site:job-boards.greenhouse.io Lahore`,
+  `site:jobs.lever.co Pakistan`, `site:apply.workable.com Lahore`,
+  `site:jobs.ashbyhq.com Pakistan` — they find companies that post Pakistan jobs on
+  platforms we already have adapters for. Each company found becomes a source polled
+  free every night thereafter. ~20–30 searches ≈ $0.30–0.60 per run, monthly.
+- **The user can run these searches by hand in claude.ai** (Claude Pro includes web
+  search) and paste the company list in — taking the cost off the API budget (§12.3).
+- **Board probing needs no AI and no search:** for any company name (from alerts, the
+  user's list, or a directory such as P@SHA's member list), call the platforms' public
+  APIs (`boards-api.greenhouse.io/v1/boards/<slug>`, Lever, SmartRecruiters, Workable)
+  — free, deterministic. This is the board discovery of §9.12.
+- Every newly found source is a **suggestion the user approves**, never added silently.
+
+### 9.12 Planned discovery work
 
 - **Milestone 2:** HTML parsers for JazzHR, Zoho Recruit and OpenCATS-style pages (8
   companies), then the single-company platforms.
@@ -784,7 +817,7 @@ description — and fetching the page behind the link would be scraping. So:
 - **"Paste full description" appears only on jobs the user marked Interested**, because
   only tailoring needs it. Most alerts are skipped and never need it.
 - Often no paste is needed at all: if the same job is on a watched company board or
-  aggregator, the full description is filled from there; and board discovery (§9.11)
+  aggregator, the full description is filled from there; and board discovery (§9.12)
   turns alert-only companies into watched sources over time.
 
 ---
@@ -842,14 +875,52 @@ new/updated Job (passed the rule filter)
 - **Prerequisites:** the user's verified evidence, and an Anthropic API key in the
   worker's environment only.
 
-### 12.2 Budget (from published pricing at planning time)
+### 12.2 Budget (prices checked 2026-10-02 on the official pricing page)
 
-At ~300 relevant postings/day → ~30 reach AI → ~5 tailored: extraction + scoring on Haiku
-~$8/month; tailoring on Sonnet ~$3/month; ~$11/month at standard rates, **$5–8/month**
-with Batch API and caching. Infrastructure: free tiers for Neon, Upstash and Vercel;
-~$5–7/month for an always-on worker host; domain ~$12/year. **Roughly $12–18/month
-all-in.** (Live discovery showed ~1,300 raw postings/night → ~25 stored; the rule filter
-does most of the reduction before any AI call.)
+| | Standard | Batch API (50% off) |
+|---|---|---|
+| Claude Haiku 4.5 — extraction, scoring | $1 in / $5 out per MTok | $0.50 / $2.50 |
+| Claude Sonnet 5.5 — tailoring | $2 in / $10 out per MTok | $1 / $5 |
+| Cache reads (the career database — identical every call) | 0.1× input price | stacks with batch |
+| Web search (server tool) | $10 per 1,000 searches + result tokens | — |
+| Web fetch (server tool) | tokens only | — |
+
+**Estimate at real volume.** Live discovery stores ~25 jobs on a first run, and only
+*new* jobs are scored after that (dedupe), so ~5–15 per night.
+- Scoring: ~5,000 input + ~500 output tokens per job, career data cached, batched →
+  **~$0.003 per job → ~$1/month**.
+- Tailoring: ~$0.015–0.03 per resume; with the resume library reusing approved variants,
+  ~30 new resumes/month → **~$1/month**.
+- Source discovery via API web search: ~$0.50 per monthly run (or $0 if done by hand in
+  claude.ai).
+- **Total ≈ $2–3/month.** The user's initial $5 of credits lasts ~2 months. (The original
+  plan's ~$11/month assumed 30 jobs/day reaching AI; real deduplicated volume is far
+  lower.)
+- Infrastructure when deployed: free tiers for Neon, Upstash, Vercel; ~$5–7/month for an
+  always-on worker host; domain ~$12/year.
+
+### 12.3 Budget guard (decided 2026-10-02; built with the scoring step)
+
+So a bug or a sudden flood of "new" jobs can't drain the credits in one night:
+1. **A monthly spend limit set in the Anthropic Console** (account-level hard stop) —
+   set by the user.
+2. **In the worker:** a nightly cap on AI calls (e.g. score at most 40 jobs, tailor at
+   most 5 — runtime settings, not constants); every model call logs its token usage and
+   computed cost; jobs over the cap wait for the next night (visible, never silently
+   dropped); month-to-date spend shown on the Sources page.
+
+### 12.4 Claude Pro subscription versus the API (2026-10-02)
+
+The user has a Claude Pro subscription. It is **not** used to power Shortlist: Pro covers
+the user's own use of Claude (claude.ai, apps, Claude Code — used to *build* Shortlist),
+while the worker's nightly calls need an API key billed from Console credits. Routing the
+worker through the Pro login (e.g. scripting Claude Code as a backend) was rejected — it
+isn't what the subscription is for, likely breaches its terms, and is fragile (usage
+limits, interactive sessions). **Pro is used for:** development; manual source discovery
+with web search (§9.11); prototyping the scoring/tailoring prompts on real job
+descriptions before spending API credits; one-off career work (rewording evidence before
+verifying, interview prep from gaps, special cover letters). Rule of thumb: anything
+automated runs on the API; anything the user does by hand can use Pro.
 
 ---
 
@@ -1023,16 +1094,21 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
 | 2026-10-01 | Manual run cooldown 6h; API enqueue bounded by 3s timeout → 503 | §9.9 |
 | 2026-10-01 | Source attribution + link-back; `rel="noopener"` without `noreferrer` | Aggregator terms (§9.10) |
 | 2026-10-01 | Wellfound, remote.co, LinkedIn, Indeed via email alerts only; Turing isn't a source | §9.2, §10 |
-| 2026-10-01 | Custom careers sites via change watcher + Haiku extraction (Milestone 3) | §9.11 |
+| 2026-10-01 | Custom careers sites via change watcher + Haiku extraction (Milestone 3) | §9.12 |
 | 2026-10-02 | Use the user's personal Gmail (no new inbox); OAuth `gmail.readonly`; worker reads only the `Shortlist` label; never sends | §10.2–10.3 |
 | 2026-10-02 | Email alerts move ahead of discovery Milestone 2, after AI scoring | §10.1, §17 |
 | 2026-10-02 | Partial-info jobs; "paste full description" once, only for Interested jobs | §10.5 |
-| 2026-10-02 | Board discovery: suggest watching companies found in alerts that have public boards | §9.11 |
+| 2026-10-02 | Board discovery: suggest watching companies found in alerts that have public boards | §9.12 |
 | 2026-10-02 | "Add a job" (paste text/link) + Android share target; bypasses score threshold | §11 |
 | 2026-10-02 | Resume library: variants matched by requirement overlap (not title), base variants per niche, stale on evidence change; `TailoredResume` → variants + application record | §13.2–13.4 |
 | 2026-10-02 | Application kit: drafted email (user sends), screening answers, outreach drafts | §13.5 |
 | 2026-10-02 | Scam-posting red flags; "possibly closed" jobs aren't tailored | §3.9, §3.11 |
 | 2026-10-02 | Every design decision is recorded in this document | User request |
+| 2026-10-02 | Separate *finding sources* (monthly, targeted ATS-scoped web search + free board probing) from *finding jobs* (nightly, no AI) | §9.11 |
+| 2026-10-02 | Claude web search is never used for nightly job discovery | Cost, non-determinism, silent misses (§9.11) |
+| 2026-10-02 | Budget re-estimated at current prices: ≈ $2–3/month; initial $5 credit | §12.2 |
+| 2026-10-02 | Budget guard: Console spend limit + nightly AI-call caps, per-call cost log, spend shown in app | §12.3 |
+| 2026-10-02 | Claude Pro is for development and manual work, not for powering the worker | §12.4 |
 
 ---
 
@@ -1064,16 +1140,18 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
 1. **User:** verify the 29 seeded evidence items in the Evidence screen (rename the
    placeholder "API integration" skill; add Manzil's description and dates). Everything
    AI reads only verified evidence.
-2. **AI extraction + match scoring** (§12) together with **"Add a job"** (§11, incl. the
-   Android share target) — they share the pipeline, and a pasted job is only useful once
-   scored. Needs an Anthropic API key in the worker env.
+2. **AI extraction + match scoring** (§12) with the **budget guard** (§12.3), together
+   with **"Add a job"** (§11, incl. the Android share target) — they share the pipeline,
+   and a pasted job is only useful once scored. Needs an Anthropic API key in the worker
+   env and a Console spend limit (user, with $5 of credits).
 3. **Email job alerts** from the personal Gmail (§10): OAuth read-only, `Shortlist`
    label, per-portal parsers, partial-info jobs, "paste full description", board
    discovery.
 4. **Tailoring, the resume library and the application kit** (§13), with push
    notifications. **Decide the open placement rules (§6.1) first.**
-5. **Discovery Milestone 2** (hosted ATS pages), then **Milestone 3** (custom sites via
-   change watcher).
+5. **Discovery Milestone 2** (hosted ATS pages), **source discovery** (§9.11: board
+   probing + monthly ATS-scoped search), then **Milestone 3** (custom sites via change
+   watcher).
 6. **Deploy** (§4): Neon, Upstash, Vercel + Render/Railway on a shared site.
 7. Rate-limit `/auth/login` and `/auth/register`.
 
