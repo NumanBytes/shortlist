@@ -58,6 +58,26 @@ enum JobStatus {
   WITHDRAWN
 }
 
+// Where a job is in the AI pipeline (Agents.md §12).
+enum JobAnalysisStatus {
+  PENDING // waiting to be analysed
+  DONE // requirements extracted and scored
+  DEFERRED // over the nightly/monthly budget; retried next run — never silently dropped
+  FAILED // the model call or its validation failed; see analysisError
+}
+
+enum MatchVerdict {
+  APPLY
+  STRETCH
+  SKIP
+}
+
+enum AiPurpose {
+  ANALYZE_JOB // requirement extraction + skill mapping (Haiku)
+  TAILOR_RESUME // later (Sonnet)
+  DISCOVER_SOURCES // later (web search)
+}
+
 enum JobSourceType {
   ATS_BOARD
   AGGREGATOR_API
@@ -88,6 +108,8 @@ model User {
   jobSources      JobSource[]
   jobs            Job[]
   discoveryPrefs  DiscoveryPreferences?
+  aiSettings      AiSettings?
+  aiUsage         AiUsage[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -261,10 +283,10 @@ model Job {
   // Guards against the same posting appearing from multiple sources.
   dedupeHash String
 
-  jobSourceId     String?
-  jobSource       JobSource?    @relation(fields: [jobSourceId], references: [id], onDelete: SetNull)
-  discoveryRunId  String? // the run that first found it
-  discoveryRun    DiscoveryRun? @relation(fields: [discoveryRunId], references: [id], onDelete: SetNull)
+  jobSourceId    String?
+  jobSource      JobSource?    @relation(fields: [jobSourceId], references: [id], onDelete: SetNull)
+  discoveryRunId String? // the run that first found it
+  discoveryRun   DiscoveryRun? @relation(fields: [discoveryRunId], references: [id], onDelete: SetNull)
 
   status       JobStatus @default(DISCOVERED)
   postedAt     DateTime?
@@ -274,6 +296,15 @@ model Job {
 
   requirements JobRequirement[]
   match        JobMatch?
+
+  // AI analysis (Agents.md §12)
+  analysisStatus JobAnalysisStatus @default(PENDING)
+  analysisError  String?
+  analyzedAt     DateTime?
+  seniority      String? // JUNIOR | MID | SENIOR | LEAD | UNKNOWN, as the posting states it
+  yearsRequired  Int? // overall years the posting asks for, if stated
+  redFlags       String[] // scam / suspicious-posting signals the model noticed
+  aiUsage        AiUsage[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -310,6 +341,13 @@ model JobRequirement {
   skillName     String
   importance    RequirementImportance
   yearsRequired Int?
+  isCore        Boolean               @default(false) // central to the role, not a nice-to-have
+
+  // Which of the user's VERIFIED skills satisfy this requirement — chosen by the model
+  // only from the list it was given, then checked in code. Scores are computed from this
+  // mapping, so a change to evidence re-scores without another model call.
+  matchedSkillIds String[] // the same technology (or a direct equivalent): full credit
+  relatedSkillIds String[] // transferable but NOT the same (Redux vs React): half credit, never claimed as the skill
 
   @@index([jobId])
 }
@@ -319,12 +357,14 @@ model JobMatch {
   jobId String @unique
   job   Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
+  // Computed in code from JobRequirement.matchedSkillIds + evidence strength — never
+  // produced by the model, so the same inputs always give the same score.
   overallScore    Int // 0-100
-  commercialScore Int
-  verdict         String // APPLY | STRETCH | SKIP
+  commercialScore Int // 0-100, counting only COMMERCIAL evidence
+  verdict         MatchVerdict
 
-  strengths String @db.Text
-  risks     String @db.Text
+  strengths String[]
+  risks     String[]
 
   gaps           SkillGap[]
   tailoredResume TailoredResume?
@@ -354,4 +394,40 @@ model TailoredResume {
   pdfUrl  String? // reference to the rendered PDF
 
   createdAt DateTime @default(now())
+}
+
+// Budget guard (Agents.md §12.3). Runtime settings per user — the cost dial is data,
+// not a constant. A user without a row gets DEFAULT_AI_SETTINGS from shared.
+model AiSettings {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  maxAnalysesPerDay Int // job analyses per rolling 24h
+  monthlyBudgetUsd  Decimal @db.Decimal(8, 2) // stop all AI calls once this month's spend reaches it
+
+  updatedAt DateTime @updatedAt
+}
+
+// One row per model call: what it cost and why it was made. The budget guard sums these;
+// the Sources page shows month-to-date spend from them.
+model AiUsage {
+  id     String  @id @default(uuid())
+  userId String
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobId  String?
+  job    Job?    @relation(fields: [jobId], references: [id], onDelete: SetNull)
+
+  purpose          AiPurpose
+  model            String
+  inputTokens      Int
+  outputTokens     Int
+  cacheReadTokens  Int       @default(0)
+  cacheWriteTokens Int       @default(0)
+  costUsd          Decimal   @db.Decimal(12, 6)
+  succeeded        Boolean // false = the call was billed but its output was rejected
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
 }

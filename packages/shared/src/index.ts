@@ -8,3 +8,5 @@ export * from './job-source.schema.js';
 export * from './discovery-preferences.schema.js';
 export * from './discovery-queue.js';
 export * from './job.schema.js';
+export * from './ai.schema.js';
+export * from './scoring.js';

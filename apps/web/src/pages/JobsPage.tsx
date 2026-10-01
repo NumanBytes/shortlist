@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import { JobCard } from '../components/JobCard';
 import { Button } from '../components/ui';
-import { useJobs } from '../lib/queries';
+import { useJobs, type JobSort } from '../lib/queries';
 import type { JobStatus } from '../lib/types';
 
 const TABS: { status: JobStatus | 'PIPELINE'; label: string }[] = [
@@ -15,8 +15,9 @@ const PIPELINE: JobStatus[] = ['APPLIED', 'ASSESSMENT', 'INTERVIEWING', 'OFFER',
 
 export function JobsPage() {
   const [tab, setTab] = useState<(typeof TABS)[number]['status']>('DISCOVERED');
+  const [sort, setSort] = useState<JobSort>('score');
   // "Applied" spans several later stages, so it filters the full list client-side.
-  const jobs = useJobs(tab === 'PIPELINE' ? undefined : tab);
+  const jobs = useJobs(tab === 'PIPELINE' ? undefined : tab, sort);
   const visible = tab === 'PIPELINE' ? (jobs.data ?? []).filter((j) => PIPELINE.includes(j.status)) : (jobs.data ?? []);
 
   return (
@@ -33,6 +34,17 @@ export function JobsPage() {
           </Button>
         ))}
       </nav>
+      <label className="mt-3 flex items-center gap-2 text-sm text-slate-600">
+        Sort
+        <select
+          value={sort}
+          onChange={(e) => setSort(e.target.value as JobSort)}
+          className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm"
+        >
+          <option value="score">Best match</option>
+          <option value="recent">Newest</option>
+        </select>
+      </label>
 
       <main className="mt-4">
         {jobs.isPending && <p className="text-slate-500">Loading…</p>}

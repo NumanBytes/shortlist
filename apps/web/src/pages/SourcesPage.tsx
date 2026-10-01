@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Badge, Button } from '../components/ui';
 import { providerLabel, timeAgo } from '../lib/format';
-import { useRunDiscovery, useSetSourceEnabled, useSources } from '../lib/queries';
+import { useAiUsage, useRunDiscovery, useSetSourceEnabled, useSources, useUpdateAiSettings } from '../lib/queries';
 import type { DiscoverySource, RunStatus } from '../lib/types';
 
 const STATUS_TONE: Record<RunStatus, 'green' | 'amber' | 'slate'> = {
@@ -50,6 +50,72 @@ function SourceRow({ source }: { source: DiscoverySource }) {
   );
 }
 
+// Budget guard visibility (Agents.md §12.3): what AI scoring has cost, and the caps.
+function AiSpendCard() {
+  const usage = useAiUsage();
+  const update = useUpdateAiSettings();
+  const [editing, setEditing] = useState(false);
+  const [budget, setBudget] = useState('');
+  if (!usage.isSuccess) return null;
+  const u = usage.data;
+  const pct = Math.min(100, (u.monthToDateUsd / Math.max(u.settings.monthlyBudgetUsd, 0.01)) * 100);
+  return (
+    <section className="rounded-xl border border-slate-200 bg-white p-4" aria-labelledby="ai-spend">
+      <h2 id="ai-spend" className="font-semibold">
+        AI scoring
+      </h2>
+      <p className="mt-1 text-sm text-slate-700">
+        ${u.monthToDateUsd.toFixed(2)} of ${u.settings.monthlyBudgetUsd.toFixed(2)} this month · {u.analysesLast24h} of{' '}
+        {u.settings.maxAnalysesPerDay} analyses in the last 24h
+      </p>
+      <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100" aria-hidden="true">
+        <div className={`h-full ${pct >= 90 ? 'bg-red-500' : 'bg-slate-900'}`} style={{ width: `${pct}%` }} />
+      </div>
+      <p className="mt-2 text-xs text-slate-500">
+        {u.jobs.done} scored · {u.jobs.pending} pending · {u.jobs.deferred} deferred · {u.jobs.failed} failed
+      </p>
+      {editing ? (
+        <form
+          className="mt-2 flex items-center gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const value = Number(budget);
+            if (Number.isFinite(value) && value >= 0) update.mutate({ monthlyBudgetUsd: value }, { onSuccess: () => setEditing(false) });
+          }}
+        >
+          <label className="text-sm text-slate-600" htmlFor="budget">
+            Monthly budget $
+          </label>
+          <input
+            id="budget"
+            type="number"
+            min="0"
+            step="0.5"
+            value={budget}
+            onChange={(e) => setBudget(e.target.value)}
+            className="w-24 rounded-lg border border-slate-300 px-2 py-1 text-sm"
+          />
+          <Button type="submit" disabled={update.isPending}>
+            Save
+          </Button>
+        </form>
+      ) : (
+        <Button
+          variant="ghost"
+          className="mt-1 px-0"
+          onClick={() => {
+            setBudget(String(u.settings.monthlyBudgetUsd));
+            setEditing(true);
+          }}
+        >
+          Change budget
+        </Button>
+      )}
+      {update.isError && <p className="text-xs text-red-600">{update.error.message}</p>}
+    </section>
+  );
+}
+
 export function SourcesPage() {
   const sources = useSources();
   const runNow = useRunDiscovery();
@@ -59,6 +125,7 @@ export function SourcesPage() {
 
   return (
     <main className="space-y-4">
+      <AiSpendCard />
       <section className="rounded-xl border border-slate-200 bg-white p-4">
         <p className="text-sm text-slate-600">
           Discovery runs every night at 02:00. Run it now to check your sources — any source that ran in the last few

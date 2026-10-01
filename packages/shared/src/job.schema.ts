@@ -16,6 +16,8 @@ export type JobStatus = z.infer<typeof JobStatus>;
 export const ListJobsQuerySchema = z
   .object({
     status: JobStatus.optional(),
+    // "score": best match first (unscored last); "recent": newest first.
+    sort: z.enum(['score', 'recent']).default('score'),
   })
   .strict();
 export type ListJobsQuery = z.infer<typeof ListJobsQuerySchema>;

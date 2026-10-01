@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UpdateSkillEvidenceInput } from '@shortlist/shared';
 import { api } from './api';
 import type {
+  AiUsage,
   DiscoverySource,
   Evidence,
   JobDetail,
@@ -58,16 +59,40 @@ export const useUpdateEvidence = () =>
 // ── Jobs & discovery ─────────────────────────────────────────────────────────
 export const jobKeys = {
   all: ['jobs'] as const,
-  list: (status?: JobStatus) => ['jobs', 'list', status ?? 'all'] as const,
+  list: (status?: JobStatus, sort: JobSort = 'score') => ['jobs', 'list', status ?? 'all', sort] as const,
   detail: (id: string) => ['jobs', 'detail', id] as const,
   sources: ['discovery', 'sources'] as const,
+  aiUsage: ['ai', 'usage'] as const,
 };
 
-export const useJobs = (status?: JobStatus) =>
+export type JobSort = 'score' | 'recent';
+
+export const useJobs = (status?: JobStatus, sort: JobSort = 'score') =>
   useQuery({
-    queryKey: jobKeys.list(status),
-    queryFn: () => api<JobListItem[]>(`/jobs${status ? `?status=${status}` : ''}`),
+    queryKey: jobKeys.list(status, sort),
+    queryFn: () => api<JobListItem[]>(`/jobs?sort=${sort}${status ? `&status=${status}` : ''}`),
   });
+
+export function useAnalyzeJob() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api(`/jobs/${id}/analyze`, { method: 'POST' }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: jobKeys.all });
+      void queryClient.invalidateQueries({ queryKey: jobKeys.aiUsage });
+    },
+  });
+}
+
+export const useAiUsage = () => useQuery({ queryKey: jobKeys.aiUsage, queryFn: () => api<AiUsage>('/ai/usage') });
+
+export function useUpdateAiSettings() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Partial<AiUsage['settings']>) => api('/ai/settings', { method: 'PATCH', body }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: jobKeys.aiUsage }),
+  });
+}
 
 export const useJobDetail = (id: string, enabled: boolean) =>
   useQuery({ queryKey: jobKeys.detail(id), queryFn: () => api<JobDetail>(`/jobs/${id}`), enabled });

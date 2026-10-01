@@ -1,6 +1,6 @@
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
-import { DISCOVERY_QUEUE } from '@shortlist/shared';
+import { ANALYSIS_QUEUE, DISCOVERY_QUEUE } from '@shortlist/shared';
 import { ENV } from '../config/config.module.js';
 import type { Env } from '../config/env.js';
 import { ADAPTERS } from './adapters/index.js';
@@ -15,7 +15,7 @@ import { createRedis } from './queue.js';
       inject: [ENV],
       useFactory: (env: Env) => ({ connection: createRedis(env.REDIS_URL) }),
     }),
-    BullModule.registerQueue({ name: DISCOVERY_QUEUE }),
+    BullModule.registerQueue({ name: DISCOVERY_QUEUE }, { name: ANALYSIS_QUEUE }),
   ],
   providers: [
     DiscoveryService,

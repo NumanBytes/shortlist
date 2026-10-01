@@ -1,6 +1,6 @@
 import { Global, Module } from '@nestjs/common';
-import { DiscoveryQueue } from './discovery-queue.js';
+import { JobQueues } from './job-queues.js';
 
 @Global()
-@Module({ providers: [DiscoveryQueue], exports: [DiscoveryQueue] })
+@Module({ providers: [JobQueues], exports: [JobQueues] })
 export class QueueModule {}

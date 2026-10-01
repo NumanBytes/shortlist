@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Query } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
 import {
   ListJobsQuerySchema,
   UpdateJobSchema,
@@ -21,6 +21,13 @@ export class JobsController {
   @Get(':id')
   get(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.jobs.get(user.id, id);
+  }
+
+  // 202: the worker does the work (and may defer it under the budget guard).
+  @Post(':id/analyze')
+  @HttpCode(HttpStatus.ACCEPTED)
+  analyze(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.jobs.analyze(user.id, id);
   }
 
   @Patch(':id')

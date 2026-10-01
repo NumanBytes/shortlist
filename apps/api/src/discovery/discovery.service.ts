@@ -6,13 +6,13 @@ import {
   type UpdateJobSourceInput,
 } from '@shortlist/shared';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { DiscoveryQueue } from '../queue/discovery-queue.js';
+import { JobQueues } from '../queue/job-queues.js';
 
 @Injectable()
 export class DiscoveryService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly queue: DiscoveryQueue,
+    private readonly queue: JobQueues,
   ) {}
 
   // Each source with its most recent run — the health view. A FAILED or EMPTY source

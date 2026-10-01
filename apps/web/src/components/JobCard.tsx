@@ -1,14 +1,17 @@
 import { useState } from 'react';
 import { providerLabel, timeAgo } from '../lib/format';
-import { useJobDetail, useSetJobStatus } from '../lib/queries';
+import { useAnalyzeJob, useJobDetail, useSetJobStatus } from '../lib/queries';
 import type { JobListItem, JobStatus } from '../lib/types';
+import { MatchBreakdown } from './MatchBreakdown';
 import { Badge, Button } from './ui';
+import { VerdictBadge } from './VerdictBadge';
 
 const AGGREGATORS = new Set(['remoteok', 'remotive', 'arbeitnow', 'himalayas', 'jobicy', 'weworkremotely']);
 const LATER_STAGES: JobStatus[] = ['APPLIED', 'ASSESSMENT', 'INTERVIEWING', 'OFFER', 'REJECTED', 'WITHDRAWN'];
 
 export function JobCard({ job }: { job: JobListItem }) {
   const setStatus = useSetJobStatus();
+  const analyze = useAnalyzeJob();
   const [open, setOpen] = useState(false);
   const detail = useJobDetail(job.id, open);
   const move = (status: JobStatus) => setStatus.mutate({ id: job.id, status });
@@ -24,8 +27,17 @@ export function JobCard({ job }: { job: JobListItem }) {
             {job.location && <> · {job.location}</>}
           </p>
         </div>
-        {job.workMode && <Badge>{job.workMode.toLowerCase()}</Badge>}
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          {job.match && <VerdictBadge score={job.match.overallScore} verdict={job.match.verdict} />}
+          {job.workMode && <Badge>{job.workMode.toLowerCase()}</Badge>}
+        </div>
       </div>
+
+      {job.redFlags.length > 0 && (
+        <p className="mt-2 text-xs font-medium text-red-700">⚠ Possible scam — open Details before applying</p>
+      )}
+      <AnalysisState job={job} onRetry={() => analyze.mutate(job.id)} retrying={analyze.isPending} />
+      {analyze.isError && <p className="mt-1 text-xs text-red-600">{analyze.error.message}</p>}
 
       <p className="mt-2 text-xs text-slate-500">
         {/* Attribution: aggregators require naming them and linking back to the original. */}
@@ -35,8 +47,11 @@ export function JobCard({ job }: { job: JobListItem }) {
       </p>
 
       {open && (
-        <div className="mt-3 max-h-72 overflow-y-auto whitespace-pre-line rounded-lg bg-slate-50 p-3 text-sm leading-relaxed text-slate-700">
-          {detail.isPending ? 'Loading…' : detail.isError ? `Couldn't load: ${detail.error.message}` : detail.data.rawJD}
+        <div className="mt-3 space-y-2">
+          {detail.isSuccess && <MatchBreakdown job={detail.data} />}
+          <div className="max-h-72 overflow-y-auto whitespace-pre-line rounded-lg bg-slate-50 p-3 text-sm leading-relaxed text-slate-700">
+            {detail.isPending ? 'Loading…' : detail.isError ? `Couldn't load: ${detail.error.message}` : detail.data.rawJD}
+          </div>
         </div>
       )}
 
@@ -102,5 +117,23 @@ export function JobCard({ job }: { job: JobListItem }) {
       </div>
       {setStatus.isError && <p className="mt-2 text-sm text-red-600">{setStatus.error.message}</p>}
     </li>
+  );
+}
+
+// Why a job has no score yet — never a silent blank (cf. Agents.md §1.3).
+function AnalysisState({ job, onRetry, retrying }: { job: JobListItem; onRetry: () => void; retrying: boolean }) {
+  if (job.analysisStatus === 'DONE') return null;
+  if (job.analysisStatus === 'PENDING') return <p className="mt-2 text-xs text-slate-500">Match score pending…</p>;
+  const failed = job.analysisStatus === 'FAILED';
+  return (
+    <div className={`mt-2 flex flex-wrap items-center gap-2 text-xs ${failed ? 'text-red-700' : 'text-amber-800'}`}>
+      <span>
+        {failed ? 'Scoring failed' : 'Scoring deferred'}
+        {job.analysisError && `: ${job.analysisError}`}
+      </span>
+      <button type="button" onClick={onRetry} disabled={retrying} className="font-medium underline disabled:opacity-50">
+        {retrying ? 'Queuing…' : 'Retry'}
+      </button>
+    </div>
   );
 }
