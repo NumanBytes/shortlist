@@ -1229,9 +1229,10 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
 
 ### 17.2 Roadmap (in order)
 
-1. **User:** verify the 29 seeded evidence items in the Evidence screen (rename the
-   placeholder "API integration" skill; add Manzil's description and dates). Everything
-   AI reads only verified evidence.
+1. **User:** review the 17 new/corrected evidence items (2026-10-02) in the Evidence
+   screen; then run discovery + scoring on the user's real jobs (~$0.15). The original
+   29 were verified; Manzil still needs a description and dates. Everything AI reads
+   only verified evidence.
 2. **"Add a job"** (§11, incl. the Android share target). (AI scoring + budget guard:
    built — §12.)
 3. **Email job alerts** from the personal Gmail (§10): OAuth read-only, `Shortlist`
