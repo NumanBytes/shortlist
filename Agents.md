@@ -460,20 +460,32 @@ HTML5, CSS, Tailwind CSS, JavaScript, TypeScript, React, Material UI, Ant Design
 PRODUCTION); React and Angular version upgrades across apps (MAINTENANCE, not primary
 development); Ruby, a little (WORKING); PostgreSQL / SQL — migrations, new tables and
 columns (PRODUCTION); role-based access control via DB configuration (PRODUCTION); full
-understanding of the in-house Ruby B2C layer between the frontend and a core Java
-backend (PRODUCTION — seeded under the placeholder skill name "API integration", to be
-renamed by the user); SonarQube error remediation (PRODUCTION); Docker, Docker Compose,
+**API Integration** — writing Ruby functions and classes in the in-house B2C layer
+(between the frontend and the core Java backend) that call backend API endpoints, expose
+them as **GraphQL** APIs, and consume them in the frontend (PRODUCTION; named and
+described by the user 2026-10-02 — GraphQL added as its own commercial skill from that
+description); SonarQube error remediation (PRODUCTION); Docker, Docker Compose,
 microservices — real but consumed/worked-within rather than owned (WORKING).
+**Everyday tools (user-confirmed 2026-10-02):** Git, REST APIs, npm (PRODUCTION);
+prompt engineering — daily use of AI assistants (WORKING: real, but not "built a feature
+that shipped").
 
 **PERSONAL / SELF-TAUGHT:** MERN (MongoDB, Express.js, Node.js) — small learning projects
-in 2024, picked back up in 2026 (WORKING, never commercial). Next.js — building the
-Manzil side project, not yet shipped (WORKING, linked to the Manzil project).
+in 2024, picked back up in 2026 (WORKING, never commercial). pnpm, incl. workspaces
+(WORKING, Shortlist project). **Learning (EXPOSURE, user-stated 2026-10-02):** Next.js
+(Manzil — *corrected from WORKING*), NextAuth, and the Shortlist stack — NestJS, Prisma,
+Redis, BullMQ, Zod, TanStack Query, Vite, Vitest — worded as "learning while building
+Shortlist; not yet able to build with it independently", because much of Shortlist's
+code is written with an AI assistant while the user learns each layer. These move to
+WORKING only when the user says they can build with them alone.
 
 **ACADEMIC:** Python, Flask, Django, Java, C++, .NET — coursework, last used 2023
 (EXPOSURE; already stale under the 2-year rule, kept in the database but never shown).
 
 Dates known only to the year use July 1 of that year. The user supplied the university
-and MERN dates (2026-10-01) rather than letting them be guessed.
+and MERN dates (2026-10-01) rather than letting them be guessed, and on 2026-10-02 the
+context (CloudCard vs personal) and depth of every newly added skill. Projects:
+CloudCard (role), Manzil and Shortlist (personal, not shipped).
 
 ### 7.2 Known false claims that must never resurface
 
@@ -1187,6 +1199,8 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
 | 2026-10-02 | Budget guard defaults: $4.50/month, 40 analyses/24h; deferred jobs retried nightly | §12.3 |
 | 2026-10-02 | Analysis deduplicated per job across all enqueue paths; re-analysis only after a newly verified skill | §12.1 (code review) |
 | 2026-10-02 | "Best match" ranks every scored job (two queries), not only the newest 200 | Code review |
+| 2026-10-02 | Career data: "API Integration" (Ruby → GraphQL) named by the user; GraphQL, Git, REST APIs, npm commercial; prompting commercial WORKING; pnpm personal; Next.js corrected to EXPOSURE; Shortlist stack added as EXPOSURE ("learning") | §7.1 — user-confirmed, all unverified until reviewed |
+| 2026-10-02 | Seed data first, verify, THEN score — scoring before verifying new skills would pay for every job twice | §12.1 re-analysis rule |
 
 ---
 
@@ -1235,8 +1249,9 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
 
 - **Scoring weight calibration** (§12.1): PREFERRED/BONUS weights and the 45/70 verdict
   thresholds — tune on the user's real scored jobs, not a single sample.
-- **Career data completeness:** everyday skills (e.g. Git, REST APIs, testing) are
-  absent from the seed; the user decides what is true to add.
+- **Career data completeness:** Git, REST APIs, npm, pnpm, prompting added
+  (2026-10-02). Testing (Jest/Vitest in paid work) not stated — the user decides.
+- Whether prompt engineering at CloudCard is WORKING (seeded) or PRODUCTION — the user can raise it.
 - Placement rules for COMMERCIAL + WORKING, COMMERCIAL + EXPOSURE, PERSONAL + PRODUCTION /
   MAINTENANCE (§6.1).
 - The score threshold that gates tailoring (§12.1) and the resume-reuse overlap threshold
