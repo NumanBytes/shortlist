@@ -65,6 +65,14 @@ const mern = (): SeedEvidence => ({
   lastUsed: NOW,
 });
 
+const learning = (whatIDid: string, project?: string): SeedEvidence => ({
+  context: 'PERSONAL',
+  depth: 'EXPOSURE',
+  whatIDid,
+  lastUsed: NOW,
+  ...(project ? { project } : {}),
+});
+
 const coursework = (tech: string): SeedEvidence => ({
   context: 'ACADEMIC',
   depth: 'EXPOSURE',
@@ -84,7 +92,10 @@ export const CAREER_DATA: CareerData = {
     },
   ],
 
-  projects: [{ key: 'manzil', name: 'Manzil', isShipped: false }],
+  projects: [
+    { key: 'manzil', name: 'Manzil', isShipped: false },
+    { key: 'shortlist', name: 'Shortlist', isShipped: false },
+  ],
 
   skills: [
     // ── COMMERCIAL: CloudCard ────────────────────────────────────────────────
@@ -127,16 +138,32 @@ export const CAREER_DATA: CareerData = {
       evidence: [cloudcard('PRODUCTION', 'Implemented role-based access control through database configuration at CloudCard.')],
     },
     {
-      // Skill name is a placeholder for §6's "full understanding of the in-house Ruby
-      // B2C layer" — rename it to how you'd describe it. This is NOT Azure B2C.
-      name: 'API integration',
+      // Named and described by the user (2026-10-02). The B2C layer is in-house Ruby —
+      // this is NOT Azure B2C.
+      name: 'API Integration',
       category: 'CONCEPT',
       evidence: [
         cloudcard(
           'PRODUCTION',
-          "Understand CloudCard's in-house Ruby B2C layer end to end — it sits between the frontend and a core Java backend.",
+          "Write Ruby functions and classes in CloudCard's in-house B2C layer (between the frontend and the core Java backend) that call backend API endpoints, expose them as GraphQL APIs, and consume those APIs in the frontend.",
         ),
       ],
+    },
+    {
+      name: 'GraphQL',
+      category: 'CONCEPT',
+      evidence: [cloudcard('PRODUCTION', 'Expose Ruby-backed APIs as GraphQL and consume them from the frontend at CloudCard.')],
+    },
+    // Everyday tools, confirmed by the user as CloudCard work (2026-10-02).
+    { name: 'Git', category: 'TOOL', evidence: [cloudcard('PRODUCTION', 'Use Git for version control in day-to-day work at CloudCard.')] },
+    { name: 'REST APIs', category: 'CONCEPT', evidence: [cloudcard('PRODUCTION', 'Work with REST APIs in frontend features at CloudCard.')] },
+    { name: 'npm', category: 'TOOL', evidence: [cloudcard('PRODUCTION', 'Use npm to manage dependencies and scripts at CloudCard.')] },
+    {
+      name: 'Prompt engineering',
+      category: 'CONCEPT',
+      // WORKING, not PRODUCTION: daily use of AI assistants is real but isn't "built a
+      // feature that shipped". The user can raise it.
+      evidence: [cloudcard('WORKING', 'Use prompting with AI assistants in day-to-day development work at CloudCard.')],
     },
     {
       name: 'SonarQube',
@@ -165,14 +192,40 @@ export const CAREER_DATA: CareerData = {
       category: 'FRAMEWORK',
       evidence: [
         {
+          // The user corrected this from WORKING to EXPOSURE (2026-10-02): still learning.
           context: 'PERSONAL',
-          depth: 'WORKING',
-          whatIDid: 'Building the Manzil side project with Next.js (in progress, not yet shipped).',
+          depth: 'EXPOSURE',
+          whatIDid: 'Learning Next.js while building the Manzil side project (not yet shipped).',
           lastUsed: NOW,
           project: 'manzil',
         },
       ],
     },
+    {
+      name: 'pnpm',
+      category: 'TOOL',
+      evidence: [{ context: 'PERSONAL', depth: 'WORKING', whatIDid: 'Use pnpm and pnpm workspaces in personal projects such as Shortlist.', lastUsed: NOW, project: 'shortlist' }],
+    },
+    // Learning through building Shortlist (EXPOSURE, per the user, 2026-10-02). Worded so
+    // they don't read as "built it on my own" — much of the code was written with an AI
+    // assistant while the user learns each layer.
+    ...(
+      [
+        ['NestJS', 'FRAMEWORK'],
+        ['Prisma', 'LIBRARY'],
+        ['Redis', 'DATABASE'],
+        ['BullMQ', 'LIBRARY'],
+        ['Zod', 'LIBRARY'],
+        ['TanStack Query', 'LIBRARY'],
+        ['Vite', 'TOOL'],
+        ['Vitest', 'TOOL'],
+      ] as const
+    ).map(([name, category]): SeedSkill => ({
+      name,
+      category,
+      evidence: [learning(`Learning ${name} while building the Shortlist project; not yet able to build with it independently.`, 'shortlist')],
+    })),
+    { name: 'NextAuth', category: 'LIBRARY', evidence: [learning('Learning NextAuth (authentication for Next.js).')] },
     // Self-taught only. Never CloudCard experience — guarded in guards.ts.
     { name: 'Node.js', category: 'PLATFORM', evidence: [mern()] },
     { name: 'Express.js', category: 'FRAMEWORK', evidence: [mern()] },
