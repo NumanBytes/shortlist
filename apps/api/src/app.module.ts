@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AiModule } from './ai/ai.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { ConfigModule } from './config/config.module.js';
 import { DiscoveryModule } from './discovery/discovery.module.js';
@@ -24,6 +25,7 @@ import { WorkExperienceModule } from './work-experience/work-experience.module.j
     ProjectsModule,
     JobsModule,
     DiscoveryModule,
+    AiModule,
   ],
 })
 export class AppModule {}

@@ -76,10 +76,46 @@ export interface JobListItem {
   lastSeenAt: string;
   appliedAt: string | null;
   jobSource: { id: string; name: string } | null;
+  analysisStatus: AnalysisStatus;
+  analysisError: string | null;
+  redFlags: string[];
+  match: { overallScore: number; commercialScore: number; verdict: Verdict } | null;
 }
 
-export interface JobDetail extends JobListItem {
+export type AnalysisStatus = 'PENDING' | 'DONE' | 'DEFERRED' | 'FAILED';
+export type Verdict = 'APPLY' | 'STRETCH' | 'SKIP';
+export type GapSeverity = 'BLOCKING' | 'MODERATE' | 'MINOR';
+
+export interface JobDetail extends Omit<JobListItem, 'match'> {
   rawJD: string;
+  seniority: string | null;
+  yearsRequired: number | null;
+  analyzedAt: string | null;
+  requirements: {
+    skillName: string;
+    importance: 'REQUIRED' | 'PREFERRED' | 'BONUS';
+    isCore: boolean;
+    yearsRequired: number | null;
+    matchedSkillIds: string[];
+    relatedSkillIds: string[];
+  }[];
+  match: {
+    overallScore: number;
+    commercialScore: number;
+    verdict: Verdict;
+    strengths: string[];
+    risks: string[];
+    computedAt: string;
+    gaps: { skillName: string; severity: GapSeverity; note: string | null }[];
+  } | null;
+}
+
+export interface AiUsage {
+  settings: { maxAnalysesPerDay: number; monthlyBudgetUsd: number };
+  monthToDateUsd: number;
+  callsThisMonth: number;
+  analysesLast24h: number;
+  jobs: { pending: number; done: number; deferred: number; failed: number };
 }
 
 export type RunStatus = 'RUNNING' | 'SUCCESS' | 'FAILED' | 'EMPTY';

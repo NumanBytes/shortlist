@@ -18,6 +18,10 @@ const job: JobListItem = {
   lastSeenAt: new Date().toISOString(),
   appliedAt: null,
   jobSource: { id: 's1', name: 'Septem Systems' },
+  analysisStatus: 'DONE',
+  analysisError: null,
+  redFlags: [],
+  match: { overallScore: 86, commercialScore: 80, verdict: 'APPLY' },
 };
 
 function renderCard(j: JobListItem = job) {
@@ -78,8 +82,58 @@ describe('JobCard', () => {
     });
   });
 
+  it('shows the match score and verdict', () => {
+    renderCard();
+    expect(screen.getByText('86 · Apply')).toBeInTheDocument();
+  });
+
+  it('explains a deferred score and lets the user retry', async () => {
+    const fetchMock = mockFetch({ queued: true });
+    renderCard({ ...job, match: null, analysisStatus: 'DEFERRED', analysisError: 'Daily analysis cap reached (40 of 40)' });
+    expect(screen.getByText(/Scoring deferred: Daily analysis cap reached/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    expect(fetchMock.mock.calls[0]).toEqual(['/api/v1/jobs/j1/analyze', expect.objectContaining({ method: 'POST' })]);
+  });
+
+  it('says a score is pending rather than showing a blank', () => {
+    renderCard({ ...job, match: null, analysisStatus: 'PENDING' });
+    expect(screen.getByText('Match score pending…')).toBeInTheDocument();
+  });
+
+  it('flags a suspected scam on the card', () => {
+    renderCard({ ...job, redFlags: ['asks for a registration fee'] });
+    expect(screen.getByText(/Possible scam/)).toBeInTheDocument();
+  });
+
+  it('shows the match breakdown — strengths, gaps, risks — in details', async () => {
+    mockFetch({
+      ...job,
+      rawJD: 'Build MERN apps.',
+      seniority: 'MID',
+      yearsRequired: 3,
+      analyzedAt: new Date().toISOString(),
+      requirements: [],
+      match: {
+        overallScore: 86,
+        commercialScore: 80,
+        verdict: 'APPLY',
+        strengths: ['React — React (commercial production, CloudCard Inc.)'],
+        risks: ['Asks for 3+ years; you have about 2.4 commercial', 'Missing: GraphQL'],
+        computedAt: new Date().toISOString(),
+        gaps: [{ skillName: 'GraphQL', severity: 'MODERATE', note: 'related experience: REST APIs' }],
+      },
+    });
+    renderCard();
+    await userEvent.click(screen.getByRole('button', { name: 'Details' }));
+    expect(await screen.findByText(/React — React \(commercial production, CloudCard Inc\.\)/)).toBeInTheDocument();
+    expect(screen.getByText(/GraphQL/)).toBeInTheDocument();
+    expect(screen.getByText(/related experience: REST APIs/)).toBeInTheDocument();
+    expect(screen.getByText(/Asks for 3\+ years/)).toBeInTheDocument();
+  });
+
   it('loads the full description only when details are opened', async () => {
-    const fetchMock = mockFetch({ ...job, rawJD: 'Build MERN apps.' });
+    const fetchMock = mockFetch({ ...job, rawJD: 'Build MERN apps.', requirements: [], redFlags: [], match: null });
     renderCard();
     expect(fetchMock).not.toHaveBeenCalled();
     await userEvent.click(screen.getByRole('button', { name: 'Details' }));

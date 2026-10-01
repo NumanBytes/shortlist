@@ -24,6 +24,7 @@ export interface RunSummary {
   jobsFound: number;
   jobsMatched: number;
   jobsNew: number;
+  newJobIds: string[]; // handed to the analysis queue
   rejections: Record<string, number>; // reason -> count, for tuning the filter
 }
 
@@ -82,7 +83,8 @@ export class DiscoveryService {
         else count(v.reason);
       });
 
-      const jobsNew = await this.store({ userId: source.userId, jobSourceId: source.id, discoveryRunId: run.id, provider: config.provider }, matched);
+      const newJobIds = await this.store({ userId: source.userId, jobSourceId: source.id, discoveryRunId: run.id, provider: config.provider }, matched);
+      const jobsNew = newJobIds.length;
       const status: DiscoveryRunStatus = postings.length === 0 ? 'EMPTY' : 'SUCCESS';
       await this.finish(run.id, source.id, status, {
         jobsFound: postings.length,
@@ -92,7 +94,7 @@ export class DiscoveryService {
       this.logger.log(
         `${source.name}: ${status} — ${postings.length} found, ${matched.length} matched, ${jobsNew} new`,
       );
-      return { runId: run.id, status, jobsFound: postings.length, jobsMatched: matched.length, jobsNew, rejections };
+      return { runId: run.id, status, jobsFound: postings.length, jobsMatched: matched.length, jobsNew, newJobIds, rejections };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       await this.finish(run.id, source.id, 'FAILED', { errorMessage: message.slice(0, 1000) });
@@ -119,13 +121,13 @@ export class DiscoveryService {
   }
 
   // Inserts matched postings not seen before; bumps lastSeenAt on ones that were.
-  // Returns how many were new.
+  // Returns the IDs of the new ones.
   private async store(
     ctx: { userId: string; jobSourceId: string; discoveryRunId: string; provider: string },
     matched: { posting: Posting; description: string }[],
-  ): Promise<number> {
+  ): Promise<string[]> {
     const { userId } = ctx;
-    if (matched.length === 0) return 0;
+    if (matched.length === 0) return [];
 
     // The same posting can appear twice within one source; keep the first.
     const byHash = new Map<string, { posting: Posting; description: string }>();
@@ -144,7 +146,7 @@ export class DiscoveryService {
     );
 
     const [created] = await this.prisma.$transaction([
-      this.prisma.job.createMany({
+      this.prisma.job.createManyAndReturn({
         data: hashes
           .filter((h) => !existing.has(h))
           .map((h) => {
@@ -167,13 +169,14 @@ export class DiscoveryService {
         // Another source for the same user may insert the same hash concurrently; the
         // unique index decides, and the loser simply counts it as not new.
         skipDuplicates: true,
+        select: { id: true },
       }),
       this.prisma.job.updateMany({
         where: { userId, dedupeHash: { in: [...existing] } },
         data: { lastSeenAt: new Date() },
       }),
     ]);
-    return created.count;
+    return created.map((j) => j.id);
   }
 
   private async finish(

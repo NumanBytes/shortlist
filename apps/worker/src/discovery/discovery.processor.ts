@@ -1,9 +1,10 @@
 import { InjectQueue, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject, Logger, type OnModuleInit } from '@nestjs/common';
-import { DISCOVERY_QUEUE, DiscoveryJob, type DiscoverSourceData } from '@shortlist/shared';
+import { ANALYSIS_QUEUE, DISCOVERY_QUEUE, DiscoveryJob, type DiscoverSourceData } from '@shortlist/shared';
 import { Queue, UnrecoverableError, type Job } from 'bullmq';
 import { ENV } from '../config/config.module.js';
 import type { Env } from '../config/env.js';
+import { enqueueAnalyses } from '../analysis/analysis.processor.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { DiscoveryService, PermanentSourceError } from './discovery.service.js';
 import { SOURCE_JOB_OPTIONS, sourceJobId } from './queue.js';
@@ -16,6 +17,7 @@ export class DiscoveryProcessor extends WorkerHost implements OnModuleInit {
     private readonly discovery: DiscoveryService,
     private readonly prisma: PrismaService,
     @InjectQueue(DISCOVERY_QUEUE) private readonly queue: Queue,
+    @InjectQueue(ANALYSIS_QUEUE) private readonly analysisQueue: Queue,
     @Inject(ENV) private readonly env: Env,
   ) {
     super();
@@ -54,7 +56,17 @@ export class DiscoveryProcessor extends WorkerHost implements OnModuleInit {
 
   private async runSource(job: Job<DiscoverSourceData>) {
     try {
-      return await this.discovery.runSource(job.data.sourceId);
+      const summary = await this.discovery.runSource(job.data.sourceId);
+      // New jobs go straight to analysis; the budget guard decides there, per job. If
+      // queuing them fails, the run itself still succeeded — failing it here would retry
+      // the fetch, record a spurious FAILED run, and find no "new" jobs the second time.
+      // The nightly sweep picks up anything left PENDING.
+      try {
+        await enqueueAnalyses(this.analysisQueue, summary.newJobIds, `new-${job.id}`);
+      } catch (err) {
+        this.logger.warn(`Couldn't queue ${summary.newJobIds.length} new jobs for analysis: ${(err as Error).message}`);
+      }
+      return summary;
     } catch (err) {
       // Retrying a missing adapter or bad config can't succeed — fail once, clearly.
       if (err instanceof PermanentSourceError) throw new UnrecoverableError(err.message);
