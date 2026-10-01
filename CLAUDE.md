@@ -2,7 +2,9 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-**Read `Agents.md` first.** It is the full project context: product scope, the reasoning behind each architecture and tech decision, the truthfulness rules, and the planned build order. Where it states a rule, follow it even if a more conventional pattern exists. Its §4/§8 build-state notes can lag behind the code — trust `packages/db/prisma/schema.prisma` and the migrations folder over the document.
+**Read `Agents.md` first.** It is the complete project documentation: product philosophy, real-world scenarios, every design decision with its reasoning (and a dated decision log, §16), the truthfulness rules, and the roadmap (§17). Where it states a rule, follow it even if a more conventional pattern exists. For exact data shapes, trust `packages/db/prisma/schema.prisma` and the migrations folder over the document.
+
+**Every design decision must be recorded in `Agents.md`** — in the relevant section and in the decision log — in the same change that makes it. Don't leave decisions only in chat or PR descriptions.
 
 ## Commands
 
@@ -14,19 +16,19 @@ pnpm dev:api            # builds shared, generates Prisma client, starts Nest in
 pnpm dev:web            # Vite on :5173; proxies /api to :3000 (run dev:api alongside)
 pnpm dev:worker         # queue consumer + nightly scheduler (needs Redis: REDIS_URL, default localhost)
 pnpm discover           # queue a discovery run for every enabled source now (worker must be running)
-pnpm build              # shared -> prisma generate -> api
+pnpm build              # shared -> db (prisma generate) -> api -> worker -> web
 pnpm typecheck          # tsc --noEmit across all packages
 pnpm test               # unit tests (*.spec.ts) in every package — does NOT run e2e
 
 pnpm db:generate        # regenerate Prisma client after editing schema.prisma
 pnpm db:migrate:dev     # create + apply a migration (needs DATABASE_URL in packages/db/.env)
 SEED_USER_EMAIL=you@x.com pnpm --filter @shortlist/db db:seed:career [--dry-run]
+                        # seed Agents.md §7 career data into an existing account, all unverified
 SEED_USER_EMAIL=you@x.com pnpm --filter @shortlist/db db:seed:sources [--dry-run]
                         # seed the job-source list (packages/db/prisma/seed/job-sources.ts)
+pnpm --filter @shortlist/db test   # seed truthfulness guards (node:test)
 pnpm --filter @shortlist/worker test               # adapters (recorded fixtures, no network), filter, dedupe
 pnpm --filter @shortlist/worker test:integration   # DiscoveryService against the real DB
-                        # seed Agents.md §6 career data into an existing account, all unverified
-pnpm --filter @shortlist/db test   # seed truthfulness guards (node:test)
 
 # API-only (apps/api)
 pnpm --filter @shortlist/api test:e2e                         # *.e2e-spec.ts — hits the real DB in apps/api/.env
@@ -75,7 +77,8 @@ packages/db       Prisma schema, migrations, re-exported PrismaClient
 - `isVerified` is set only by `POST /evidence/:id/verify`. Any write that changes what evidence claims resets it with `UNVERIFIED` (`src/common/verification.ts`): editing the evidence, renaming its skill, editing claim fields on its linked WorkExperience/Project (`claimChanged()` + each service's `CLAIM_FIELDS`), or deleting that WorkExperience/Project. Any new write path must do the same.
 - Seed data (`packages/db/prisma/seed/career-data.ts`) must pass `findSeedProblems()` in `guards.ts`, and must never set `isVerified`. Seed scripts run on Node's type stripping: use `.ts` import extensions and erasable-only syntax (checked by `tsconfig.seed.json`).
 - Any resume/AI generation code reads only `isVerified = true` evidence, and every generated bullet must trace to a user-written `whatIDid`.
-- Context/depth placement rules (e.g. PERSONAL/ACADEMIC never becomes an Experience bullet; EXPOSURE older than 2 years is omitted) are in `Agents.md` §6.
+- Context/depth placement rules (e.g. PERSONAL/ACADEMIC never becomes an Experience bullet; EXPOSURE older than 2 years is omitted) are in `Agents.md` §6.1 — some combinations are still an open decision; ask before tailoring code assumes one.
+- Shortlist never submits, uploads, sends email or fills a form on the user's behalf (`Agents.md` §1.2). It prepares; the user submits.
 - "Azure B2C" and "Node.js/Express at CloudCard" are known false claims; if either appears in generated output, it's a bug.
 
 ## Conventions
