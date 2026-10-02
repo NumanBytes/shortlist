@@ -100,6 +100,11 @@ model User {
   headline     String?
   targetRole   String?
   location     String?
+  // Resume header (contact line). Personal data: lives only in the database — never in
+  // committed files (seed data, docs).
+  phone       String?
+  linkedinUrl String?
+  githubUrl   String?
 
   refreshTokens   RefreshToken[]
   workExperiences WorkExperience[]
@@ -109,6 +114,7 @@ model User {
   jobs            Job[]
   discoveryPrefs  DiscoveryPreferences?
   aiSettings      AiSettings?
+  education       Education[]
   aiUsage         AiUsage[]
 
   createdAt DateTime @default(now())
@@ -140,6 +146,7 @@ model WorkExperience {
   location  String?
 
   evidence SkillEvidence[]
+  projects Project[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -151,6 +158,11 @@ model Project {
   id          String    @id @default(uuid())
   userId      String
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // A project done as part of a paid role (e.g. a banking portal built at CloudCard).
+  // Null = a personal project. Evidence linked to such a project is commercial work.
+  workExperienceId String?
+  workExperience   WorkExperience? @relation(fields: [workExperienceId], references: [id], onDelete: SetNull)
   name        String
   description String?
   liveUrl     String?
@@ -434,4 +446,21 @@ model AiUsage {
   createdAt DateTime @default(now())
 
   @@index([userId, createdAt])
+}
+
+model Education {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  degree      String // e.g. "Bachelor of Science in Information Technology"
+  institution String
+  location    String?
+  startYear   Int?
+  endYear     Int? // null = in progress
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }

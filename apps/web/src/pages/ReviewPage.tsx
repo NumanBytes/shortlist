@@ -47,7 +47,7 @@ export function ReviewPage() {
           <ShieldCheck className="mt-0.5 size-5 shrink-0 text-accent" />
           <p className="text-sm text-muted">
             Only <strong className="text-fg">verified</strong> evidence is used to score jobs or write a resume. Verify an
-            item only if it's true as worded — reword it first if it isn't.
+            item only if it's true as worded — edit it first if it isn't.
           </p>
         </div>
         {all.length > 0 && (

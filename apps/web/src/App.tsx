@@ -4,6 +4,7 @@ import { AppShell } from './components/AppShell';
 import { AuthForm } from './pages/AuthForm';
 import { JobDetailPage } from './pages/JobDetailPage';
 import { JobsLayout, NoJobSelected } from './pages/JobsPage';
+import { ProfilePage } from './pages/ProfilePage';
 import { ReviewPage } from './pages/ReviewPage';
 import { SourcesPage } from './pages/SourcesPage';
 
@@ -38,6 +39,7 @@ export function App() {
           </Route>
           <Route path="evidence" element={<ReviewPage />} />
           <Route path="sources" element={<SourcesPage />} />
+          <Route path="profile" element={<ProfilePage />} />
         </Route>
       </Route>
       <Route element={<RedirectIfSignedIn />}>

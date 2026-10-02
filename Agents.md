@@ -26,12 +26,12 @@ through.
 4. Runtime architecture
 5. Data model
 6. Truthfulness rules (non-negotiable)
-7. The career database (seed reference)
+7. The career database (seed reference, CV reconciliation)
 8. Authentication and security
 9. Job discovery
 10. Email job alerts (planned)
 11. Manual job intake — "Add a job" (planned)
-12. AI pipeline — extraction and match scoring (planned)
+12. AI pipeline — extraction and match scoring
 13. Resume tailoring, the resume library, and the application kit (planned)
 14. Technology decisions
 15. Development workflow and conventions
@@ -325,12 +325,23 @@ job description.
 ### 5.2 Decisions, table by table
 
 - **`User`** — `email` unique and stored lowercase (normalized by the Zod schema, so
-  "Numan@X.com" and "numan@x.com" can't be two accounts).
+  "Numan@X.com" and "numan@x.com" can't be two accounts). Resume-header fields
+  (`name`, `headline`, `location`, `phone`, `linkedinUrl`, `githubUrl`, added 2026-10-02)
+  are edited on the Profile page (`GET`/`PATCH /profile`); email is not editable there.
+  Personal contact data lives **only in the database**, never in the repo or the seed.
+  None of it is a claim, so editing it never un-verifies anything.
+- **`Education`** (2026-10-02) — degree, institution, optional location, start/end year
+  (end ≥ start, checked on the merged values on update). A resume's Education section
+  reads from here. Not evidence: a degree is a fact on a certificate, not a skill claim.
 - **`RefreshToken`** — stores only the SHA-256 hash of each refresh token, with
   `expiresAt` and `revokedAt`, so sessions can be revoked and a database leak doesn't
   leak usable tokens (§8.1).
 - **`WorkExperience`, `Project`** — what evidence is anchored to. Their claim-bearing
-  fields un-verify linked evidence when changed (§6.3).
+  fields un-verify linked evidence when changed (§6.3). A project can belong to a role
+  (`Project.workExperienceId`, SET NULL on role delete, added 2026-10-02): the CloudCard
+  banking products are projects *of* the job, so a resume can list them under that
+  Experience entry instead of in a personal Projects section. The role must be the
+  caller's (400 otherwise), and changing the link is a claim change.
 - **`Skill`** — unique per `(userId, lower(name))`: "React" and "react" collide. Prisma's
   `@@unique([userId, name])` is case-sensitive, so a hand-written SQL migration adds
   the case-insensitive unique index `Skill_userId_lower_name_key`. Aliases ("React" vs
@@ -398,10 +409,10 @@ these rules exactly.
 | COMMERCIAL + PRODUCTION | Experience bullets, Skills section, Summary |
 | COMMERCIAL + MAINTENANCE | Experience bullets, worded as maintenance (upgraded/fixed, not built) |
 | PERSONAL/ACADEMIC + WORKING | Skills and Projects sections only — never an Experience bullet |
+| COMMERCIAL + WORKING | Skills section, and Experience bullets worded as what was actually done ("deployed through existing CI/CD pipelines", "small changes in Ruby") — never as having built or owned it (decided by the user 2026-10-02) |
 | PERSONAL/ACADEMIC + EXPOSURE | Skills section only if `lastUsed` < 2 years ago; otherwise omitted entirely |
 
-**Open decision (must be made before tailoring is built):** the table does not cover
-COMMERCIAL + WORKING (e.g. Ruby and Docker at CloudCard), COMMERCIAL + EXPOSURE, or
+**Still open (ask before tailoring code assumes one):** COMMERCIAL + EXPOSURE and
 PERSONAL + PRODUCTION / MAINTENANCE.
 
 ### 6.2 Hard rules for every AI generation step
@@ -430,7 +441,7 @@ PERSONAL + PRODUCTION / MAINTENANCE.
     whatever the skill is renamed to, the exact shape of the Azure incident (changing
     only the category keeps verification);
   - editing a claim field of the linked role (company, title, start/end, current) or
-    project (name, description, shipped, start/end) — compared by value, so a form
+    project (name, description, shipped, start/end, the role it belongs to) — compared by value, so a form
     resubmitting unchanged values doesn't un-verify; cosmetic fields (location, URLs)
     don't count;
   - deleting the linked role/project — the evidence survives (FK is SET NULL) but is
@@ -441,6 +452,11 @@ PERSONAL + PRODUCTION / MAINTENANCE.
   skill (`skill: { userId }`).
 - Verification in the web UI is never optimistic — "Verified" shows only after the server
   confirms.
+- The Evidence screen's **Edit** (formerly "Reword") changes the wording, *where*
+  (context) and *how deeply* (depth) of an item, sending only the fields that changed;
+  saving says up front that it un-verifies the item. Context and depth are claims as much
+  as the wording is — "PERSONAL" vs "COMMERCIAL" is the difference between a Projects
+  line and an Experience bullet.
 - Seed data must pass `findSeedProblems()` (`packages/db/prisma/seed/guards.ts`) and never
   sets `isVerified` (§7).
 - Resume variants become **stale** when any evidence they use is edited or un-verified,
@@ -455,17 +471,21 @@ PERSONAL + PRODUCTION / MAINTENANCE.
 `packages/db/prisma/seed/career-data.ts` encodes this as data; everything is seeded
 **unverified** for the user to review, reword and verify.
 
-**COMMERCIAL — CloudCard Inc., Lahore (May 2024–present, hired as Frontend Developer):**
+**COMMERCIAL — CloudCard Inc., Lahore (May 2024–present; title Software Engineer, per
+the user's CV — the seed's "Frontend Developer" was corrected 2026-10-02):**
 HTML5, CSS, Tailwind CSS, JavaScript, TypeScript, React, Material UI, Ant Design (all
 PRODUCTION); React and Angular version upgrades across apps (MAINTENANCE, not primary
 development); Ruby, a little (WORKING); PostgreSQL / SQL — migrations, new tables and
-columns (PRODUCTION); role-based access control via DB configuration (PRODUCTION); full
+columns, joins, stored procedures, query optimizations (PRODUCTION; wording from the
+CV); role-based access control via DB configuration (PRODUCTION); full
 **API Integration** — writing Ruby functions and classes in the in-house B2C layer
 (between the frontend and the core Java backend) that call backend API endpoints, expose
 them as **GraphQL** APIs, and consume them in the frontend (PRODUCTION; named and
 described by the user 2026-10-02 — GraphQL added as its own commercial skill from that
-description); SonarQube error remediation (PRODUCTION); Docker, Docker Compose,
-microservices — real but consumed/worked-within rather than owned (WORKING).
+description); SonarQube error remediation (PRODUCTION); Docker and Docker Compose — the user wrote the
+Dockerfiles and compose setups (PRODUCTION, corrected 2026-10-02) but deployed through
+CI/CD pipelines they didn't build or own (CI/CD: WORKING); microservices — worked within,
+not owned (WORKING).
 **Everyday tools (user-confirmed 2026-10-02):** Git, REST APIs, npm (PRODUCTION);
 prompt engineering — daily use of AI assistants (WORKING: real, but not "built a feature
 that shipped").
@@ -507,6 +527,43 @@ skipped if its skill already has evidence with the same context+depth, so reword
 item never causes the original to be re-added and verifications are never overwritten.
 It is deliberately *not* wired into Prisma's automatic seed hook (a `migrate reset` would
 run it against a wiped database where the account doesn't exist).
+
+### 7.4 After bootstrap the database is canonical (decided 2026-10-02)
+
+The seed is a **one-time bootstrap**, not the source of truth. Once the user has edited,
+reworded or verified evidence in the app, the database is canonical and the seed file is
+not kept in sync — re-running it is harmless (it's additive) but it would not reflect the
+user's own edits. New career facts go in through the app (or a reviewed one-off data
+change applying the same un-verify rules), never by extending `career-data.ts`, which
+would also have to carry personal data that must stay out of the repo.
+
+### 7.5 Reconciling the CV with the database (2026-10-02)
+
+The user's CV (`numan software engineer.pdf`, kept outside the repo) was compared with the
+database. Every discrepancy was put to the user, and nothing was resolved by guessing:
+
+- **Title:** the CV says *Software Engineer*; the role was changed and its 24 linked items
+  un-verified (a claim change).
+- **Docker / Docker Compose:** "I wrote Docker/compose setup and files but didn't own
+  the pipelines" → PRODUCTION for Docker/Compose (reworded), new **CI/CD** COMMERCIAL
+  WORKING ("deployed through existing pipelines; did not build or own them").
+- **CV-only claims, added as unverified for the user to review** (user's choice): SQL
+  reworded (joins, stored procedures, query optimizations); **Performance optimization**
+  (lazy loading, dependency upgrades, cleanup); **Angular** development (PRODUCTION —
+  the seed only had upgrades); the two CloudCard projects from the CV, **Digital Banking
+  Platform (Web & Mobile)** and **Bank Portal (Enterprise Banking System)**, linked to
+  the role, each CV bullet becoming evidence under Responsive Design, REST APIs,
+  Component architecture or Role-based access control; Manzil's description.
+- **CV skills with no stated context** (Redux, Context API, RxJS, Bootstrap, MySQL,
+  Postman, GitHub, Cursor, WebStorm, DBeaver, Vercel): recorded cautiously as
+  PERSONAL / WORKING with a placeholder `whatIDid` that tells the user to fix it with
+  **Edit** (where, how deeply, own words) before verifying. Understating is safe;
+  overstating is the Azure incident.
+- **Contact details and education** (phone, LinkedIn, GitHub, location, BS IT at the
+  University of the Punjab 2019–2023) went into the Profile — database only.
+
+Result: 63 evidence items, 19 verified, 44 to review. Tailoring only ever sees the
+verified ones.
 
 ---
 
@@ -1256,6 +1313,13 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
 | 2026-10-02 | First real scoring run: 30 jobs, $0.18 | §17.1 |
 | 2026-10-02 | Exact skill-name matches decided in code; alternatives extracted as one requirement; remote regions by allow-list | §9.6, §12.1 — from the first real run |
 | 2026-10-02 | UI redesign: semantic tokens + automatic dark mode, bottom tab bar on phones, score-ring rows, split list/detail, URL list state, SKIPs folded | §8.4 |
+| 2026-10-02 | Resume tailoring before email alerts | User's choice (§17.2) |
+| 2026-10-02 | COMMERCIAL + WORKING → Skills section + Experience bullets worded as what was actually done | User's choice (§6.1) |
+| 2026-10-02 | Profile (resume header fields) and Education tables; personal data in the DB only | §5.2 |
+| 2026-10-02 | Projects can belong to a role; the link is a claim field | §5.2, §6.3 |
+| 2026-10-02 | Evidence context and depth editable in the UI; the edit un-verifies | §6.3 |
+| 2026-10-02 | Seed is a one-time bootstrap; afterwards the database is canonical | §7.4 |
+| 2026-10-02 | CV reconciled: title Software Engineer, Docker PRODUCTION + CI/CD WORKING, CV-only claims added unverified, context-less CV skills recorded PERSONAL/WORKING | User's answers (§7.5) |
 
 ---
 
@@ -1269,13 +1333,15 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
 - **Career truth CRUD** (§6): skills, evidence (+ verify/unverify), work experience,
   projects — every verification-reset rule enforced and tested.
 - **Career seed** (§7): 1 role, 1 project, 28 skills, 29 evidence items, all unverified;
-  seeded into the user's account.
+  seeded into the user's account. CV reconciliation (§7.5): 63 items, 44 to review.
+- **Profile & education** (§5.2): `/profile`, `/education`, web Profile page; projects
+  linkable to a role; evidence context/depth editable.
 - **Discovery Milestone 1** (§9): worker, 10 adapters, two-stage filter, dedupe, run
   lifecycle, nightly Redis scheduler, 48 sources recorded (13 enabled). First live run:
   1,321 postings → 25–28 stored, including Septem's MERN role and Kwanso's Full Stack /
   MERN roles in Lahore.
 - **Web app:** sign in/register; Jobs (New / Interested / Applied / Skipped, attribution,
-  "Open posting", pipeline stages); Evidence review (verify / unverify / reword);
+  "Open posting", pipeline stages); Evidence review (verify / unverify / edit wording, context and depth); Profile & education;
   Sources (health, counts, errors, on/off, "Run discovery now"). Installable PWA.
 - **API for jobs and discovery:** `/jobs`, `/jobs/:id`, `/discovery/sources`,
   `/discovery/run`.
@@ -1284,17 +1350,16 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
 
 ### 17.2 Roadmap (in order)
 
-1. **User:** review the 17 new/corrected evidence items (2026-10-02) in the Evidence
-   screen; then run discovery + scoring on the user's real jobs (~$0.15). The original
-   29 were verified; Manzil still needs a description and dates. Everything AI reads
-   only verified evidence.
-2. **"Add a job"** (§11, incl. the Android share target). (AI scoring + budget guard:
-   built — §12.)
+1. **User:** review the 44 unverified items from the CV reconciliation (§7.5) in the
+   Evidence screen — fix the placeholder ones with Edit before verifying. Everything AI
+   reads only verified evidence.
+2. **Tailoring, the resume library and the application kit** (§13), with push
+   notifications — chosen ahead of email alerts (2026-10-02). PDF in the CV's layout.
 3. **Email job alerts** from the personal Gmail (§10): OAuth read-only, `Shortlist`
    label, per-portal parsers, partial-info jobs, "paste full description", board
    discovery.
-4. **Tailoring, the resume library and the application kit** (§13), with push
-   notifications. **Decide the open placement rules (§6.1) first.**
+4. **"Add a job"** (§11, incl. the Android share target). (AI scoring + budget guard:
+   built — §12.)
 5. **Discovery Milestone 2** (hosted ATS pages), **source discovery** (§9.11: board
    probing + monthly ATS-scoped search), then **Milestone 3** (custom sites via change
    watcher).
@@ -1308,12 +1373,13 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
 - **Career data completeness:** Git, REST APIs, npm, pnpm, prompting added
   (2026-10-02). Testing (Jest/Vitest in paid work) not stated — the user decides.
 - Whether prompt engineering at CloudCard is WORKING (seeded) or PRODUCTION — the user can raise it.
-- Placement rules for COMMERCIAL + WORKING, COMMERCIAL + EXPOSURE, PERSONAL + PRODUCTION /
-  MAINTENANCE (§6.1).
+- Placement rules for COMMERCIAL + EXPOSURE and PERSONAL + PRODUCTION / MAINTENANCE
+  (§6.1). COMMERCIAL + WORKING decided 2026-10-02.
 - The score threshold that gates tailoring (§12.1) and the resume-reuse overlap threshold
   (§13.2) — both runtime settings; initial values to be set when built.
 - Skill aliases ("React" vs "React.js") — needs a canonical-name mapping (§5.2).
-- UI for renaming skills and editing roles/projects (API endpoints exist).
+- UI for renaming skills and editing roles/projects (API endpoints exist; Profile and
+  Education have UI since 2026-10-02).
 
 ---
 

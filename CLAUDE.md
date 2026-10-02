@@ -76,10 +76,11 @@ packages/db       Prisma schema, migrations, re-exported PrismaClient
 ## Truthfulness rules (hard constraints)
 
 - `SkillEvidence.isVerified` defaults to `false` and must **never** be accepted from a client request body. Only a dedicated verification action may set it. Keep it out of every create/update schema.
-- `isVerified` is set only by `POST /evidence/:id/verify`. Any write that changes what evidence claims resets it with `UNVERIFIED` (`src/common/verification.ts`): editing the evidence, renaming its skill, editing claim fields on its linked WorkExperience/Project (`claimChanged()` + each service's `CLAIM_FIELDS`), or deleting that WorkExperience/Project. Any new write path must do the same.
+- `isVerified` is set only by `POST /evidence/:id/verify`. Any write that changes what evidence claims resets it with `UNVERIFIED` (`src/common/verification.ts`): editing the evidence, renaming its skill, editing claim fields on its linked WorkExperience/Project (`claimChanged()` + each service's `CLAIM_FIELDS`, including a project's `workExperienceId`), or deleting that WorkExperience/Project. Any new write path must do the same.
+- The career seed is a one-time bootstrap; after it, the database is canonical (`Agents.md` §7.4). Add new career facts through the app or a reviewed one-off data change, never by extending `career-data.ts`. Personal contact data (phone, LinkedIn, …) lives only in the DB.
 - Seed data (`packages/db/prisma/seed/career-data.ts`) must pass `findSeedProblems()` in `guards.ts`, and must never set `isVerified`. Seed scripts run on Node's type stripping: use `.ts` import extensions and erasable-only syntax (checked by `tsconfig.seed.json`).
 - Any resume/AI generation code reads only `isVerified = true` evidence, and every generated bullet must trace to a user-written `whatIDid`.
-- Context/depth placement rules (e.g. PERSONAL/ACADEMIC never becomes an Experience bullet; EXPOSURE older than 2 years is omitted) are in `Agents.md` §6.1 — some combinations are still an open decision; ask before tailoring code assumes one.
+- Context/depth placement rules (e.g. PERSONAL/ACADEMIC never becomes an Experience bullet; EXPOSURE older than 2 years is omitted; COMMERCIAL+WORKING goes in Skills and in Experience bullets worded as what was actually done) are in `Agents.md` §6.1. COMMERCIAL+EXPOSURE and PERSONAL+PRODUCTION/MAINTENANCE are still open, so ask before tailoring code assumes a rule for them.
 - Shortlist never submits, uploads, sends email or fills a form on the user's behalf (`Agents.md` §1.2). It prepares; the user submits.
 - "Azure B2C" and "Node.js/Express at CloudCard" are known false claims; if either appears in generated output, it's a bug.
 

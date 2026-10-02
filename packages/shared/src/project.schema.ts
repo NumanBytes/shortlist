@@ -14,6 +14,8 @@ const fields = {
   isShipped: z.boolean(),
   startDate: PastDate.nullable(),
   endDate: PastDate.nullable(),
+  // Set when the project was done as part of a paid role; null = personal project.
+  workExperienceId: z.string().uuid().nullable(),
 };
 
 export const CreateProjectSchema = z
@@ -25,6 +27,7 @@ export const CreateProjectSchema = z
     isShipped: fields.isShipped.default(false),
     startDate: fields.startDate.optional(),
     endDate: fields.endDate.optional(),
+    workExperienceId: fields.workExperienceId.optional(),
   })
   .strict()
   .superRefine((data, ctx) => {

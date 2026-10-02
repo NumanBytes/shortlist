@@ -4,6 +4,19 @@ import { useState } from 'react';
 import { ApiError } from '../lib/api';
 import { useUnverifyEvidence, useUpdateEvidence, useVerifyEvidence } from '../lib/queries';
 import type { Evidence } from '../lib/types';
+
+// Plain-language meaning of each level — these decide where a claim may appear (Agents.md §6.1).
+const CONTEXTS = [
+  { value: 'COMMERCIAL', label: 'Paid work' },
+  { value: 'PERSONAL', label: 'Personal / self-taught' },
+  { value: 'ACADEMIC', label: 'University' },
+] as const;
+const DEPTHS = [
+  { value: 'PRODUCTION', label: 'Production — built things that shipped' },
+  { value: 'WORKING', label: "Working — can build with it, hasn't shipped" },
+  { value: 'MAINTENANCE', label: 'Maintenance — upgraded or fixed, didn\'t build' },
+  { value: 'EXPOSURE', label: 'Exposure — learning, tutorials, coursework' },
+] as const;
 import { Badge, Button } from './ui';
 
 const monthYear = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
@@ -15,6 +28,8 @@ export function EvidenceItem({ evidence, source }: { evidence: Evidence; source?
   const update = useUpdateEvidence();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(evidence.whatIDid);
+  const [context, setContext] = useState(evidence.context);
+  const [depth, setDepth] = useState(evidence.depth);
   const [error, setError] = useState<string>();
 
   const busy = verify.isPending || unverify.isPending || update.isPending;
@@ -22,7 +37,17 @@ export function EvidenceItem({ evidence, source }: { evidence: Evidence; source?
 
   async function save() {
     // Same schema the API validates against — shared from @shortlist/shared.
-    const parsed = UpdateSkillEvidenceSchema.safeParse({ whatIDid: draft });
+    // Send only what changed — every change is a claim change and un-verifies the item.
+    const changes = {
+      ...(draft.trim() !== evidence.whatIDid ? { whatIDid: draft } : {}),
+      ...(context !== evidence.context ? { context } : {}),
+      ...(depth !== evidence.depth ? { depth } : {}),
+    };
+    if (Object.keys(changes).length === 0) {
+      setEditing(false);
+      return;
+    }
+    const parsed = UpdateSkillEvidenceSchema.safeParse(changes);
     if (!parsed.success) {
       setError(parsed.error.issues[0]?.message);
       return;
@@ -65,8 +90,38 @@ export function EvidenceItem({ evidence, source }: { evidence: Evidence; source?
             rows={3}
             className="block w-full rounded-lg border border-border bg-surface px-3 py-2 text-base text-fg focus:border-accent focus:outline-none"
           />
+          <div className="grid gap-2 sm:grid-cols-2">
+            <label className="space-y-1 text-xs font-medium text-muted">
+              Where
+              <select
+                value={context}
+                onChange={(e) => setContext(e.target.value as Evidence['context'])}
+                className="block h-10 w-full rounded-lg border border-border bg-surface px-2 text-sm font-normal text-fg"
+              >
+                {CONTEXTS.map((c) => (
+                  <option key={c.value} value={c.value}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="space-y-1 text-xs font-medium text-muted">
+              How deeply
+              <select
+                value={depth}
+                onChange={(e) => setDepth(e.target.value as Evidence['depth'])}
+                className="block h-10 w-full rounded-lg border border-border bg-surface px-2 text-sm font-normal text-fg"
+              >
+                {DEPTHS.map((d) => (
+                  <option key={d.value} value={d.value}>
+                    {d.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
           {evidence.isVerified && (
-            <p className="text-xs text-stretch-fg">Saving changes un-verifies this item — you'll confirm the new wording.</p>
+            <p className="text-xs text-stretch-fg">Saving changes un-verifies this item — you'll confirm it again.</p>
           )}
           {error && <p className="text-sm text-danger-fg">{error}</p>}
           <div className="flex gap-2">
@@ -78,6 +133,8 @@ export function EvidenceItem({ evidence, source }: { evidence: Evidence; source?
               variant="ghost"
               onClick={() => {
                 setDraft(evidence.whatIDid);
+                setContext(evidence.context);
+                setDepth(evidence.depth);
                 setEditing(false);
                 setError(undefined);
               }}
@@ -101,7 +158,7 @@ export function EvidenceItem({ evidence, source }: { evidence: Evidence; source?
               </Button>
             )}
             <Button size="sm" variant="ghost" onClick={() => setEditing(true)} disabled={busy}>
-              <Pencil className="size-3.5" /> Reword
+              <Pencil className="size-3.5" /> Edit
             </Button>
           </div>
         </>

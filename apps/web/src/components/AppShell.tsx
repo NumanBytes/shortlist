@@ -1,6 +1,6 @@
-import { Briefcase, LogOut, Radar, ShieldCheck } from 'lucide-react';
+import { Briefcase, LogOut, Radar, ShieldCheck, UserRound } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router';
+import { Link, NavLink, Outlet, useLocation } from 'react-router';
 import { useAuth } from '../auth/AuthProvider';
 import { useSkills } from '../lib/queries';
 import { Logo } from './Logo';
@@ -83,6 +83,14 @@ function AccountMenu() {
             <p className="truncate text-sm font-medium text-fg">{state.user.name}</p>
             <p className="truncate text-xs text-muted">{state.user.email}</p>
           </div>
+          <Link
+            to="/profile"
+            role="menuitem"
+            onClick={() => setOpen(false)}
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-fg hover:bg-surface-2"
+          >
+            <UserRound className="size-4" /> Profile & education
+          </Link>
           <button
             type="button"
             role="menuitem"
