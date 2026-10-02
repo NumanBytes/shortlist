@@ -123,7 +123,7 @@ export interface JobDetail extends Omit<JobListItem, 'match'> {
 }
 
 export interface AiUsage {
-  settings: { maxAnalysesPerDay: number; monthlyBudgetUsd: number };
+  settings: { maxAnalysesPerDay: number; monthlyBudgetUsd: number; resumeReuseMinOverlap: number };
   monthToDateUsd: number;
   callsThisMonth: number;
   analysesLast24h: number;
@@ -158,4 +158,46 @@ export interface RunNowResult {
   queued: string[];
   skipped: string[];
   cooldownHours: number;
+}
+
+// ── Resumes (Agents.md §13) ──────────────────────────────────────────────────
+export interface ResumeBullet {
+  label: string | null;
+  text: string;
+  evidenceIds: string[];
+}
+
+export interface ResumeContent {
+  experience: {
+    workExperienceId: string;
+    title: string;
+    company: string;
+    location: string | null;
+    startDate: string;
+    endDate: string | null;
+    isCurrent: boolean;
+    bullets: ResumeBullet[];
+  }[];
+  projects: { projectId: string; name: string; bullets: ResumeBullet[] }[];
+  skillGroups: { label: string; skills: { id: string; name: string }[] }[];
+  dropped: { where: string; text: string; reason: string }[];
+}
+
+export interface JobResume {
+  status: 'NONE' | 'PENDING' | 'READY' | 'DEFERRED' | 'FAILED';
+  error: string | null;
+  reused: boolean;
+  overlap: number | null;
+  canTailor: boolean;
+  variant: {
+    id: string;
+    status: 'DRAFT' | 'APPROVED';
+    model: string;
+    generatedAt: string;
+    approvedAt: string | null;
+    stale: string[];
+    content: ResumeContent;
+  } | null;
+  sources: Record<string, { skillName: string; whatIDid: string; isVerified: boolean }>;
+  reuse: { variantId: string; overlap: number; approvedAt: string | null; usedFor: string[] }[];
 }

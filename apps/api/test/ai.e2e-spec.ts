@@ -144,7 +144,7 @@ describe('AI analysis API (e2e)', () => {
       await job(user, { analysisStatus: 'DEFERRED' });
       const res = await t.http().get('/api/v1/ai/usage').set(user.auth).expect(200);
       expect(res.body).toMatchObject({
-        settings: { maxAnalysesPerDay: 40, monthlyBudgetUsd: 4.5 },
+        settings: { maxAnalysesPerDay: 40, monthlyBudgetUsd: 4.5, resumeReuseMinOverlap: 0.85 },
         callsThisMonth: 2,
         analysesLast24h: 2,
         jobs: { deferred: 1, pending: 0, done: 0, failed: 0 },
@@ -155,7 +155,7 @@ describe('AI analysis API (e2e)', () => {
     it('updates the budget settings, validating them', async () => {
       const user = await t.register();
       const res = await t.http().patch('/api/v1/ai/settings').set(user.auth).send({ monthlyBudgetUsd: 3 }).expect(200);
-      expect(res.body).toEqual({ maxAnalysesPerDay: 40, monthlyBudgetUsd: 3 });
+      expect(res.body).toEqual({ maxAnalysesPerDay: 40, monthlyBudgetUsd: 3, resumeReuseMinOverlap: 0.85 });
       const usage = await t.http().get('/api/v1/ai/usage').set(user.auth).expect(200);
       expect(usage.body.settings.monthlyBudgetUsd).toBe(3);
       await t.http().patch('/api/v1/ai/settings').set(user.auth).send({ monthlyBudgetUsd: -1 }).expect(400);

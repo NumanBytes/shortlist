@@ -82,10 +82,27 @@
   --color-danger-bg: var(--danger-bg);
   --color-danger-fg: var(--danger-fg);
   --color-ring-track: var(--ring-track);
+  /* The resume is a printed document, not UI: the same paper and ink in dark mode. */
+  --color-paper: #ffffff;
+  --color-ink: #111111;
+  --color-ink-muted: #444444;
+  --color-ink-danger: #b91c1c;
 }
 
 body {
   background: var(--bg);
   color: var(--fg);
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Printing (the resume's "Save as PDF"): A4, no app chrome, white page. */
+@page {
+  size: A4;
+  margin: 14mm 16mm;
+}
+
+@media print {
+  body {
+    background: #ffffff;
+  }
 }

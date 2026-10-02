@@ -5,6 +5,7 @@ import { AuthForm } from './pages/AuthForm';
 import { JobDetailPage } from './pages/JobDetailPage';
 import { JobsLayout, NoJobSelected } from './pages/JobsPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { ResumePage } from './pages/ResumePage';
 import { ReviewPage } from './pages/ReviewPage';
 import { SourcesPage } from './pages/SourcesPage';
 
@@ -37,6 +38,7 @@ export function App() {
             <Route index element={<NoJobSelected />} />
             <Route path="jobs/:jobId" element={<JobDetailPage />} />
           </Route>
+          <Route path="jobs/:jobId/resume" element={<ResumePage />} />
           <Route path="evidence" element={<ReviewPage />} />
           <Route path="sources" element={<SourcesPage />} />
           <Route path="profile" element={<ProfilePage />} />

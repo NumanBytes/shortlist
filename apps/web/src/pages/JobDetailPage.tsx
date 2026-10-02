@@ -1,5 +1,6 @@
 import { AlertTriangle, ArrowLeft, Check, ExternalLink, RotateCw, Star, X } from 'lucide-react';
 import { Link, useParams, useSearchParams } from 'react-router';
+import { ResumeSection } from '../components/ResumeSection';
 import { ScoreRing } from '../components/ScoreRing';
 import { useToast } from '../components/Toast';
 import { VerdictBadge } from '../components/VerdictBadge';
@@ -99,6 +100,8 @@ function Detail({ job }: { job: JobDetail }) {
       ) : (
         <AnalysisState job={job} />
       )}
+
+      <ResumeSection job={job} />
 
       {m && m.strengths.length > 0 && (
         <section aria-labelledby="fits">

@@ -1,0 +1,81 @@
+import { screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import type { JobDetail, JobResume } from '../lib/types';
+import { mockFetch, renderWithProviders } from '../test/render';
+import { job as listJob } from '../test/fixtures';
+import { ResumeSection } from './ResumeSection';
+
+const job: JobDetail = { ...listJob, status: 'INTERESTED', rawJD: '', seniority: null, yearsRequired: null, analyzedAt: null, requirements: [], match: null };
+
+const none: JobResume = { status: 'NONE', error: null, reused: false, overlap: null, canTailor: true, variant: null, sources: {}, reuse: [] };
+const ready = (over: Partial<NonNullable<JobResume['variant']>> = {}): JobResume => ({
+  ...none,
+  status: 'READY',
+  variant: {
+    id: 'v1',
+    status: 'DRAFT',
+    model: 'claude-sonnet-5-5',
+    generatedAt: '2026-10-02T00:00:00Z',
+    approvedAt: null,
+    stale: [],
+    content: {
+      experience: [{ workExperienceId: 'r', title: 'Software Engineer', company: 'CloudCard', location: null, startDate: '2024-05-01', endDate: null, isCurrent: true, bullets: [{ label: null, text: 'Used React.', evidenceIds: ['e1'] }] }],
+      projects: [],
+      skillGroups: [],
+      dropped: [{ where: 'CloudCard', text: 'Led 12 people.', reason: 'adds "12"' }],
+    },
+    ...over,
+  },
+});
+
+const bodyOf = (fetch: ReturnType<typeof mockFetch>, method: string) =>
+  JSON.parse(fetch.mock.calls.find(([, init]) => init?.method === method)![1]!.body as string);
+
+describe('ResumeSection', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('asks to mark a new job Interested first — tailoring never starts on its own', () => {
+    const fetch = mockFetch(none);
+    renderWithProviders(<ResumeSection job={{ ...job, status: 'DISCOVERED' }} />);
+    expect(screen.getByText(/Mark it Interested/)).toBeInTheDocument();
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('tailors on request', async () => {
+    const fetch = mockFetch(none);
+    renderWithProviders(<ResumeSection job={job} />);
+    await userEvent.click(await screen.findByRole('button', { name: /Tailor a resume/ }));
+    await waitFor(() => expect(bodyOf(fetch, 'POST')).toEqual({ mode: 'tailor' }));
+  });
+
+  it('offers an approved resume for reuse', async () => {
+    const fetch = mockFetch({ ...none, reuse: [{ variantId: 'v9', overlap: 0.92, approvedAt: null, usedFor: ['Frontend Engineer at Kwanso'] }] });
+    renderWithProviders(<ResumeSection job={job} />);
+    expect(await screen.findByText(/92% match/)).toBeInTheDocument();
+    expect(screen.getByText(/Used for Frontend Engineer at Kwanso/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Use it' }));
+    await waitFor(() => expect(bodyOf(fetch, 'POST')).toEqual({ mode: 'reuse', variantId: 'v9' }));
+  });
+
+  it("can't tailor before the job is scored", async () => {
+    mockFetch({ ...none, canTailor: false });
+    renderWithProviders(<ResumeSection job={job} />);
+    expect(await screen.findByText(/once scoring finishes/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Tailor/ })).not.toBeInTheDocument();
+  });
+
+  it('shows a ready draft with what the checks removed', async () => {
+    mockFetch(ready());
+    renderWithProviders(<ResumeSection job={job} />);
+    expect(await screen.findByText('Draft — review it')).toBeInTheDocument();
+    expect(screen.getByText(/1 removed by the truthfulness checks/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Review/ })).toHaveAttribute('href', '/jobs/j1/resume');
+  });
+
+  it('flags an out-of-date resume and says why', async () => {
+    mockFetch(ready({ status: 'APPROVED', stale: ['React: no longer verified'] }));
+    renderWithProviders(<ResumeSection job={job} />);
+    expect(await screen.findByText('Out of date')).toBeInTheDocument();
+    expect(screen.getByText(/React: no longer verified/)).toBeInTheDocument();
+  });
+});

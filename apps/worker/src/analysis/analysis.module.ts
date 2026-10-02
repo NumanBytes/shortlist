@@ -18,6 +18,6 @@ import { AnthropicJobAnalyzer, JOB_ANALYZER } from './job-analyzer.js';
     BudgetGuard,
     { provide: JOB_ANALYZER, inject: [ENV], useFactory: (env: Env) => new AnthropicJobAnalyzer(env.ANTHROPIC_API_KEY) },
   ],
-  exports: [AnalysisService],
+  exports: [AnalysisService, BudgetGuard],
 })
 export class AnalysisModule {}

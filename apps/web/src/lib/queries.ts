@@ -4,6 +4,7 @@ import type {
   UpdateEducationInput,
   UpdateProfileInput,
   UpdateSkillEvidenceInput,
+  PrepareResumeInput,
 } from '@shortlist/shared';
 import { api } from './api';
 import type {
@@ -19,6 +20,7 @@ import type {
   RunNowResult,
   Skill,
   WorkExperience,
+  JobResume,
 } from './types';
 
 export const keys = {
@@ -163,5 +165,38 @@ export function useDeleteEducation() {
   return useMutation({
     mutationFn: (id: string) => api(`/education/${id}`, { method: 'DELETE' }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: profileKeys.education }),
+  });
+}
+
+// ── Resumes ──────────────────────────────────────────────────────────────────
+export const resumeKeys = { job: (jobId: string) => ['jobs', 'resume', jobId] as const };
+
+// Polls while the worker is tailoring, then stops.
+export const useJobResume = (jobId: string, enabled: boolean) =>
+  useQuery({
+    queryKey: resumeKeys.job(jobId),
+    queryFn: () => api<JobResume>(`/jobs/${jobId}/resume`),
+    enabled,
+    refetchInterval: (q) => (q.state.data?.status === 'PENDING' ? 3000 : false),
+  });
+
+export function usePrepareResume() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ jobId, body }: { jobId: string; body: PrepareResumeInput }) =>
+      api<JobResume>(`/jobs/${jobId}/resume`, { method: 'POST', body }),
+    onSuccess: (data, { jobId }) => {
+      queryClient.setQueryData(resumeKeys.job(jobId), data);
+      void queryClient.invalidateQueries({ queryKey: jobKeys.aiUsage });
+    },
+  });
+}
+
+// Never optimistic: "Approved" shows only after the server confirms.
+export function useApproveResume() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ variantId }: { variantId: string; jobId: string }) => api(`/resumes/${variantId}/approve`, { method: 'POST' }),
+    onSuccess: (_, { jobId }) => queryClient.invalidateQueries({ queryKey: resumeKeys.job(jobId) }),
   });
 }

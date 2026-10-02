@@ -43,42 +43,60 @@ export class AnthropicJobAnalyzer implements JobAnalyzer {
   }
 
   async analyze({ system, user }: { system: string; user: string }): Promise<AnalyzerResult> {
-    if (!this.client) throw new PermanentAnalyzerError('ANTHROPIC_API_KEY is not set');
-    try {
-      const response = await this.client.messages.create({
-        model: AI_MODELS.analyzeJob,
-        max_tokens: 4096,
-        system,
-        messages: [{ role: 'user', content: user }],
+    return structuredCall(this.client, {
+      model: AI_MODELS.analyzeJob,
+      maxTokens: 4096,
+      system,
+      user,
+      schema: JOB_ANALYSIS_JSON_SCHEMA,
+    });
+  }
+}
+
+// One structured-output call, with errors sorted into permanent / out-of-credit /
+// transient. Shared by every model call the worker makes (analysis, tailoring).
+export async function structuredCall(
+  client: Anthropic | null,
+  opts: { model: string; maxTokens: number; system: string; user: string; schema: Record<string, unknown>; timeoutMs?: number },
+): Promise<AnalyzerResult> {
+  if (!client) throw new PermanentAnalyzerError('ANTHROPIC_API_KEY is not set');
+  try {
+    const response = await client.messages.create(
+      {
+        model: opts.model,
+        max_tokens: opts.maxTokens,
+        system: opts.system,
+        messages: [{ role: 'user', content: opts.user }],
         // Structured output: the response is guaranteed to match this schema (enums
         // included). We still validate it with Zod before storing anything.
-        output_config: { format: { type: 'json_schema', schema: JOB_ANALYSIS_JSON_SCHEMA } },
-      });
-      const text = response.content.map((b) => (b.type === 'text' ? b.text : '')).join('');
-      return {
-        model: response.model,
-        text,
-        stopReason: response.stop_reason,
-        usage: {
-          inputTokens: response.usage.input_tokens,
-          outputTokens: response.usage.output_tokens,
-          cacheReadTokens: response.usage.cache_read_input_tokens ?? 0,
-          cacheWriteTokens: response.usage.cache_creation_input_tokens ?? 0,
-        },
-      };
-    } catch (err) {
-      if (err instanceof Anthropic.BadRequestError && /credit balance/i.test(err.message)) {
-        throw new OutOfCreditError('Anthropic credit balance is too low — top up, and deferred jobs will run');
-      }
-      if (
-        err instanceof Anthropic.BadRequestError ||
-        err instanceof Anthropic.AuthenticationError ||
-        err instanceof Anthropic.PermissionDeniedError ||
-        err instanceof Anthropic.NotFoundError
-      ) {
-        throw new PermanentAnalyzerError(`Claude API ${err.status}: ${err.message}`);
-      }
-      throw err; // 429 / 5xx / network: transient — let the queue retry
+        output_config: { format: { type: 'json_schema', schema: opts.schema } },
+      },
+      opts.timeoutMs ? { timeout: opts.timeoutMs } : undefined,
+    );
+    const text = response.content.map((b) => (b.type === 'text' ? b.text : '')).join('');
+    return {
+      model: response.model,
+      text,
+      stopReason: response.stop_reason,
+      usage: {
+        inputTokens: response.usage.input_tokens,
+        outputTokens: response.usage.output_tokens,
+        cacheReadTokens: response.usage.cache_read_input_tokens ?? 0,
+        cacheWriteTokens: response.usage.cache_creation_input_tokens ?? 0,
+      },
+    };
+  } catch (err) {
+    if (err instanceof Anthropic.BadRequestError && /credit balance/i.test(err.message)) {
+      throw new OutOfCreditError('Anthropic credit balance is too low — top up, and deferred jobs will run');
     }
+    if (
+      err instanceof Anthropic.BadRequestError ||
+      err instanceof Anthropic.AuthenticationError ||
+      err instanceof Anthropic.PermissionDeniedError ||
+      err instanceof Anthropic.NotFoundError
+    ) {
+      throw new PermanentAnalyzerError(`Claude API ${err.status}: ${err.message}`);
+    }
+    throw err; // 429 / 5xx / network: transient — let the queue retry
   }
 }

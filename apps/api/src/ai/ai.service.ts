@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { DEFAULT_AI_SETTINGS, type AiSettingsInput, type UpdateAiSettingsInput } from '@shortlist/shared';
+import { aiSettingsFromRow, type AiSettingsInput, type UpdateAiSettingsInput } from '@shortlist/shared';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 const DAY_MS = 24 * 3600 * 1000;
@@ -12,9 +12,7 @@ export class AiService {
 
   async settings(userId: string): Promise<AiSettingsInput> {
     const row = await this.prisma.aiSettings.findUnique({ where: { userId } });
-    return row
-      ? { maxAnalysesPerDay: row.maxAnalysesPerDay, monthlyBudgetUsd: Number(row.monthlyBudgetUsd) }
-      : DEFAULT_AI_SETTINGS;
+    return aiSettingsFromRow(row);
   }
 
   async updateSettings(userId: string, input: UpdateAiSettingsInput): Promise<AiSettingsInput> {
