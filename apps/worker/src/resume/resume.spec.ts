@@ -125,6 +125,39 @@ describe('assembleResume — bullets', () => {
     expect(roleBullets('Shipped 12 React features.', [E('react')]).content.dropped[0]!.reason).toBe(`adds "12", which isn't in your evidence`);
   });
 
+  // Code review: numbers were compared as substrings, so digits inside a word in the
+  // evidence ("B2C", "2019") let invented figures through, and "HTML5" was refused.
+  describe('numbers are compared whole', () => {
+    const b2c = ev('b2c', 'API Integration', { whatIDid: "Wrote Ruby functions in CloudCard's B2C layer since 2019." });
+    // The skill is named HTML5; the user's words say "HTML" — the bullet may use the name.
+    const html = ev('html', 'HTML5', { whatIDid: 'Used HTML to build frontend features that shipped to production.' });
+    const migrations = ev('mig', 'PostgreSQL', { whatIDid: 'Wrote 3 migrations and reviewed 1,200 lines of SQL; met a 99.9% uptime target.' });
+    const refs = { ...prompt.refs, evidence: new Map([['E70', 'b2c'], ['E71', 'html'], ['E72', 'mig']]) };
+    const check = (text: string, ref: string) =>
+      assemble({ experience: [{ role: 'R1', bullets: [bullet(text, [ref])] }] }, { refs, evidence: [...evidence, b2c, html, migrations] });
+
+    it('refuses a number hidden inside a word in the evidence ("2" in B2C, "19" in 2019)', () => {
+      expect(check('Integrated APIs for 2 years across 19 services.', 'E70').content.dropped[0]!.reason).toBe(
+        `adds "2", which isn't in your evidence`,
+      );
+      expect(check('Integrated APIs across 19 services.', 'E70').content.dropped[0]!.reason).toBe(`adds "19", which isn't in your evidence`);
+    });
+
+    it('allows digits that are part of a name (HTML5, B2C)', () => {
+      expect(check('Built production frontend features in HTML5.', 'E71').content.dropped).toEqual([]);
+      expect(check("Wrote Ruby functions in CloudCard's B2C layer.", 'E70').content.dropped).toEqual([]);
+    });
+
+    it('allows numbers the evidence states, including thousands and decimals', () => {
+      expect(check('Wrote 3 migrations and reviewed 1,200 lines of SQL toward 99.9% uptime.', 'E72').content.dropped).toEqual([]);
+      expect(check('Wrote 4 migrations.', 'E72').content.dropped[0]!.reason).toMatch(/adds "4"/);
+    });
+
+    it('keeps a year the evidence states', () => {
+      expect(check('Wrote Ruby functions in the B2C layer since 2019.', 'E70').content.dropped).toEqual([]);
+    });
+  });
+
   it('refuses a technology the bullet names without citing evidence for it', () => {
     const r = roleBullets('Built React features with GraphQL.', [E('react')]);
     expect(r.content.dropped[0]!.reason).toBe('mentions GraphQL without citing evidence for it');

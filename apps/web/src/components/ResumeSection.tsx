@@ -1,4 +1,5 @@
 import { AlertTriangle, FileText, Loader2, RotateCw, Sparkles } from 'lucide-react';
+import { useState } from 'react';
 import { Link } from 'react-router';
 import { useJobResume, usePrepareResume } from '../lib/queries';
 import type { JobDetail, JobResume } from '../lib/types';
@@ -48,26 +49,36 @@ function Body({ job, resume }: { job: JobDetail; resume: JobResume }) {
   const busy = prepare.isPending;
   const error = prepare.isError && <p className="mt-2 text-danger-fg">{prepare.error.message}</p>;
 
-  if (resume.status === 'PENDING') {
-    return (
-      <output className="flex items-center gap-2 text-muted">
-        <Loader2 className="size-4 animate-spin" /> Tailoring from your verified evidence — usually under a minute.
-      </output>
-    );
-  }
+  const pending = resume.status === 'PENDING' && (
+    <output className="flex items-center gap-2 text-muted">
+      <Loader2 className="size-4 animate-spin" /> Tailoring from your verified evidence — usually under a minute.
+    </output>
+  );
+  const problem = (resume.status === 'FAILED' || resume.status === 'DEFERRED') && (
+    <p className={resume.status === 'FAILED' ? 'text-danger-fg' : 'text-stretch-fg'}>
+      {resume.status === 'FAILED' ? 'Tailoring failed' : 'Tailoring deferred'}: {resume.error}
+    </p>
+  );
 
+  // A resume this job already has stays reachable whatever happens to a new attempt: a
+  // failed, deferred or running "Tailor again" must not hide it (code review).
   const v = resume.variant;
-  if (resume.status === 'READY' && v) {
+  if (v) {
     const bullets = [...v.content.experience, ...v.content.projects].reduce((n, s) => n + s.bullets.length, 0);
+    const stale = v.stale.length > 0;
+    const current = resume.status === 'READY';
     return (
       <div className="space-y-3">
+        {pending}
+        {problem}
+        {(pending || problem) && <p className="text-xs text-subtle">Your current resume for this job is still below.</p>}
         <p className="text-muted">
-          {resume.reused
+          {resume.reused && current
             ? `Reusing a resume you approved — ${Math.round((resume.overlap ?? 0) * 100)}% of this job's requirements.`
             : `${bullets} bullets, each from your own verified words.`}
           {v.content.dropped.length > 0 && ` ${v.content.dropped.length} removed by the truthfulness checks.`}
         </p>
-        {v.stale.length > 0 && (
+        {stale && (
           <div className="flex gap-2 rounded-lg bg-danger-bg px-3 py-2 text-danger-fg">
             <AlertTriangle className="mt-0.5 size-4 shrink-0" />
             <div>
@@ -76,29 +87,27 @@ function Body({ job, resume }: { job: JobDetail; resume: JobResume }) {
             </div>
           </div>
         )}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Link
             to={`/jobs/${job.id}/resume`}
             className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-3.5 text-sm font-medium text-primary-fg hover:opacity-90"
           >
-            <FileText className="size-4" /> {v.status === 'APPROVED' && !v.stale.length ? 'Open & save PDF' : 'Review'}
+            <FileText className="size-4" /> {v.status === 'APPROVED' && !stale ? 'Open & save PDF' : 'Review'}
           </Link>
-          <Button variant={v.stale.length ? 'secondary' : 'ghost'} onClick={tailor} disabled={busy}>
-            <RotateCw className="size-4" /> Tailor again
-          </Button>
+          {resume.status !== 'PENDING' && resume.canTailor && (
+            <TailorAgain onConfirm={tailor} busy={busy} needsConfirm={!stale} />
+          )}
         </div>
         {error}
       </div>
     );
   }
 
+  if (pending) return pending;
+
   return (
     <div className="space-y-3">
-      {(resume.status === 'FAILED' || resume.status === 'DEFERRED') && (
-        <p className={resume.status === 'FAILED' ? 'text-danger-fg' : 'text-stretch-fg'}>
-          {resume.status === 'FAILED' ? 'Tailoring failed' : 'Tailoring deferred'}: {resume.error}
-        </p>
-      )}
+      {problem}
       {resume.reuse.length > 0 && (
         <ul className="space-y-2">
           {resume.reuse.map((r) => (
@@ -131,5 +140,43 @@ function Body({ job, resume }: { job: JobDetail; resume: JobResume }) {
       )}
       {error}
     </div>
+  );
+}
+
+// Re-tailoring costs money and replaces a resume you may already have reviewed, so it
+// takes a second, explicit click — unless the resume is out of date and must be redone.
+function TailorAgain({ onConfirm, busy, needsConfirm }: { onConfirm: () => void; busy: boolean; needsConfirm: boolean }) {
+  const [confirming, setConfirming] = useState(false);
+  if (!needsConfirm) {
+    return (
+      <Button variant="secondary" onClick={onConfirm} disabled={busy}>
+        <RotateCw className="size-4" /> Tailor again
+      </Button>
+    );
+  }
+  if (!confirming) {
+    return (
+      <Button variant="ghost" onClick={() => setConfirming(true)} disabled={busy}>
+        <RotateCw className="size-4" /> Tailor again
+      </Button>
+    );
+  }
+  return (
+    <span className="flex flex-wrap items-center gap-2 text-sm text-muted">
+      Write a new one (about $0.03, needs a fresh review)?
+      <Button
+        size="sm"
+        onClick={() => {
+          setConfirming(false);
+          onConfirm();
+        }}
+        disabled={busy}
+      >
+        Yes, tailor
+      </Button>
+      <Button size="sm" variant="ghost" onClick={() => setConfirming(false)}>
+        Cancel
+      </Button>
+    </span>
   );
 }

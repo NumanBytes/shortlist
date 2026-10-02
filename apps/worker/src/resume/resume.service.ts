@@ -42,6 +42,10 @@ export class ResumeService {
     const guard = await this.budget.checkMonthly(job.userId);
     if (!guard.allowed) return this.defer(jobId, guard.reason);
 
+    // The resume reflects the evidence as read NOW, so that's its generation time. Stamping
+    // it when saved (after a ~30s model call) would hide an edit + re-verify made meanwhile:
+    // that item's updatedAt would predate the resume, which would look current (code review).
+    const readAt = new Date();
     const material = await this.material(job.userId);
     if (material.evidence.length === 0) return this.fail(jobId, 'No verified evidence yet — verify your skills first');
 
@@ -87,6 +91,7 @@ export class ResumeService {
           evidenceIds,
           requirementProfile: requirementProfile(job.requirements),
           model: result.model,
+          generatedAt: readAt,
         },
       });
       await tx.jobResume.update({ where: { jobId }, data: { status: 'READY', error: null, variantId: v.id, reused: false, overlap: null } });
