@@ -24,7 +24,9 @@ const detail: JobDetail = {
 };
 
 const open = (d: JobDetail) => {
-  const fetchMock = mockFetch(d);
+  // The resume card asks for the job's resume; everything else gets the job.
+  const noResume = { status: 'NONE', error: null, reused: false, overlap: null, canTailor: true, variant: null, sources: {}, reuse: [] };
+  const fetchMock = mockFetch(d, (url) => (url.endsWith('/resume') ? noResume : d));
   renderWithProviders(<JobDetailPage />, { path: '/jobs/:jobId', route: '/jobs/j1' });
   return fetchMock;
 };

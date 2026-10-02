@@ -26,3 +26,16 @@ export const AnalysisJob = {
 export interface AnalyzeJobData {
   jobId: string;
 }
+
+// Resume tailoring queue (Agents.md §13). Its own queue: a Sonnet call takes far longer
+// than an analysis, and the user is waiting on this one.
+export const RESUME_QUEUE = 'resume';
+
+export const ResumeJob = {
+  // Tailor a resume for one job (one model call), check every bullet, store a variant.
+  Tailor: 'tailor-resume',
+} as const;
+
+export interface TailorResumeData {
+  jobId: string;
+}

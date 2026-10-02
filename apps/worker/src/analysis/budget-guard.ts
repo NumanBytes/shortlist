@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { DEFAULT_AI_SETTINGS, type AiSettingsInput } from '@shortlist/shared';
+import { aiSettingsFromRow, type AiSettingsInput } from '@shortlist/shared';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 export type BudgetDecision = { allowed: true } | { allowed: false; reason: string };
@@ -16,9 +16,7 @@ export class BudgetGuard {
 
   async settingsFor(userId: string): Promise<AiSettingsInput> {
     const row = await this.prisma.aiSettings.findUnique({ where: { userId } });
-    return row
-      ? { maxAnalysesPerDay: row.maxAnalysesPerDay, monthlyBudgetUsd: Number(row.monthlyBudgetUsd) }
-      : DEFAULT_AI_SETTINGS;
+    return aiSettingsFromRow(row);
   }
 
   async monthToDateUsd(userId: string, now = new Date()): Promise<number> {
@@ -36,7 +34,9 @@ export class BudgetGuard {
     });
   }
 
-  async checkAnalysis(userId: string, now = new Date()): Promise<BudgetDecision> {
+  // The monthly cap applies to every model call. Tailoring checks only this: it's started by
+  // the user one job at a time, so the daily analysis cap doesn't apply to it.
+  async checkMonthly(userId: string, now = new Date()): Promise<BudgetDecision> {
     const settings = await this.settingsFor(userId);
     const spent = await this.monthToDateUsd(userId, now);
     if (spent >= settings.monthlyBudgetUsd) {
@@ -45,6 +45,13 @@ export class BudgetGuard {
         reason: `Monthly AI budget reached ($${spent.toFixed(2)} of $${settings.monthlyBudgetUsd.toFixed(2)})`,
       };
     }
+    return { allowed: true };
+  }
+
+  async checkAnalysis(userId: string, now = new Date()): Promise<BudgetDecision> {
+    const monthly = await this.checkMonthly(userId, now);
+    if (!monthly.allowed) return monthly;
+    const settings = await this.settingsFor(userId);
     const today = await this.analysesLastDay(userId, now);
     if (today >= settings.maxAnalysesPerDay) {
       return { allowed: false, reason: `Daily analysis cap reached (${today} of ${settings.maxAnalysesPerDay})` };

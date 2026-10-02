@@ -32,7 +32,7 @@ through.
 10. Email job alerts (planned)
 11. Manual job intake — "Add a job" (planned)
 12. AI pipeline — extraction and match scoring
-13. Resume tailoring, the resume library, and the application kit (planned)
+13. Resume tailoring, the resume library, and the application kit
 14. Technology decisions
 15. Development workflow and conventions
 16. Decision log
@@ -384,9 +384,14 @@ job description.
   without a row gets `DEFAULT_DISCOVERY_PREFERENCES` from shared.
 - **`JobRequirement`, `JobMatch`, `SkillGap`** — exist in the schema; filled by the AI
   step (§12). `JobMatch.verdict` is APPLY | STRETCH | SKIP.
-- **`TailoredResume`** — currently one per `JobMatch`. **Decided to change** into
-  reusable resume variants plus an application record (§13.4); the migration happens
-  when tailoring is built.
+- **`ResumeVariant`, `JobResume`** (built 2026-10-02, replacing the never-used
+  `TailoredResume`) — a variant is one tailored resume: `content` (JSON, Zod-validated
+  `ResumeContent`), `evidenceIds` (everything it relies on), `requirementProfile`
+  (normalized requirement names of the job it was made for), `status` DRAFT | APPROVED,
+  `generatedAt`. `JobResume` is one per job: which variant it uses, whether it was
+  reused (and at what overlap), and the state of preparing it (PENDING | READY |
+  DEFERRED | FAILED). `evidenceIds` has no foreign key on purpose: a deleted item must
+  leave a trace so the resume reads as stale instead of silently shrinking (§13.3).
 
 ### 5.3 Constraints Prisma can't express
 
@@ -459,8 +464,11 @@ PERSONAL + PRODUCTION / MAINTENANCE.
   line and an Experience bullet.
 - Seed data must pass `findSeedProblems()` (`packages/db/prisma/seed/guards.ts`) and never
   sets `isVerified` (§7).
-- Resume variants become **stale** when any evidence they use is edited or un-verified,
-  and can't be reused until regenerated (§13.3).
+- Resume variants are **stale** when any evidence they use is deleted, un-verified or
+  changed since they were generated — derived when read, so no write path has to flag
+  them; a stale resume can't be approved, reused or saved as a PDF (§13.3).
+- Every resume bullet stores the evidence IDs it was built from and passes the code
+  checks in §13.1 before it is stored.
 
 ---
 
@@ -1115,13 +1123,61 @@ automated runs on the API; anything the user does by hand can use Pro.
 
 ---
 
-## 13. Resume tailoring, the resume library, and the application kit (planned)
+## 13. Resume tailoring, the resume library, and the application kit
 
-### 13.1 Tailoring
+### 13.1 Tailoring (built 2026-10-02)
 
-Sonnet writes a resume for a job in **the user's own CV layout** (not a generic
-template), using only verified evidence and obeying the placement rules (§6.1). Each
-bullet stores the evidence IDs it came from. Rendered to PDF.
+**The model words; code decides what may be claimed** — the same split as scoring (§12.1).
+
+- **Trigger:** only the user, from a job they marked Interested ("Tailor a resume",
+  ≈ $0.03). Nothing tailors automatically, so no score threshold is needed yet. The job
+  must be scored: tailoring works from the analysis's requirement list.
+- **Model:** Sonnet (`AI_MODELS.tailorResume`) — writing is where quality shows. Budget
+  guard: the monthly cap only (the daily cap is for nightly analysis). Same rules as
+  analysis: every call logged to `AiUsage` (`TAILOR_RESUME`) before its output is used,
+  out-of-credit/over-budget → DEFERRED, invalid output → FAILED with no retry, a
+  transient error that exhausts its retries → FAILED (never "Tailoring…" forever).
+  Own queue (`resume`, concurrency 1), deduplicated per job so a double-click can't pay twice.
+- **What the model sees:** verified evidence only, each item as an `E`-ref listed under
+  the role/project it may appear in (placement rules, `placementFor()` in
+  `packages/shared/src/resume.ts`); skills as `S`-refs with their strongest level, those
+  known only at exposure marked "learning"; roles `R`, projects `P`; the requirement list;
+  the description (≤ 8,000 chars) as untrusted data. It returns bullets (optional bold
+  label + one sentence + the refs it relies on) and skill groups — refs only.
+- **What code checks, per bullet** (`checkBullet()`); a failing bullet is removed and
+  shown to the user with the reason, never printed:
+  1. it cites at least one item, all of them known and verified;
+  2. each cited item is allowed in that section **and** belongs there (a role's own items
+     or its projects' items for Experience; that project's items for Projects) — personal
+     work can't become an Experience bullet;
+  3. no "Azure" anywhere; no Node.js/Express in paid work (§7.2);
+  4. no number that isn't in the cited items' own words (no invented metrics);
+  5. no technology named that it doesn't cite — a name counts as covered if it's a cited
+     item's skill, the posting's name for it (from the analysis's exact matches), or
+     named in the cited items' own text; "APIs" inside a covered "REST APIs" doesn't count;
+     short names ("Go") match case-sensitively so "go live" isn't a claim;
+  6. building verbs (built, developed, designed, led, owned…) only if a cited item is
+     PRODUCTION or the user's own words use that verb — "working" and "maintenance" can't
+     be inflated.
+  Limits: 6 bullets per role, 3 per project. Every role is listed (a resume doesn't hide
+  jobs); a project with no surviving bullet is left out.
+- **Skills section:** only skills placeable in Skills (§6.1). A skill whose verified
+  evidence is all EXPOSURE goes in a **"Learning"** group that code labels, whatever the
+  model did — listing NestJS beside React would overstate it (decided 2026-10-02).
+- **Layout:** the user's own CV (centred name and contact line; Experience with bold
+  bullet labels; grouped Skills; Projects; Education) — no summary, because their CV has
+  none. Header and education come from the Profile (§5.2). Role-linked projects appear
+  under Projects, as on the CV.
+- **PDF:** the browser's print → "Save as PDF" on an A4 print stylesheet (app chrome and
+  toasts hidden; the page title becomes the file name). No PDF library and no server-side
+  rendering: the text stays selectable for applicant tracking systems, and the paper
+  stays white in dark mode (`paper`/`ink` tokens).
+- **Review and approval:** the review page shows, under every bullet, the evidence it was
+  built from, plus the bullets the checks removed. **"Save as PDF" appears only after the
+  user approves**, and approval is refused for an out-of-date resume (409). Approve is its
+  own endpoint (`POST /resumes/:id/approve`), like verify, and never optimistic. A draft
+  printed anyway (Ctrl+P) carries a "DRAFT — NOT YET APPROVED" banner. The code checks are
+  a net; the user's reading is the final gate.
 
 ### 13.2 The resume library (decided 2026-10-02)
 
@@ -1135,33 +1191,41 @@ Developer" often ask for the same things.
 - **Every tailored resume is stored as a variant** with the requirement profile it was
   built for (e.g. {React, TypeScript, Node, MongoDB}).
 - **For each new job, plain code (no AI) compares its extracted requirements against
-  every variant.** If the overlap is high (~85%, tunable) **and** the job has no REQUIRED
+  every APPROVED, up-to-date variant** (`resumeOverlap()`: share of the job's normalized
+  requirement names, alternatives split, that the variant was built for). If the overlap is high (~85%, tunable) **and** the job has no REQUIRED
   skill the variant doesn't cover → **reuse it at zero AI cost** ("Reusing your MERN Full
   Stack resume — 92% match", with "tailor fresh anyway"). Otherwise tailor a new one and
   store it as a new variant.
-- **Base variants:** the user can create and pin a base resume per niche, each generated
+- **Built 2026-10-02:** reuse is offered on the job's Resume card (up to 3 offers, with
+  the jobs each was used for); the threshold is a setting
+  (`AiSettings.resumeReuseMinOverlap`, default 0.85). Only approved resumes are offered or
+  accepted (409 otherwise) — reuse skips review, so the reused resume must already have had one.
+- **Base variants (not built yet):** the user can create and pin a base resume per niche, each generated
   and reviewed once; most jobs then map to one of them.
 - **Why it's worth it:** the API saving is real but small (a Sonnet tailoring run costs
   cents; ~$3/month at expected volume). **The bigger saving is review time** — every new
   resume must be read and approved before it goes out, while a reused, already-approved
   variant needs no second review.
 
-### 13.3 Staleness
+### 13.3 Staleness (built 2026-10-02: derived, never stored)
 
-Because every bullet records the evidence it came from, any edit to or un-verification
-of that evidence marks **every variant using it stale**. A stale variant can't be reused
-or sent until regenerated — otherwise the library would keep sending a claim the user has
-since corrected, which is the Azure problem returning.
+A resume is **out of date** when any evidence it relies on (`evidenceIds`: every cited
+item plus the items behind each listed skill) has been deleted, un-verified, or changed
+after the resume was generated (`updatedAt > generatedAt`). This is **computed when read**,
+not flagged on write: every claim change — rewording, a skill rename, a role edit —
+already touches the evidence row (un-verifying it), so no current or future write path has
+to remember to mark resumes. Re-verifying an item after an edit doesn't make an old resume
+current again: its wording came from the old text. An out-of-date resume can't be
+approved, reused or saved as a PDF from the app until it is tailored again. Verifying a
+*new* item doesn't make a resume stale — it's still true, just less complete.
 
-### 13.4 Schema change (to be made when tailoring is built)
+### 13.4 Schema (built 2026-10-02)
 
-Today `TailoredResume` is one per `JobMatch`. It becomes:
-- `ResumeVariant` — bullets with per-bullet evidence IDs, requirement profile, optional
-  niche label/pin, PDF reference, stale flag, timestamps;
-- an application record linking a `Job` to the variant actually used (many jobs can share
-  one variant), so "what did I send Kwanso?" is answerable at interview time.
+`TailoredResume` (one per `JobMatch`, 0 rows) was dropped and replaced by `ResumeVariant`
+and `JobResume` (§5.2). Many jobs can share one variant, and "what did I send Kwanso?" is
+answered by the job's `JobResume`.
 
-### 13.5 The application kit
+### 13.5 The application kit (planned)
 
 Per job, ready for the user to submit themselves: the tailored (or reused) PDF; for
 "send your CV to <email>" postings, a drafted email opened in the user's own mail app
@@ -1169,7 +1233,7 @@ Per job, ready for the user to submit themselves: the tailored (or reused) PDF; 
 screening questions (years of experience computed from verified dates); outreach and
 follow-up drafts.
 
-### 13.6 Notifications
+### 13.6 Notifications (planned)
 
 When a resume is ready (tailored or reused), a Web Push notification: "Resume ready:
 <title> @ <company> — review and submit." Opening it shows the resume, the evidence
@@ -1319,6 +1383,13 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
 | 2026-10-02 | Projects can belong to a role; the link is a claim field | §5.2, §6.3 |
 | 2026-10-02 | Evidence context and depth editable in the UI; the edit un-verifies | §6.3 |
 | 2026-10-02 | Seed is a one-time bootstrap; afterwards the database is canonical | §7.4 |
+| 2026-10-02 | Tailoring built: Sonnet words bullets citing E-refs; code checks each bullet (placement, belonging, Azure/Node, numbers, uncited technologies, building verbs) and drops failures with a reason | §13.1 |
+| 2026-10-02 | Tailoring only on the user's request, from an Interested, scored job | §13.1 |
+| 2026-10-02 | Exposure-only skills go in a code-labelled "Learning" group | §13.1 |
+| 2026-10-02 | PDF via the browser's print to PDF on an A4 stylesheet, in the user's CV layout; no PDF library | §13.1 |
+| 2026-10-02 | "Save as PDF" only after approval; approve is its own endpoint and refused when stale | §13.1 |
+| 2026-10-02 | Resume staleness derived at read time from cited evidence, never stored | §13.3 |
+| 2026-10-02 | `TailoredResume` replaced by `ResumeVariant` + `JobResume`; reuse threshold is a setting (0.85) | §5.2, §13.2, §13.4 |
 | 2026-10-02 | CV reconciled: title Software Engineer, Docker PRODUCTION + CI/CD WORKING, CV-only claims added unverified, context-less CV skills recorded PERSONAL/WORKING | User's answers (§7.5) |
 
 ---
@@ -1334,6 +1405,9 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
   projects — every verification-reset rule enforced and tested.
 - **Career seed** (§7): 1 role, 1 project, 28 skills, 29 evidence items, all unverified;
   seeded into the user's account. CV reconciliation (§7.5): 63 items, 44 to review.
+- **Resume tailoring** (§13): Sonnet bullets checked by code, Resume card on Interested
+  jobs, review page with sources, approval, reuse of approved resumes, derived staleness,
+  A4 "Save as PDF" in the user's CV layout. Tested with a fake model; no real run yet.
 - **Profile & education** (§5.2): `/profile`, `/education`, web Profile page; projects
   linkable to a role; evidence context/depth editable.
 - **Discovery Milestone 1** (§9): worker, 10 adapters, two-stage filter, dedupe, run
@@ -1353,18 +1427,20 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
 1. **User:** review the 44 unverified items from the CV reconciliation (§7.5) in the
    Evidence screen — fix the placeholder ones with Edit before verifying. Everything AI
    reads only verified evidence.
-2. **Tailoring, the resume library and the application kit** (§13), with push
-   notifications — chosen ahead of email alerts (2026-10-02). PDF in the CV's layout.
+2. **One real tailoring run** on a job the user picks (≈ $0.03), then tune the prompt or
+   checks on what it produces. (Tailoring, reuse, staleness and the PDF: built — §13.)
 3. **Email job alerts** from the personal Gmail (§10): OAuth read-only, `Shortlist`
    label, per-portal parsers, partial-info jobs, "paste full description", board
    discovery.
 4. **"Add a job"** (§11, incl. the Android share target). (AI scoring + budget guard:
    built — §12.)
-5. **Discovery Milestone 2** (hosted ATS pages), **source discovery** (§9.11: board
+5. **Resume extras** (§13): base variants per niche and a library page, removing a single
+   bullet, the application kit (§13.5) and push notifications (§13.6).
+6. **Discovery Milestone 2** (hosted ATS pages), **source discovery** (§9.11: board
    probing + monthly ATS-scoped search), then **Milestone 3** (custom sites via change
    watcher).
-6. **Deploy** (§4): Neon, Upstash, Vercel + Render/Railway on a shared site.
-7. Rate-limit `/auth/login` and `/auth/register`.
+7. **Deploy** (§4): Neon, Upstash, Vercel + Render/Railway on a shared site.
+8. Rate-limit `/auth/login` and `/auth/register`.
 
 ### 17.3 Open decisions
 

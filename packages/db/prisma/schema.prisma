@@ -102,9 +102,9 @@ model User {
   location     String?
   // Resume header (contact line). Personal data: lives only in the database — never in
   // committed files (seed data, docs).
-  phone       String?
-  linkedinUrl String?
-  githubUrl   String?
+  phone        String?
+  linkedinUrl  String?
+  githubUrl    String?
 
   refreshTokens   RefreshToken[]
   workExperiences WorkExperience[]
@@ -116,6 +116,7 @@ model User {
   aiSettings      AiSettings?
   education       Education[]
   aiUsage         AiUsage[]
+  resumeVariants  ResumeVariant[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -155,21 +156,21 @@ model WorkExperience {
 }
 
 model Project {
-  id          String    @id @default(uuid())
-  userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // A project done as part of a paid role (e.g. a banking portal built at CloudCard).
   // Null = a personal project. Evidence linked to such a project is commercial work.
   workExperienceId String?
   workExperience   WorkExperience? @relation(fields: [workExperienceId], references: [id], onDelete: SetNull)
-  name        String
-  description String?
-  liveUrl     String?
-  repoUrl     String?
-  isShipped   Boolean   @default(false)
-  startDate   DateTime?
-  endDate     DateTime?
+  name             String
+  description      String?
+  liveUrl          String?
+  repoUrl          String?
+  isShipped        Boolean         @default(false)
+  startDate        DateTime?
+  endDate          DateTime?
 
   evidence SkillEvidence[]
 
@@ -308,19 +309,20 @@ model Job {
 
   requirements JobRequirement[]
   match        JobMatch?
+  resume       JobResume?
 
   // AI analysis (Agents.md §12)
-  analysisStatus JobAnalysisStatus @default(PENDING)
-  analysisError  String?
-  analyzedAt     DateTime?
-  seniority      String? // JUNIOR | MID | SENIOR | LEAD | UNKNOWN, as the posting states it
-  yearsRequired  Int? // overall years the posting asks for, if stated
-  redFlags       String[] // scam / suspicious-posting signals the model noticed
+  analysisStatus   JobAnalysisStatus @default(PENDING)
+  analysisError    String?
+  analyzedAt       DateTime?
+  seniority        String? // JUNIOR | MID | SENIOR | LEAD | UNKNOWN, as the posting states it
+  yearsRequired    Int? // overall years the posting asks for, if stated
+  redFlags         String[] // scam / suspicious-posting signals the model noticed
   // The verified skills the model was shown. The model can only map requirements to
   // these, so once the user verifies a skill outside this set, the job needs a fresh
   // analysis (re-scoring the old mapping can't discover the new match).
   analyzedSkillIds String[]
-  aiUsage        AiUsage[]
+  aiUsage          AiUsage[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -338,13 +340,13 @@ model DiscoveryPreferences {
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  titleInclude         String[] // title must contain one of these
-  titleExclude         String[] // ...and none of these
-  stackKeywords        String[] // title or description must mention one of these
-  onsiteLocations      String[] // on-site/hybrid roles must be in one of these
-  allowRemote          Boolean
-  remoteAllowRegions   String[] // a remote role passes only if limited to these regions (or worldwide)
-  maxPostingAgeDays    Int
+  titleInclude       String[] // title must contain one of these
+  titleExclude       String[] // ...and none of these
+  stackKeywords      String[] // title or description must mention one of these
+  onsiteLocations    String[] // on-site/hybrid roles must be in one of these
+  allowRemote        Boolean
+  remoteAllowRegions String[] // a remote role passes only if limited to these regions (or worldwide)
+  maxPostingAgeDays  Int
 
   updatedAt DateTime @updatedAt
 }
@@ -382,10 +384,8 @@ model JobMatch {
   strengths String[]
   risks     String[]
 
-  gaps           SkillGap[]
-  tailoredResume TailoredResume?
-
-  computedAt DateTime @default(now())
+  gaps       SkillGap[]
+  computedAt DateTime   @default(now())
 }
 
 model SkillGap {
@@ -401,15 +401,61 @@ model SkillGap {
   @@index([skillName])
 }
 
-model TailoredResume {
-  id         String   @id @default(uuid())
-  jobMatchId String   @unique
-  jobMatch   JobMatch @relation(fields: [jobMatchId], references: [id], onDelete: Cascade)
+// Resume library (Agents.md §13.2–13.4). A variant is one tailored resume; many jobs can
+// use the same one. Its content cites evidence by ID, and whether it is stale is DERIVED
+// from that evidence at read time (un-verified, edited since, or deleted) rather than
+// flagged by every write path — a future write path can't forget to mark it.
+model ResumeVariant {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  bullets String  @db.Text // generated bullet content
-  pdfUrl  String? // reference to the rendered PDF
+  status             ResumeStatus @default(DRAFT)
+  content            Json // ResumeContent (packages/shared/src/resume.ts), Zod-validated on write
+  // Every evidence item the resume relies on (bullets + skills). No FK: a deleted item must
+  // leave a trace so the variant reads as stale, not silently shrink.
+  evidenceIds        String[]
+  // Normalized requirement names of the job it was tailored for — what reuse compares.
+  requirementProfile String[]
+  model              String
+
+  generatedAt DateTime  @default(now())
+  approvedAt  DateTime?
+  updatedAt   DateTime  @updatedAt
+
+  jobs JobResume[]
+
+  @@index([userId])
+}
+
+enum ResumeStatus {
+  DRAFT // generated; the user hasn't confirmed every bullet yet
+  APPROVED // read and confirmed — may be reused without another review
+}
+
+// Which resume a job uses, and the state of preparing it. "What did I send Kwanso?" is
+// answerable from here.
+model JobResume {
+  id        String         @id @default(uuid())
+  jobId     String         @unique
+  job       Job            @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  variantId String?
+  variant   ResumeVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+
+  status  JobResumeStatus
+  error   String?
+  reused  Boolean         @default(false)
+  overlap Float? // requirement overlap when reused
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum JobResumeStatus {
+  PENDING // queued or being tailored
+  READY
+  DEFERRED // budget or configuration — retry later
+  FAILED
 }
 
 // Budget guard (Agents.md §12.3). Runtime settings per user — the cost dial is data,
@@ -419,8 +465,9 @@ model AiSettings {
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  maxAnalysesPerDay Int // job analyses per rolling 24h
-  monthlyBudgetUsd  Decimal @db.Decimal(8, 2) // stop all AI calls once this month's spend reaches it
+  maxAnalysesPerDay     Int // job analyses per rolling 24h
+  monthlyBudgetUsd      Decimal @db.Decimal(8, 2) // stop all AI calls once this month's spend reaches it
+  resumeReuseMinOverlap Decimal @default(0.85) @db.Decimal(3, 2) // offer an approved resume for reuse at this overlap
 
   updatedAt DateTime @updatedAt
 }

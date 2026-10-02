@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { SourcesPage } from './SourcesPage';
 
 const usage = {
-  settings: { maxAnalysesPerDay: 40, monthlyBudgetUsd: 4.5 },
+  settings: { maxAnalysesPerDay: 40, monthlyBudgetUsd: 4.5, resumeReuseMinOverlap: 0.85 },
   monthToDateUsd: 0.12,
   callsThisMonth: 20,
   analysesLast24h: 20,

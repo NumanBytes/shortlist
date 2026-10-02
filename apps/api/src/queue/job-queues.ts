@@ -4,8 +4,11 @@ import {
   AnalysisJob,
   DISCOVERY_QUEUE,
   DiscoveryJob,
+  RESUME_QUEUE,
+  ResumeJob,
   type AnalyzeJobData,
   type DiscoverSourceData,
+  type TailorResumeData,
 } from '@shortlist/shared';
 import { Queue, type JobsOptions } from 'bullmq';
 import { Redis } from 'ioredis';
@@ -32,13 +35,15 @@ export class JobQueues implements OnModuleDestroy {
   private readonly connection: Redis;
   private readonly discovery: Queue;
   private readonly analysis: Queue;
+  private readonly resume: Queue;
 
   constructor(@Inject(ENV) env: Env) {
     this.connection = new Redis(env.REDIS_URL, { maxRetriesPerRequest: 1, lazyConnect: true });
     this.connection.on('error', () => undefined); // surfaced per request as a 503 instead
     this.discovery = new Queue(DISCOVERY_QUEUE, { connection: this.connection });
     this.analysis = new Queue(ANALYSIS_QUEUE, { connection: this.connection });
-    for (const q of [this.discovery, this.analysis]) q.on('error', () => undefined);
+    this.resume = new Queue(RESUME_QUEUE, { connection: this.connection });
+    for (const q of [this.discovery, this.analysis, this.resume]) q.on('error', () => undefined);
   }
 
   enqueueSources(sourceIds: string[], batchId: string): Promise<void> {
@@ -68,6 +73,19 @@ export class JobQueues implements OnModuleDestroy {
     );
   }
 
+  enqueueTailoring(jobId: string): Promise<void> {
+    return this.bounded(
+      this.resume.add(ResumeJob.Tailor, { jobId } satisfies TailorResumeData, {
+        ...RETRY,
+        jobId: `tailor__${jobId}__${Date.now()}`,
+        backoff: { type: 'exponential', delay: 60_000 },
+        // A double-click (or two tabs) joins the tailoring already queued or running for
+        // this job instead of paying for a second one.
+        deduplication: { id: `tailor-${jobId}` },
+      }),
+    );
+  }
+
   private async bounded(add: Promise<unknown> | null): Promise<void> {
     if (!add) return;
     let timer: NodeJS.Timeout | undefined;
@@ -86,7 +104,7 @@ export class JobQueues implements OnModuleDestroy {
   }
 
   async onModuleDestroy() {
-    await Promise.all([this.discovery, this.analysis].map((q) => q.close().catch(() => undefined)));
+    await Promise.all([this.discovery, this.analysis, this.resume].map((q) => q.close().catch(() => undefined)));
     this.connection.disconnect();
   }
 }

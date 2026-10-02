@@ -109,7 +109,7 @@ export function AppShell() {
   const toReview = useToReview();
   return (
     <div className="min-h-dvh">
-      <header className="sticky top-0 z-20 border-b border-border bg-bg/85 pt-[env(safe-area-inset-top)] backdrop-blur">
+      <header className="sticky top-0 print:hidden z-20 border-b border-border bg-bg/85 pt-[env(safe-area-inset-top)] backdrop-blur">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4">
           <Logo />
           <nav className="hidden items-center gap-1 sm:flex" aria-label="Main">
@@ -121,14 +121,14 @@ export function AppShell() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-6xl px-4 pt-4 pb-28 sm:pb-12">
+      <div className="mx-auto max-w-6xl px-4 pt-4 pb-28 sm:pb-12 print:max-w-none print:p-0">
         <Outlet />
       </div>
 
       {/* Phone: navigation at the bottom, within thumb reach. */}
       <nav
         aria-label="Main"
-        className="fixed inset-x-0 bottom-0 z-20 flex border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur sm:hidden"
+        className="fixed inset-x-0 bottom-0 z-20 flex print:hidden border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur sm:hidden"
       >
         {LINKS.map((l) => (
           <NavItem key={l.to} link={l} mobile badge={l.to === '/evidence' ? toReview : undefined} />
