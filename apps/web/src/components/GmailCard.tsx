@@ -1,0 +1,186 @@
+import { AlertTriangle, Mail, RefreshCw, ShieldCheck } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useSearchParams } from 'react-router';
+import { timeAgo } from '../lib/format';
+import { gmailKeys, useCheckGmail, useConnectGmail, useDisconnectGmail, useGmail } from '../lib/queries';
+import type { GmailStatus } from '../lib/types';
+import { Badge, Button, Card, Skeleton } from './ui';
+
+// What happened on the way back from Google (?gmail=… set by the API's callback).
+const OUTCOME: Record<string, { ok: boolean; text: string }> = {
+  connected: { ok: true, text: 'Gmail connected. The first check is running — it reads only your Shortlist label.' },
+  denied: { ok: false, text: 'You cancelled on Google’s screen. Nothing was connected.' },
+  expired: { ok: false, text: 'That attempt took longer than 10 minutes. Try again.' },
+  mismatch: { ok: false, text: 'That sign-in didn’t start in this browser, so it was refused. Start again from here.' },
+  scope: { ok: false, text: 'Read access to Gmail wasn’t granted. Tick it on Google’s screen to connect.' },
+  no_refresh_token: { ok: false, text: 'Google didn’t grant offline access. Remove Shortlist at myaccount.google.com/permissions, then connect again.' },
+  google_error: { ok: false, text: 'Google returned an error. Try again in a minute.' },
+};
+const POLLS = 15;
+
+// Email job alerts (Agents.md §10): connect the personal Gmail read-only; Shortlist reads
+// only the "Shortlist" label and never sends anything.
+export function GmailCard() {
+  const [params, setParams] = useSearchParams();
+  const outcome = params.get('gmail');
+  // About a minute of polling (15 × 4s) after connecting or "Check now".
+  const [pollUntil, setPollUntil] = useState(() => (outcome === 'connected' ? POLLS : 0));
+  const gmail = useGmail(pollUntil);
+  const queryClient = useQueryClient();
+  const startPolling = () => setPollUntil((queryClient.getQueryState(gmailKeys.status)?.dataUpdateCount ?? 0) + POLLS);
+
+  return (
+    <Card className="p-4">
+      <div className="flex items-center gap-2">
+        <Mail className="size-4.5 text-accent" />
+        <h2 className="text-sm font-semibold text-fg">Email job alerts</h2>
+        {gmail.data?.connection &&
+          (gmail.data.connection.status === 'ACTIVE' ? <Badge tone="apply">Connected</Badge> : <Badge tone="danger">Reconnect</Badge>)}
+      </div>
+
+      {outcome && OUTCOME[outcome] && (
+        <div
+          role={OUTCOME[outcome].ok ? undefined : 'alert'}
+          className={`mt-3 flex items-start justify-between gap-3 rounded-lg px-3 py-2 text-sm ${OUTCOME[outcome].ok ? 'bg-apply-bg text-apply-fg' : 'bg-danger-bg text-danger-fg'}`}
+        >
+          <span>{OUTCOME[outcome].text}</span>
+          <button type="button" className="shrink-0 text-xs underline" onClick={() => setParams({}, { replace: true })}>
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      <div className="mt-3 text-sm">
+        {gmail.isPending && <Skeleton className="h-16 w-full" />}
+        {gmail.isError && <p className="text-danger-fg">Couldn't load: {gmail.error.message}</p>}
+        {gmail.data && <Body status={gmail.data} onCheck={startPolling} />}
+      </div>
+    </Card>
+  );
+}
+
+function Body({ status, onCheck }: { status: GmailStatus; onCheck: () => void }) {
+  const connect = useConnectGmail();
+  const check = useCheckGmail();
+  const disconnect = useDisconnectGmail();
+  const [confirmDisconnect, setConfirmDisconnect] = useState(false);
+  const goToGoogle = () => connect.mutate(undefined, { onSuccess: ({ url }) => window.location.assign(url) });
+  const c = status.connection;
+
+  if (!status.configured) {
+    return (
+      <p className="text-muted">
+        Not set up on this server yet: it needs a Google OAuth client (GOOGLE_* and TOKEN_ENCRYPTION_KEY in the API and
+        worker env). See Agents.md §10.6.
+      </p>
+    );
+  }
+
+  if (!c) {
+    return (
+      <div className="space-y-3">
+        <ul className="space-y-1.5 text-muted">
+          {[
+            'Read-only: Shortlist can’t send, delete or change mail.',
+            'Reads only messages with your “Shortlist” label — set a Gmail filter to label job alerts.',
+            'You can revoke it any time, here or in your Google account.',
+          ].map((line) => (
+            <li key={line} className="flex gap-2">
+              <ShieldCheck className="mt-0.5 size-4 shrink-0 text-accent" /> {line}
+            </li>
+          ))}
+        </ul>
+        <Button onClick={goToGoogle} disabled={connect.isPending}>
+          <Mail className="size-4" /> {connect.isPending ? 'Opening Google…' : 'Connect Gmail'}
+        </Button>
+        <FilterHelp />
+        {connect.isError && <p className="text-danger-fg">{connect.error.message}</p>}
+      </div>
+    );
+  }
+
+  const s = status.last30Days;
+  return (
+    <div className="space-y-3">
+      <p className="text-muted">
+        <span className="font-medium text-fg">{c.emailAddress}</span> · label “{c.labelName}” · checked every two hours
+      </p>
+      {c.lastError && (
+        <p className="flex gap-2 rounded-lg bg-danger-bg px-3 py-2 text-danger-fg">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0" /> {c.lastError}
+        </p>
+      )}
+      <p className="text-muted">
+        {c.lastCheckedAt
+          ? `Last check ${timeAgo(c.lastCheckedAt)}: ${c.lastCheckStatus === 'FAILED' ? 'failed' : `${c.lastCheckFound ?? 0} new message${c.lastCheckFound === 1 ? '' : 's'}`}.`
+          : 'Not checked yet.'}{' '}
+        Last 30 days: {s.parsed + s.unparsed + s.failed} alert emails read.
+      </p>
+      {s.unparsedSenders.length > 0 && (
+        <div className="rounded-lg bg-surface-2 px-3 py-2">
+          <p className="text-xs font-medium text-fg">Not turned into jobs yet — no parser for these senders:</p>
+          <ul className="mt-1 space-y-0.5 text-xs text-muted">
+            {s.unparsedSenders.map((u) => (
+              <li key={u.sender ?? 'unknown'} className="flex justify-between gap-3">
+                <span className="truncate">{u.sender ?? 'unknown sender'}</span>
+                <span className="tabular-nums">{u.count}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      <div className="flex flex-wrap items-center gap-2">
+        {c.status === 'ACTIVE' ? (
+          <Button variant="secondary" onClick={() => check.mutate(undefined, { onSuccess: onCheck })} disabled={check.isPending}>
+            <RefreshCw className="size-4" /> {check.isPending ? 'Queuing…' : 'Check now'}
+          </Button>
+        ) : (
+          <Button onClick={goToGoogle} disabled={connect.isPending}>
+            <Mail className="size-4" /> Reconnect Gmail
+          </Button>
+        )}
+        {confirmDisconnect ? (
+          <span className="flex flex-wrap items-center gap-2 text-muted">
+            Disconnect and revoke access?
+            <Button size="sm" variant="danger" onClick={() => disconnect.mutate()} disabled={disconnect.isPending}>
+              Disconnect
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setConfirmDisconnect(false)}>
+              Cancel
+            </Button>
+          </span>
+        ) : (
+          <Button variant="ghost" onClick={() => setConfirmDisconnect(true)}>
+            Disconnect
+          </Button>
+        )}
+      </div>
+      <FilterHelp />
+      {(check.isError || disconnect.isError || connect.isError) && (
+        <p className="text-danger-fg">{(check.error ?? disconnect.error ?? connect.error)?.message}</p>
+      )}
+    </div>
+  );
+}
+
+// Shortlist can't create the filter (read-only scope), so the user does, once.
+function FilterHelp() {
+  return (
+    <details className="rounded-lg border border-border">
+      <summary className="cursor-pointer px-3 py-2 text-sm font-medium text-fg">How to label job alerts in Gmail</summary>
+      <ol className="list-decimal space-y-1 border-t border-border py-2 pr-3 pl-8 text-sm text-muted">
+        <li>Open a job-alert email from one portal (LinkedIn, Indeed, Rozee.pk, Wellfound…).</li>
+        <li>
+          Click <strong className="text-fg">⋮ → Filter messages like these</strong>, check the From address is the alerts
+          sender, then <strong className="text-fg">Create filter</strong>.
+        </li>
+        <li>
+          Tick <strong className="text-fg">Apply the label</strong> → New label “Shortlist”, and{' '}
+          <strong className="text-fg">Also apply filter to matching conversations</strong>.
+        </li>
+        <li>Repeat for each portal. Only labelled mail is ever read.</li>
+      </ol>
+    </details>
+  );
+}

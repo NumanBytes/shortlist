@@ -27,6 +27,31 @@ const EnvSchema = z.object({
     .default('http://localhost:5173')
     .transform((v) => v.split(',').map((o) => o.trim()).filter(Boolean))
     .pipe(z.array(z.url().refine((o) => new URL(o).origin === o, 'Must be a bare origin, no path or trailing slash'))),
+
+  // Where the browser lands after connecting Gmail (the web app's own URL).
+  WEB_APP_URL: z.url().default('http://localhost:5173'),
+
+  // Gmail job alerts (Agents.md §10). Optional as a group: without them the app works and
+  // "Connect Gmail" says it isn't configured. The redirect URI must match the one
+  // registered on the Google OAuth client exactly.
+  GOOGLE_CLIENT_ID: z.string().min(1).optional(),
+  GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
+  GOOGLE_REDIRECT_URI: z.url().optional(),
+  // 32 random bytes, base64 (openssl rand -base64 32). Encrypts the Gmail refresh token at
+  // rest; the worker needs the same value to decrypt it.
+  TOKEN_ENCRYPTION_KEY: z
+    .string()
+    .refine((v) => Buffer.from(v, 'base64').length === 32, 'TOKEN_ENCRYPTION_KEY must be 32 bytes, base64-encoded')
+    .optional(),
+}).superRefine((env, ctx) => {
+  const google = [env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET, env.GOOGLE_REDIRECT_URI, env.TOKEN_ENCRYPTION_KEY];
+  if (google.some(Boolean) && !google.every(Boolean)) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['GOOGLE_CLIENT_ID'],
+      message: 'Set all of GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI and TOKEN_ENCRYPTION_KEY, or none',
+    });
+  }
 });
 
 export type Env = z.infer<typeof EnvSchema>;

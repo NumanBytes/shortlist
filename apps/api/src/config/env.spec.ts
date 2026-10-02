@@ -16,6 +16,7 @@ describe('loadEnv', () => {
       BCRYPT_ROUNDS: 12,
       WEB_ORIGINS: ['http://localhost:5173'],
       REDIS_URL: 'redis://localhost:6379',
+      WEB_APP_URL: 'http://localhost:5173',
     });
   });
 
@@ -38,5 +39,27 @@ describe('loadEnv', () => {
 
   it('rejects a JWT secret shorter than 32 characters', () => {
     expect(() => loadEnv({ ...valid, JWT_ACCESS_SECRET: 'too-short' })).toThrow(/JWT_ACCESS_SECRET/);
+  });
+
+  describe('Gmail settings (all or none)', () => {
+    const google = {
+      GOOGLE_CLIENT_ID: 'x.apps.googleusercontent.com',
+      GOOGLE_CLIENT_SECRET: 'secret',
+      GOOGLE_REDIRECT_URI: 'http://localhost:5173/api/v1/gmail/callback',
+      TOKEN_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
+    };
+
+    it('accepts the full set', () => {
+      expect(loadEnv({ ...valid, ...google }).GOOGLE_CLIENT_ID).toBe(google.GOOGLE_CLIENT_ID);
+    });
+
+    it('refuses a partial set instead of half-working', () => {
+      const { TOKEN_ENCRYPTION_KEY: _, ...partial } = google;
+      expect(() => loadEnv({ ...valid, ...partial })).toThrow(/or none/);
+    });
+
+    it('refuses an encryption key that is not 32 bytes', () => {
+      expect(() => loadEnv({ ...valid, ...google, TOKEN_ENCRYPTION_KEY: Buffer.alloc(16).toString('base64') })).toThrow(/32 bytes/);
+    });
   });
 });

@@ -4,9 +4,12 @@ import {
   AnalysisJob,
   DISCOVERY_QUEUE,
   DiscoveryJob,
+  EMAIL_QUEUE,
+  EmailJob,
   RESUME_QUEUE,
   ResumeJob,
   type AnalyzeJobData,
+  type CheckEmailData,
   type DiscoverSourceData,
   type TailorResumeData,
 } from '@shortlist/shared';
@@ -36,6 +39,7 @@ export class JobQueues implements OnModuleDestroy {
   private readonly discovery: Queue;
   private readonly analysis: Queue;
   private readonly resume: Queue;
+  private readonly email: Queue;
 
   constructor(@Inject(ENV) env: Env) {
     this.connection = new Redis(env.REDIS_URL, { maxRetriesPerRequest: 1, lazyConnect: true });
@@ -43,7 +47,8 @@ export class JobQueues implements OnModuleDestroy {
     this.discovery = new Queue(DISCOVERY_QUEUE, { connection: this.connection });
     this.analysis = new Queue(ANALYSIS_QUEUE, { connection: this.connection });
     this.resume = new Queue(RESUME_QUEUE, { connection: this.connection });
-    for (const q of [this.discovery, this.analysis, this.resume]) q.on('error', () => undefined);
+    this.email = new Queue(EMAIL_QUEUE, { connection: this.connection });
+    for (const q of [this.discovery, this.analysis, this.resume, this.email]) q.on('error', () => undefined);
   }
 
   enqueueSources(sourceIds: string[], batchId: string): Promise<void> {
@@ -86,6 +91,18 @@ export class JobQueues implements OnModuleDestroy {
     );
   }
 
+  enqueueEmailCheck(userId: string): Promise<void> {
+    return this.bounded(
+      this.email.add(EmailJob.Check, { userId } satisfies CheckEmailData, {
+        ...RETRY,
+        jobId: `email__${userId}__${Date.now()}`,
+        backoff: { type: 'exponential', delay: 60_000 },
+        // One check per mailbox at a time, whoever asks (schedule or "Check now").
+        deduplication: { id: `email-${userId}` },
+      }),
+    );
+  }
+
   private async bounded(add: Promise<unknown> | null): Promise<void> {
     if (!add) return;
     let timer: NodeJS.Timeout | undefined;
@@ -104,7 +121,7 @@ export class JobQueues implements OnModuleDestroy {
   }
 
   async onModuleDestroy() {
-    await Promise.all([this.discovery, this.analysis, this.resume].map((q) => q.close().catch(() => undefined)));
+    await Promise.all([this.discovery, this.analysis, this.resume, this.email].map((q) => q.close().catch(() => undefined)));
     this.connection.disconnect();
   }
 }

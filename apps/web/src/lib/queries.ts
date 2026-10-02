@@ -20,6 +20,7 @@ import type {
   RunNowResult,
   Skill,
   WorkExperience,
+  GmailStatus,
   JobResume,
 } from './types';
 
@@ -198,5 +199,36 @@ export function useApproveResume() {
   return useMutation({
     mutationFn: ({ variantId }: { variantId: string; jobId: string }) => api(`/resumes/${variantId}/approve`, { method: 'POST' }),
     onSuccess: (_, { jobId }) => queryClient.invalidateQueries({ queryKey: resumeKeys.job(jobId) }),
+  });
+}
+
+// ── Gmail job alerts ─────────────────────────────────────────────────────────
+export const gmailKeys = { status: ['gmail'] as const };
+
+// Polls every 4s until the query has fetched `pollUntilCount` times — set after "Check now"
+// or connecting, so the check's result appears by itself and polling then stops.
+export const useGmail = (pollUntilCount = 0) =>
+  useQuery({
+    queryKey: gmailKeys.status,
+    queryFn: () => api<GmailStatus>('/gmail'),
+    refetchInterval: (q) => (q.state.dataUpdateCount < pollUntilCount ? 4000 : false),
+  });
+
+// Returns Google's consent URL; the caller navigates there (a full-page redirect, not a popup).
+export const useConnectGmail = () => useMutation({ mutationFn: () => api<{ url: string }>('/gmail/connect', { method: 'POST' }) });
+
+export function useCheckGmail() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => api('/gmail/check', { method: 'POST' }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: gmailKeys.status }),
+  });
+}
+
+export function useDisconnectGmail() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => api('/gmail', { method: 'DELETE' }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: gmailKeys.status }),
   });
 }

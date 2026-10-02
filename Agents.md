@@ -29,7 +29,7 @@ through.
 7. The career database (seed reference, CV reconciliation)
 8. Authentication and security
 9. Job discovery
-10. Email job alerts (planned)
+10. Email job alerts
 11. Manual job intake — "Add a job" (planned)
 12. AI pipeline — extraction and match scoring
 13. Resume tailoring, the resume library, and the application kit
@@ -884,7 +884,7 @@ the whole market for free.
 
 ---
 
-## 10. Email job alerts (planned)
+## 10. Email job alerts (connection built 2026-10-03; parsers next)
 
 ### 10.1 What and why
 
@@ -913,6 +913,31 @@ email — so access is designed to be as narrow as Gmail allows.
   the whole mailbox; it is the code that confines itself to the label. Hence: read-only
   scope, token stored encrypted, the token never leaves the worker.
 - **Shortlist never sends email** from the account.
+- **Built 2026-10-03 — how the connection works** (`apps/api/src/gmail/`,
+  `packages/shared/src/node/google.ts`), hand-rolled with `fetch`, no googleapis SDK:
+  - **Authorization-code flow with PKCE.** "Connect Gmail" asks the API for Google's
+    consent URL (scope `gmail.readonly` only; `access_type=offline`, `prompt=consent` so a
+    refresh token always comes back). The browser goes to Google and back to
+    `GET /api/v1/gmail/callback`. The code is useless without the PKCE verifier, which
+    never leaves the server.
+  - **Who is this redirect for?** A redirect carries no bearer token (it lives in memory
+    in the tab), so the attempt is identified by a random single-use **state** (stored
+    hashed, 10-minute life) — and bound to the **browser** by an httpOnly nonce cookie
+    (`shortlist_oauth`, Path=/api/v1/gmail/callback, SameSite=**Lax**: Strict would not be
+    sent on Google's cross-site redirect). Without the cookie check, an attacker could send
+    someone their own consent link and attach the victim's mailbox to the attacker's
+    account (OAuth login CSRF); a test covers exactly that.
+  - **Scope check:** Google lets the user untick a scope; the callback refuses a grant
+    without read access.
+  - **Token at rest:** only the refresh token is stored, encrypted with AES-256-GCM
+    (`SecretBox`, key `TOKEN_ENCRYPTION_KEY`), with the user's id as additional
+    authenticated data so a ciphertext copied to another row won't decrypt. Access tokens
+    are minted per check and never stored. The status endpoint never returns the token.
+  - **Disconnect** revokes the grant at Google, then deletes the row.
+  - **Health is visible:** each check records status (SUCCESS / EMPTY / FAILED), time,
+    count and error on the connection; a revoked grant (`invalid_grant`) or an
+    undecryptable token sets `NEEDS_RECONNECT` and the Sources page asks to reconnect; a
+    missing label fails visibly without retries.
 - **Google setup gotcha:** while the OAuth consent screen is in "Testing" status, refresh
   tokens expire after 7 days. Set the app to "In production" for personal use; the user
   sees an "unverified app" warning once (expected for a personal tool). Selling the
@@ -920,10 +945,24 @@ email — so access is designed to be as narrow as Gmail allows.
 
 ### 10.4 Processing
 
-- One parser per sender/portal (the same one-per-platform principle as adapters).
-- Each check is a `DiscoveryRun` against an `EMAIL_INBOX` source, with the same
-  RUNNING/SUCCESS/EMPTY/FAILED visibility; the same filter and deduplication apply.
-- Processed message IDs are recorded so an email is never ingested twice.
+- **Built 2026-10-03:** a worker check (every two hours, `GMAIL_CHECK_CRON`, plus "Check
+  now") lists messages under the label only — the last 30 days on the first check, then
+  everything after the previous check minus a two-day overlap (Gmail's `after:` is
+  day-granular) — and records each new message in `EmailMessage` (sender, received time,
+  status) so it is **never read twice**. Bodies are not stored. Own queue (`email`),
+  deduplicated per mailbox.
+- **Parsers come from real emails, not guesses.** Until a portal has a parser, its mail is
+  `UNPARSED`, and the Sources page lists those senders with counts — that list decides
+  which portal to support first. `pnpm --filter @shortlist/worker capture:emails <you>`
+  saves recent labelled mail as `.eml` under `apps/worker/test/fixtures/email/.private/`,
+  which is **git-ignored** (it holds the user's name, address and tracking links).
+  Committed parser fixtures must be scrubbed copies.
+- **Next (planned):** one parser per sender/portal (the same one-per-platform principle as
+  adapters), producing postings; each portal's results recorded as a `DiscoveryRun`
+  against its existing `EMAIL_INBOX` source row (LinkedIn, Wellfound, Rozee.pk,
+  remote.co… are already seeded), with the same RUNNING/SUCCESS/EMPTY/FAILED
+  visibility; the same title/location filter and deduplication; the description-keyword
+  stage can't apply to alerts that carry no description (§10.5).
 
 ### 10.5 Partial information and "paste once"
 
@@ -938,6 +977,29 @@ description — and fetching the page behind the link would be scraping. So:
 - Often no paste is needed at all: if the same job is on a watched company board or
   aggregator, the full description is filled from there; and board discovery (§9.12)
   turns alert-only companies into watched sources over time.
+
+### 10.6 Setting up Google (one-time, by the user)
+
+Shortlist can't do this part: it needs the user's own Google Cloud project.
+
+1. At console.cloud.google.com, create a project (e.g. "Shortlist") and enable the
+   **Gmail API** (APIs & Services → Library).
+2. Configure the **OAuth consent screen** (Google Auth Platform): External, app name,
+   support email; under Data Access add the scope `…/auth/gmail.readonly`; add your own
+   address as a test user.
+3. **Publish the app ("In production")** so refresh tokens don't expire after 7 days
+   (§10.3). Google then shows an "unverified app" warning when connecting — expected for a
+   personal tool. If Google won't allow publishing, it still works in Testing, but needs a
+   reconnect every 7 days (the Sources page will say so).
+4. Create an **OAuth client → Web application** with the authorized redirect URI
+   `http://localhost:5173/api/v1/gmail/callback` (in production, the deployed web URL +
+   `/api/v1/gmail/callback`).
+5. Put `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` and
+   `TOKEN_ENCRYPTION_KEY` (`openssl rand -base64 32`) in `apps/api/.env`, and the same
+   client id, secret and key in `apps/worker/.env`. They are all-or-none: a partial set
+   refuses to start.
+6. In Gmail, create a filter per portal that applies the label **Shortlist** to its alert
+   emails (the Sources page shows the steps), then **Connect Gmail** on the Sources page.
 
 ---
 
@@ -1399,6 +1461,11 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
 | 2026-10-02 | PDF via the browser's print to PDF on an A4 stylesheet, in the user's CV layout; no PDF library | §13.1 |
 | 2026-10-02 | "Save as PDF" only after approval; approve is its own endpoint and refused when stale | §13.1 |
 | 2026-10-02 | Resume staleness derived at read time from cited evidence, never stored | §13.3 |
+| 2026-10-03 | Gmail connection: authorization code + PKCE; single-use hashed state bound to the browser by a SameSite=Lax nonce cookie (login-CSRF defense); read-only scope verified on return | §10.3 |
+| 2026-10-03 | Gmail refresh token encrypted with AES-256-GCM, user id as AAD; access tokens never stored; disconnect revokes at Google | §10.3 |
+| 2026-10-03 | Node-only shared code (crypto, Google) behind `@shortlist/shared/node`, never bundled into the web app | §10.3 |
+| 2026-10-03 | Inbox checked every two hours + "Check now"; messages recorded once (metadata only); unparsed senders listed | §10.4 |
+| 2026-10-03 | Parsers are written against captured real emails (git-ignored); committed fixtures are scrubbed | §10.4 |
 | 2026-10-03 | Code review fixes: whole-number check; `generatedAt` = evidence read time; existing resume stays reachable during/after a failed re-tailor; "Tailor again" on a current resume needs confirmation | §13.1, §13.3 |
 | 2026-10-02 | `TailoredResume` replaced by `ResumeVariant` + `JobResume`; reuse threshold is a setting (0.85) | §5.2, §13.2, §13.4 |
 | 2026-10-02 | CV reconciled: title Software Engineer, Docker PRODUCTION + CI/CD WORKING, CV-only claims added unverified, context-less CV skills recorded PERSONAL/WORKING | User's answers (§7.5) |
@@ -1440,8 +1507,9 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
    reads only verified evidence.
 2. **One real tailoring run** on a job the user picks (≈ $0.03), then tune the prompt or
    checks on what it produces. (Tailoring, reuse, staleness and the PDF: built — §13.)
-3. **Email job alerts** from the personal Gmail (§10): OAuth read-only, `Shortlist`
-   label, per-portal parsers, partial-info jobs, "paste full description", board
+3. **Email job alerts** (§10). Connection, label-only reading and health: built
+   (2026-10-03). **User:** set up Google (§10.6) and connect. **Next:** capture real alert
+   emails, then per-portal parsers, partial-info jobs, "paste full description", board
    discovery.
 4. **"Add a job"** (§11, incl. the Android share target). (AI scoring + budget guard:
    built — §12.)
