@@ -1,52 +1,20 @@
+import { AlertTriangle, ChevronDown, Play, Sparkles } from 'lucide-react';
 import { useState } from 'react';
-import { Badge, Button } from '../components/ui';
+import { Badge, Button, Card, Skeleton, Switch, type Tone } from '../components/ui';
 import { providerLabel, timeAgo } from '../lib/format';
 import { useAiUsage, useRunDiscovery, useSetSourceEnabled, useSources, useUpdateAiSettings } from '../lib/queries';
 import type { DiscoverySource, RunStatus } from '../lib/types';
 
-const STATUS_TONE: Record<RunStatus, 'green' | 'amber' | 'slate'> = {
-  SUCCESS: 'green',
-  RUNNING: 'slate',
-  EMPTY: 'amber',
-  FAILED: 'amber',
-};
+const STATUS_TONE: Record<RunStatus, Tone> = { SUCCESS: 'apply', RUNNING: 'neutral', EMPTY: 'stretch', FAILED: 'danger' };
+const needsAttention = (s: DiscoverySource) => s.isEnabled && (s.lastRun?.status === 'FAILED' || s.lastRun?.status === 'EMPTY');
 
-function SourceRow({ source }: { source: DiscoverySource }) {
-  const toggle = useSetSourceEnabled();
-  const run = source.lastRun;
+function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <li className="rounded-lg border border-slate-200 bg-white p-3">
-      <div className="flex items-center justify-between gap-2">
-        <div className="min-w-0">
-          <p className="font-medium">{source.name}</p>
-          <p className="text-xs text-slate-500">
-            {providerLabel(source.provider)} · {source.jobCount} jobs · last run {timeAgo(source.lastRunAt)}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {run && <Badge tone={STATUS_TONE[run.status]}>{run.status.toLowerCase()}</Badge>}
-          <label className="flex items-center gap-1.5 text-sm text-slate-600">
-            <input
-              type="checkbox"
-              checked={source.isEnabled}
-              disabled={toggle.isPending}
-              onChange={(e) => toggle.mutate({ id: source.id, isEnabled: e.target.checked })}
-              className="size-4 accent-slate-900"
-            />
-            On
-          </label>
-        </div>
-      </div>
-      {run && run.status !== 'FAILED' && run.status !== 'RUNNING' && (
-        <p className="mt-1 text-xs text-slate-500">
-          {run.jobsFound} found · {run.jobsMatched} matched · {run.jobsNew} new
-        </p>
-      )}
-      {/* A failing or empty source is shown as such — never confused with "no jobs today". */}
-      {run?.status === 'FAILED' && <p className="mt-1 text-xs text-red-600">Failed: {run.errorMessage}</p>}
-      {run?.status === 'EMPTY' && <p className="mt-1 text-xs text-amber-700">The source returned no postings at all.</p>}
-      {toggle.isError && <p className="mt-1 text-xs text-red-600">{toggle.error.message}</p>}
-    </li>
+    <div className="rounded-lg bg-surface-2 px-3 py-2.5">
+      <p className="text-xs text-muted">{label}</p>
+      <p className="mt-0.5 text-lg font-semibold tabular-nums text-fg">{value}</p>
+      {sub && <p className="text-xs text-subtle">{sub}</p>}
+    </div>
   );
 }
 
@@ -56,27 +24,43 @@ function AiSpendCard() {
   const update = useUpdateAiSettings();
   const [editing, setEditing] = useState(false);
   const [budget, setBudget] = useState('');
+  if (usage.isPending) return <Skeleton className="h-36 w-full" />;
   if (!usage.isSuccess) return null;
   const u = usage.data;
   const pct = Math.min(100, (u.monthToDateUsd / Math.max(u.settings.monthlyBudgetUsd, 0.01)) * 100);
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-4" aria-labelledby="ai-spend">
-      <h2 id="ai-spend" className="font-semibold">
-        AI scoring
-      </h2>
-      <p className="mt-1 text-sm text-slate-700">
-        ${u.monthToDateUsd.toFixed(2)} of ${u.settings.monthlyBudgetUsd.toFixed(2)} this month · {u.analysesLast24h} of{' '}
-        {u.settings.maxAnalysesPerDay} analyses in the last 24h
-      </p>
-      <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100" aria-hidden="true">
-        <div className={`h-full ${pct >= 90 ? 'bg-red-500' : 'bg-slate-900'}`} style={{ width: `${pct}%` }} />
+    <Card className="p-4">
+      <div className="flex items-center justify-between">
+        <h2 id="ai-spend" className="flex items-center gap-2 font-semibold text-fg">
+          <Sparkles className="size-4 text-accent" /> AI scoring
+        </h2>
+        {!editing && (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => {
+              setBudget(String(u.settings.monthlyBudgetUsd));
+              setEditing(true);
+            }}
+          >
+            Change budget
+          </Button>
+        )}
       </div>
-      <p className="mt-2 text-xs text-slate-500">
-        {u.jobs.done} scored · {u.jobs.pending} pending · {u.jobs.deferred} deferred · {u.jobs.failed} failed
+      <p className="mt-2 text-sm text-fg">
+        ${u.monthToDateUsd.toFixed(2)} of ${u.settings.monthlyBudgetUsd.toFixed(2)} this month
       </p>
-      {editing ? (
+      <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-ring-track" aria-hidden="true">
+        <div className={`h-full rounded-full ${pct >= 90 ? 'bg-danger' : 'bg-accent'}`} style={{ width: `${pct}%` }} />
+      </div>
+      <div className="mt-3 grid grid-cols-3 gap-2">
+        <Stat label="Scored" value={String(u.jobs.done)} />
+        <Stat label="Last 24h" value={`${u.analysesLast24h}`} sub={`cap ${u.settings.maxAnalysesPerDay}`} />
+        <Stat label="Waiting" value={String(u.jobs.pending + u.jobs.deferred)} sub={u.jobs.failed ? `${u.jobs.failed} failed` : undefined} />
+      </div>
+      {editing && (
         <form
-          className="mt-2 flex items-center gap-2"
+          className="mt-3 flex flex-wrap items-center gap-2"
           onSubmit={(e) => {
             e.preventDefault();
             // Number('') is 0 — an emptied field must not silently set a $0 budget.
@@ -84,7 +68,7 @@ function AiSpendCard() {
             if (Number.isFinite(value) && value >= 0) update.mutate({ monthlyBudgetUsd: value }, { onSuccess: () => setEditing(false) });
           }}
         >
-          <label className="text-sm text-slate-600" htmlFor="budget">
+          <label className="text-sm text-muted" htmlFor="budget">
             Monthly budget $
           </label>
           <input
@@ -94,26 +78,55 @@ function AiSpendCard() {
             step="0.5"
             value={budget}
             onChange={(e) => setBudget(e.target.value)}
-            className="w-24 rounded-lg border border-slate-300 px-2 py-1 text-sm"
+            className="h-9 w-20 rounded-lg border border-border bg-surface px-2 text-sm text-fg"
           />
-          <Button type="submit" disabled={update.isPending}>
-            Save
-          </Button>
+          <div className="flex gap-1">
+            <Button type="submit" size="sm" disabled={update.isPending}>
+              Save
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
+              Cancel
+            </Button>
+          </div>
         </form>
-      ) : (
-        <Button
-          variant="ghost"
-          className="mt-1 px-0"
-          onClick={() => {
-            setBudget(String(u.settings.monthlyBudgetUsd));
-            setEditing(true);
-          }}
-        >
-          Change budget
-        </Button>
       )}
-      {update.isError && <p className="text-xs text-red-600">{update.error.message}</p>}
-    </section>
+      {update.isError && <p className="mt-2 text-xs text-danger-fg">{update.error.message}</p>}
+    </Card>
+  );
+}
+
+function SourceRow({ source }: { source: DiscoverySource }) {
+  const toggle = useSetSourceEnabled();
+  const run = source.lastRun;
+  return (
+    <li className="flex items-start gap-3 px-3 py-3">
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="font-medium text-fg">{source.name}</p>
+          {/* Healthy is the normal state; only problems (and in-flight runs) get a badge. */}
+          {run && run.status !== 'SUCCESS' && <Badge tone={STATUS_TONE[run.status]}>{run.status.toLowerCase()}</Badge>}
+        </div>
+        <p className="mt-0.5 text-xs text-muted">
+          {providerLabel(source.provider)} · {source.jobCount} {source.jobCount === 1 ? 'job' : 'jobs'} · ran {timeAgo(source.lastRunAt)}
+          {run && run.status !== 'FAILED' && run.status !== 'RUNNING' && (
+            <>
+              {' '}
+              · {run.jobsFound} found, {run.jobsMatched} matched, {run.jobsNew} new
+            </>
+          )}
+        </p>
+        {/* A failing or empty source is shown as such — never confused with "no jobs today". */}
+        {run?.status === 'FAILED' && <p className="mt-1 text-xs text-danger-fg">Failed: {run.errorMessage}</p>}
+        {run?.status === 'EMPTY' && <p className="mt-1 text-xs text-stretch-fg">Returned no postings at all.</p>}
+        {toggle.isError && <p className="mt-1 text-xs text-danger-fg">{toggle.error.message}</p>}
+      </div>
+      <Switch
+        checked={source.isEnabled}
+        disabled={toggle.isPending}
+        onChange={(isEnabled) => toggle.mutate({ id: source.id, isEnabled })}
+        label={`Watch ${source.name}`}
+      />
+    </li>
   );
 }
 
@@ -123,45 +136,62 @@ export function SourcesPage() {
   const [showPlanned, setShowPlanned] = useState(false);
   const active = (sources.data ?? []).filter((s) => s.supported);
   const planned = (sources.data ?? []).filter((s) => !s.supported);
+  const attention = active.filter(needsAttention);
+  const healthy = active.filter((s) => !needsAttention(s));
 
   return (
-    <main className="space-y-4">
+    <main className="mx-auto max-w-2xl space-y-4">
+      <h1 className="text-lg font-semibold text-fg">Sources</h1>
       <AiSpendCard />
-      <section className="rounded-xl border border-slate-200 bg-white p-4">
-        <p className="text-sm text-slate-600">
-          Discovery runs every night at 02:00. Run it now to check your sources — any source that ran in the last few
-          hours is skipped, to respect the job boards' request limits.
-        </p>
-        <Button className="mt-3" onClick={() => runNow.mutate()} disabled={runNow.isPending}>
-          {runNow.isPending ? 'Queuing…' : 'Run discovery now'}
-        </Button>
+
+      <Card className="p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="max-w-md text-sm text-muted">
+            Discovery runs every night at 02:00. Sources that ran in the last few hours are skipped, to respect the job
+            boards' request limits.
+          </p>
+          <Button onClick={() => runNow.mutate()} disabled={runNow.isPending}>
+            <Play className="size-4" /> {runNow.isPending ? 'Queuing…' : 'Run now'}
+          </Button>
+        </div>
         {runNow.isSuccess && (
-          <output className="mt-2 block text-sm text-slate-700">
+          <output className="mt-2 block text-sm text-fg">
             Queued {runNow.data.queued.length} source{runNow.data.queued.length === 1 ? '' : 's'}.
-            {runNow.data.skipped.length > 0 &&
-              ` Skipped ${runNow.data.skipped.length} that ran in the last ${runNow.data.cooldownHours}h.`}{' '}
+            {runNow.data.skipped.length > 0 && ` Skipped ${runNow.data.skipped.length} that ran in the last ${runNow.data.cooldownHours}h.`}{' '}
             Results appear here as each finishes (the worker must be running).
           </output>
         )}
-        {runNow.isError && <p className="mt-2 text-sm text-red-600">{runNow.error.message}</p>}
-      </section>
+        {runNow.isError && <p className="mt-2 text-sm text-danger-fg">{runNow.error.message}</p>}
+      </Card>
 
-      {sources.isPending && <p className="text-slate-500">Loading…</p>}
-      {sources.isError && <p className="text-red-600">Couldn't load sources: {sources.error.message}</p>}
+      {sources.isPending && <Skeleton className="h-64 w-full" />}
+      {sources.isError && <p className="text-danger-fg">Couldn't load sources: {sources.error.message}</p>}
       {sources.isSuccess && sources.data.length === 0 && (
-        <p className="text-sm text-slate-600">
-          No sources yet. Seed them with{' '}
-          <code className="rounded bg-slate-100 px-1">pnpm --filter @shortlist/db db:seed:sources</code>.
+        <p className="text-sm text-muted">
+          No sources yet. Seed them with <code className="rounded bg-surface-2 px-1">pnpm --filter @shortlist/db db:seed:sources</code>.
         </p>
       )}
 
-      {active.length > 0 && (
-        <section aria-labelledby="active-sources">
-          <h2 id="active-sources" className="mb-2 font-semibold">
+      {attention.length > 0 && (
+        <section aria-labelledby="attention">
+          <h2 id="attention" className="mb-2 flex items-center gap-2 text-sm font-semibold text-danger-fg">
+            <AlertTriangle className="size-4" /> Needs attention ({attention.length})
+          </h2>
+          <ul className="divide-y divide-border rounded-xl border border-border bg-surface">
+            {attention.map((s) => (
+              <SourceRow key={s.id} source={s} />
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {healthy.length > 0 && (
+        <section aria-labelledby="watching">
+          <h2 id="watching" className="mb-2 text-sm font-semibold text-fg">
             Watching ({active.filter((s) => s.isEnabled).length} on)
           </h2>
-          <ul className="space-y-2">
-            {active.map((s) => (
+          <ul className="divide-y divide-border rounded-xl border border-border bg-surface">
+            {healthy.map((s) => (
               <SourceRow key={s.id} source={s} />
             ))}
           </ul>
@@ -170,15 +200,21 @@ export function SourcesPage() {
 
       {planned.length > 0 && (
         <section>
-          <Button variant="ghost" onClick={() => setShowPlanned((v) => !v)} aria-expanded={showPlanned}>
+          <button
+            type="button"
+            aria-expanded={showPlanned}
+            onClick={() => setShowPlanned((v) => !v)}
+            className="flex w-full items-center justify-between rounded-lg px-1 py-2 text-sm font-medium text-muted hover:text-fg"
+          >
             {showPlanned ? 'Hide' : 'Show'} {planned.length} recorded for later
-          </Button>
+            <ChevronDown className={`size-4 transition ${showPlanned ? 'rotate-180' : ''}`} />
+          </button>
           {showPlanned && (
-            <ul className="mt-2 space-y-1 text-sm text-slate-600">
+            <ul className="mt-1 divide-y divide-border rounded-xl border border-border bg-surface text-sm">
               {planned.map((s) => (
-                <li key={s.id} className="flex justify-between rounded-lg bg-white px-3 py-2">
-                  <span>{s.name}</span>
-                  <span className="text-slate-400">{s.provider.replace('_', ' ')} · coming later</span>
+                <li key={s.id} className="flex justify-between gap-3 px-3 py-2.5">
+                  <span className="text-fg">{s.name}</span>
+                  <span className="text-subtle">{s.provider.replace('_', ' ')} · coming later</span>
                 </li>
               ))}
             </ul>
