@@ -25,6 +25,10 @@ describe('buildAnalysisPrompt', () => {
     expect(p.user).toContain('[description truncated]');
   });
 
+  it('tells the model to keep alternatives as ONE requirement (first real run)', () => {
+    expect(buildAnalysisPrompt(job, []).system).toMatch(/alternatives[\s\S]*ONE requirement[\s\S]*AWS \/ GCP \/ Azure/);
+  });
+
   it('sends no evidence text — names and categories only', () => {
     const p = buildAnalysisPrompt(job, [{ id: 'a', name: 'React', category: 'LIBRARY' }]);
     expect(p.user).not.toMatch(/commercial|production|CloudCard/i);

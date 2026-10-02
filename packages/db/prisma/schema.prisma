@@ -331,7 +331,7 @@ model DiscoveryPreferences {
   stackKeywords        String[] // title or description must mention one of these
   onsiteLocations      String[] // on-site/hybrid roles must be in one of these
   allowRemote          Boolean
-  remoteExcludeRegions String[] // remote roles restricted to these regions are dropped
+  remoteAllowRegions   String[] // a remote role passes only if limited to these regions (or worldwide)
   maxPostingAgeDays    Int
 
   updatedAt DateTime @updatedAt

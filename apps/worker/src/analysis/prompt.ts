@@ -23,6 +23,7 @@ export const ANALYSIS_SYSTEM_PROMPT = `You analyse one job posting for one candi
 
 requirements — the technologies, tools and technical practices the posting asks for:
 - At most 25. Use short canonical names ("React", "Node.js", "PostgreSQL", "REST APIs"). Merge duplicates.
+- When the posting accepts alternatives ("AWS, GCP or Azure", "any major cloud", "React or Vue"), output ONE requirement named with the options joined by " / " ("AWS / GCP / Azure"), and put every candidate skill that satisfies any option in sameAs or relatedTo. Never split alternatives into separate requirements — the candidate needs one of them, not all.
 - Skip soft skills, degrees, languages spoken, and generic items like "problem solving".
 - importance: REQUIRED for must-haves, PREFERRED for "nice to have" / "a plus", BONUS for passing mentions.
 - isCore: true only for the role's central technologies — usually 2 to 5.

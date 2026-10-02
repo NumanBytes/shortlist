@@ -38,7 +38,8 @@ export function compileFilter(prefs: DiscoveryPreferencesInput): CompiledFilter 
   const titleOut = termMatcher(prefs.titleExclude);
   const stack = termMatcher(prefs.stackKeywords);
   const onsite = termMatcher(prefs.onsiteLocations);
-  const remoteOut = termMatcher(prefs.remoteExcludeRegions);
+  const allowed = new Set(prefs.remoteAllowRegions.map((r) => r.toLowerCase()));
+  const WORLDWIDE = /\b(worldwide|anywhere|global(ly)?|international)\b/i;
   const maxAgeMs = prefs.maxPostingAgeDays * 24 * 60 * 60 * 1000;
 
   return {
@@ -58,8 +59,15 @@ export function compileFilter(prefs: DiscoveryPreferencesInput): CompiledFilter 
       const remote = p.workMode === 'REMOTE' || /(?<![a-z])remote(?![a-z])/i.test(location);
       if (remote) {
         if (!prefs.allowRemote) return reject('remote roles disabled');
-        const region = remoteOut(location);
-        return region ? reject(`remote, but restricted to "${region}"`) : PASS;
+        if (!location || WORLDWIDE.test(location)) return PASS;
+        // Every named part must be an allowed region ("Remote - LATAM" → "latam" isn't).
+        const parts = location
+          .toLowerCase()
+          .split(/\s*(?:[,;/|()]|\s-\s|\s–\s)\s*/)
+          .map((x) => x.trim())
+          .filter(Boolean);
+        const outside = parts.find((part) => !allowed.has(part));
+        return outside ? reject(`remote, but limited to "${outside}"`) : PASS;
       }
       // No location at all (common on single-company boards): give it the benefit of
       // the doubt; the AI step reads the full description anyway.

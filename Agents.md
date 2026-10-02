@@ -714,9 +714,14 @@ developer in Lahore:
 - *Stack keywords* (stage B): react, next.js, typescript, javascript, node, nestjs,
   express, mern, tailwind, angular, …
 - *On-site/hybrid locations:* lahore, pakistan, pk.
-- *Remote:* allowed, unless restricted to a region that can't hire from Pakistan (US,
-  Canada, LATAM, UK, EU-only, Germany, Australia, India, …). An allowed place wins over a
-  restricted-region mention ("USA, Pakistan" passes).
+- *Remote:* passes only if the location is empty, names a worldwide term (worldwide,
+  anywhere, global, international), or names **only** allowed regions
+  (`remoteAllowRegions`: remote, Asia, APAC, South Asia, Pakistan, Lahore). "Remote - LATAM"
+  fails on "latam". **An allow-list, replacing the original block-list** (2026-10-02): the
+  first real run let through roles limited to Poland, Argentina, France, South Africa,
+  Nepal… — a block-list can never name every country that can't hire from Pakistan, and
+  the filter's job is to err on the side of dropping. An allowed on-site place still wins
+  ("USA, Pakistan" passes on "pakistan").
 - *No location and unknown work mode:* benefit of the doubt (common on company boards).
 - *Posting age (30 days):* **aggregators only** — on a company's own board a listed job is
   open (§1.3).
@@ -931,6 +936,16 @@ analyze-job:
 (transferable but **not** the same: PostgreSQL for MySQL, Express for NestJS). Plus the
 posting's seniority, overall years, and red flags (scam signals). It is told not to
 judge experience — only same / related / absent. Evidence text (`whatIDid`) is not sent.
+
+**Exact names are decided in code:** after the model's mapping, a requirement whose
+normalized name equals a verified skill's name (case, punctuation, a trailing ".js",
+plural "s" — "Prompt Engineering" = "Prompt engineering", "React.js" = "React") is that
+skill (`promoteExactNameMatches`). In the first real run the model filed the user's exact
+"Prompt engineering" as merely *related*. Applied on analysis and on re-scoring.
+
+**Alternatives are one requirement:** "AWS, GCP or Azure" becomes a single requirement
+"AWS / GCP / Azure" (prompt rule). In the first real run Kwanso's five cloud options
+became five separate gaps, pulling a fitting role below the SKIP line.
 
 **Scoring rules** (`scoring.ts`):
 - Evidence strength by context × depth: COMMERCIAL production 1.0, maintenance/working
@@ -1239,6 +1254,7 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
 | 2026-10-02 | Career data: "API Integration" (Ruby → GraphQL) named by the user; GraphQL, Git, REST APIs, npm commercial; prompting commercial WORKING; pnpm personal; Next.js corrected to EXPOSURE; Shortlist stack added as EXPOSURE ("learning") | §7.1 — user-confirmed, all unverified until reviewed |
 | 2026-10-02 | Seed data first, verify, THEN score — scoring before verifying new skills would pay for every job twice | §12.1 re-analysis rule |
 | 2026-10-02 | First real scoring run: 30 jobs, $0.18 | §17.1 |
+| 2026-10-02 | Exact skill-name matches decided in code; alternatives extracted as one requirement; remote regions by allow-list | §9.6, §12.1 — from the first real run |
 | 2026-10-02 | UI redesign: semantic tokens + automatic dark mode, bottom tab bar on phones, score-ring rows, split list/detail, URL list state, SKIPs folded | §8.4 |
 
 ---
