@@ -12,7 +12,7 @@ export const DiscoveryPreferencesSchema = z
     stackKeywords: terms,
     onsiteLocations: terms,
     allowRemote: z.boolean(),
-    remoteExcludeRegions: terms,
+    remoteAllowRegions: terms,
     maxPostingAgeDays: z.number().int().min(1).max(365),
   })
   .strict();
@@ -43,11 +43,13 @@ export const DEFAULT_DISCOVERY_PREFERENCES: DiscoveryPreferencesInput = {
   ],
   onsiteLocations: ['lahore', 'pakistan', 'pk'],
   allowRemote: true,
-  // Remote roles open only to these regions can't hire from Pakistan.
-  remoteExcludeRegions: [
-    'us only', 'usa only', 'u.s. only', 'united states', 'usa', 'us-based', 'canada', 'north america',
-    'americas', 'latam', 'latin america', 'brazil', 'mexico', 'uk only', 'united kingdom', 'europe only',
-    'eu only', 'germany', 'australia', 'new zealand', 'india',
+  // A remote role passes only if its location is empty, names a worldwide term, or names
+  // only regions in this list. An allow-list, not a block-list: the first real run let
+  // through roles limited to Poland, Argentina, France, South Africa, Nepal… — a block-
+  // list can never name every country that can't hire from Pakistan (decided 2026-10-02).
+  remoteAllowRegions: [
+    'worldwide', 'anywhere', 'anywhere in the world', 'global', 'globally', 'international',
+    'remote', 'asia', 'apac', 'asia pacific', 'south asia', 'pakistan', 'lahore', 'pk',
   ],
   maxPostingAgeDays: 30,
 };

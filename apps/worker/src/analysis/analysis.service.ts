@@ -3,6 +3,7 @@ import {
   JobAnalysisOutputSchema,
   commercialYears,
   costUsd,
+  promoteExactNameMatches,
   scoreJob,
   type JobAnalysisOutput,
   type ScoringRequirement,
@@ -79,7 +80,7 @@ export class AnalysisService {
       throw new PermanentAnalysisError(parsed.reason);
     }
 
-    const requirements = this.resolveRefs(parsed.value, prompt.refs);
+    const requirements = promoteExactNameMatches(this.resolveRefs(parsed.value, prompt.refs), skills);
     const score = await this.score(job.userId, requirements, parsed.value);
 
     await this.prisma.$transaction(async (tx) => {
@@ -123,7 +124,8 @@ export class AnalysisService {
   //   its current score stays visible meanwhile;
   // - otherwise re-score from the stored mapping — no model call (un-verifying, editing).
   async rescoreUser(userId: string): Promise<{ rescored: number; needsReanalysis: string[] }> {
-    const verified = new Set((await this.verifiedSkills(userId)).map((s) => s.id));
+    const verifiedSkills = await this.verifiedSkills(userId);
+    const verified = new Set(verifiedSkills.map((s) => s.id));
     const jobs = await this.prisma.job.findMany({
       where: { userId, analysisStatus: 'DONE' },
       include: { requirements: true },
@@ -136,14 +138,26 @@ export class AnalysisService {
         needsReanalysis.push(job.id);
         continue;
       }
-      const reqs: ScoringRequirement[] = job.requirements.map((r) => ({
-        skillName: r.skillName,
-        importance: r.importance,
-        isCore: r.isCore,
-        yearsRequired: r.yearsRequired,
-        matchedSkillIds: r.matchedSkillIds,
-        relatedSkillIds: r.relatedSkillIds,
-      }));
+      const reqs: ScoringRequirement[] = promoteExactNameMatches(
+        job.requirements.map((r) => ({
+          skillName: r.skillName,
+          importance: r.importance,
+          isCore: r.isCore,
+          yearsRequired: r.yearsRequired,
+          matchedSkillIds: r.matchedSkillIds,
+          relatedSkillIds: r.relatedSkillIds,
+        })),
+        verifiedSkills,
+      );
+      // Persist the promotion so the job detail shows the same mapping it was scored on.
+      for (const [i, r] of job.requirements.entries()) {
+        if (reqs[i]!.matchedSkillIds.length !== r.matchedSkillIds.length) {
+          await this.prisma.jobRequirement.update({
+            where: { id: r.id },
+            data: { matchedSkillIds: reqs[i]!.matchedSkillIds, relatedSkillIds: reqs[i]!.relatedSkillIds },
+          });
+        }
+      }
       const score = await this.score(userId, reqs, { yearsRequired: job.yearsRequired, redFlags: job.redFlags });
       await this.prisma.$transaction(async (tx) => {
         const match = await tx.jobMatch.findUnique({ where: { jobId: job.id } });

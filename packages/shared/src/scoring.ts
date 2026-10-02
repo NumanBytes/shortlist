@@ -54,6 +54,30 @@ const TWO_YEARS_MS = 2 * 365.25 * 24 * 3600 * 1000;
 
 export const VERDICT_THRESHOLDS = { apply: 70, stretch: 45 } as const;
 
+// Normalizes a skill name for equality only: case, punctuation, spaces, a trailing
+// "js" ("React.js" = "React") and a plural "s" ("REST APIs" = "REST API").
+export function normalizeSkillName(name: string): string {
+  let n = name.toLowerCase().replace(/[^a-z0-9+#]/g, '');
+  if (n.length > 4 && n.endsWith('js')) n = n.slice(0, -2);
+  if (n.length > 3 && n.endsWith('s')) n = n.slice(0, -1);
+  return n;
+}
+
+// The model occasionally files an identically named skill as merely "related" (first real
+// run: "Prompt Engineering" vs the verified "Prompt engineering"). A requirement whose name
+// equals a verified skill's name is that skill — decided in code, not left to the model.
+export function promoteExactNameMatches(
+  requirements: ScoringRequirement[],
+  skills: Pick<ScoringSkill, 'id' | 'name'>[],
+): ScoringRequirement[] {
+  const byName = new Map(skills.map((s) => [normalizeSkillName(s.name), s.id]));
+  return requirements.map((r) => {
+    const id = byName.get(normalizeSkillName(r.skillName));
+    if (!id || r.matchedSkillIds.includes(id)) return r;
+    return { ...r, matchedSkillIds: [...r.matchedSkillIds, id], relatedSkillIds: r.relatedSkillIds.filter((x) => x !== id) };
+  });
+}
+
 export function evidenceStrength(e: ScoringEvidence, now: Date): number {
   const stale = now.getTime() - e.lastUsed.getTime() > TWO_YEARS_MS;
   // §6.1: EXPOSURE older than two years is omitted entirely; other stale evidence decays.

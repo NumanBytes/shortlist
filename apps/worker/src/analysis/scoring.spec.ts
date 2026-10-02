@@ -5,6 +5,8 @@ import {
   SeniorityEnum,
   commercialYears,
   costUsd,
+  normalizeSkillName,
+  promoteExactNameMatches,
   evidenceStrength,
   scoreJob,
   type ScoringRequirement,
@@ -134,6 +136,30 @@ describe('scoreJob', () => {
   it('is deterministic', () => {
     const reqs = [req({ skillName: 'React', matchedSkillIds: ['react'] }), req({ skillName: 'Go' })];
     expect(score(reqs)).toEqual(score(reqs));
+  });
+});
+
+describe('exact-name matching', () => {
+  it('normalizes case, punctuation, ".js" and plurals — for equality only', () => {
+    expect(normalizeSkillName('Prompt Engineering')).toBe(normalizeSkillName('Prompt engineering'));
+    expect(normalizeSkillName('React.js')).toBe(normalizeSkillName('React'));
+    expect(normalizeSkillName('REST APIs')).toBe(normalizeSkillName('REST API'));
+    expect(normalizeSkillName('Node.js')).toBe(normalizeSkillName('NodeJS'));
+    expect(normalizeSkillName('C++')).not.toBe(normalizeSkillName('C#'));
+    expect(normalizeSkillName('Java')).not.toBe(normalizeSkillName('JavaScript'));
+  });
+
+  it('promotes an identically named skill from "related" to "same" (first real run)', () => {
+    const [r] = promoteExactNameMatches(
+      [req({ skillName: 'Prompt Engineering', relatedSkillIds: ['pe'] })],
+      [{ id: 'pe', name: 'Prompt engineering' }],
+    );
+    expect(r).toMatchObject({ matchedSkillIds: ['pe'], relatedSkillIds: [] });
+  });
+
+  it('leaves requirements without an identically named skill alone', () => {
+    const reqs = [req({ skillName: 'Vue', relatedSkillIds: ['react'] })];
+    expect(promoteExactNameMatches(reqs, [{ id: 'react', name: 'React' }])).toEqual(reqs);
   });
 });
 

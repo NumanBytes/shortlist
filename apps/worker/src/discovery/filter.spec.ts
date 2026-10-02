@@ -53,8 +53,21 @@ describe('stage A — listing screen', () => {
 
   it('accepts remote roles open worldwide, rejects region-locked ones', () => {
     expect(screen({ workMode: 'REMOTE', location: 'Worldwide' })).toEqual({ pass: true });
-    expect(screen({ workMode: 'REMOTE', location: 'USA' })).toEqual({ pass: false, reason: 'remote, but restricted to "usa"' });
-    expect(screen({ workMode: null, location: 'Remote - LATAM' })).toMatchObject({ pass: false });
+    expect(screen({ workMode: 'REMOTE', location: 'Anywhere in the World' })).toEqual({ pass: true });
+    expect(screen({ workMode: 'REMOTE', location: 'Remote' })).toEqual({ pass: true });
+    expect(screen({ workMode: 'REMOTE', location: 'APAC' })).toEqual({ pass: true });
+    expect(screen({ workMode: 'REMOTE', location: 'USA' })).toEqual({ pass: false, reason: 'remote, but limited to "usa"' });
+    expect(screen({ workMode: null, location: 'Remote - LATAM' })).toEqual({ pass: false, reason: 'remote, but limited to "latam"' });
+  });
+
+  it('rejects remote roles limited to countries that came through the old block-list (first real run)', () => {
+    for (const location of ['Poland', 'Argentina', 'France, Netherlands', 'South Africa', 'Nepal', 'Leipzig', 'Homeoffice']) {
+      expect(screen({ workMode: 'REMOTE', location })).toMatchObject({ pass: false });
+    }
+  });
+
+  it('keeps a remote role with no stated location', () => {
+    expect(screen({ workMode: 'REMOTE', location: null })).toEqual({ pass: true });
   });
 
   it('lets an allowed place win over a restricted-region mention', () => {
@@ -101,6 +114,6 @@ describe('defaults, tuned from the first live run', () => {
   });
 
   it('drops remote roles limited to India', () => {
-    expect(screen({ workMode: 'REMOTE', location: 'India - Remote' })).toMatchObject({ pass: false });
+    expect(screen({ workMode: 'REMOTE', location: 'India - Remote' })).toEqual({ pass: false, reason: 'remote, but limited to "india"' });
   });
 });

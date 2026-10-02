@@ -142,6 +142,19 @@ describe('AnalysisService.analyzeJob', () => {
     expect(match.gaps[0]).toMatchObject({ skillName: 'Azure B2C', severity: 'BLOCKING' });
   });
 
+  it('counts an identically named skill as the same even when the model says "related"', async () => {
+    const { job, react } = await setup();
+    const { svc, analyzer } = service();
+    analyzer.next = (p) => ({
+      text: output(p.user, {
+        requirements: [{ skill: 'React', importance: 'REQUIRED', isCore: true, yearsRequired: null, sameAs: [], relatedTo: [refFor(p.user, 'React')] }],
+      }),
+    });
+    await svc.analyzeJob(job.id);
+    const r = await prisma.jobRequirement.findFirstOrThrow({ where: { jobId: job.id } });
+    expect(r).toMatchObject({ matchedSkillIds: [react.id], relatedSkillIds: [] });
+  });
+
   it('defers without calling the model when the monthly budget is spent', async () => {
     const { user, job } = await setup();
     await prisma.aiSettings.create({ data: { userId: user.id, maxAnalysesPerDay: 40, monthlyBudgetUsd: 0.01 } });
