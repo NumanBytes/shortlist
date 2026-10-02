@@ -1,6 +1,7 @@
 import { AlertTriangle, ArrowLeft, Check, ExternalLink, RotateCw, Star, X } from 'lucide-react';
 import { Link, useParams, useSearchParams } from 'react-router';
 import { ScoreRing } from '../components/ScoreRing';
+import { useToast } from '../components/Toast';
 import { VerdictBadge } from '../components/VerdictBadge';
 import { Badge, Button, Card, EmptyState, IconButton, Skeleton, type Tone } from '../components/ui';
 import { isAggregator, postedLabel, prettyLocation, providerLabel, timeAgo } from '../lib/format';
@@ -166,7 +167,19 @@ function Detail({ job }: { job: JobDetail }) {
 
 function StatusActions({ job }: { job: JobDetail }) {
   const setStatus = useSetJobStatus();
-  const move = (status: JobStatus) => setStatus.mutate({ id: job.id, status });
+  const toast = useToast();
+  const LABEL: Partial<Record<JobStatus, string>> = { INTERESTED: 'Marked interested', APPLIED: 'Marked as applied', SKIPPED: 'Skipped' };
+  const move = (status: JobStatus) =>
+    setStatus.mutate(
+      { id: job.id, status },
+      {
+        onSuccess: () =>
+          toast({
+            text: LABEL[status] ?? `Stage: ${status.charAt(0)}${status.slice(1).toLowerCase()}`,
+            action: { label: 'Undo', onClick: () => setStatus.mutate({ id: job.id, status: job.status }) },
+          }),
+      },
+    );
   const busy = setStatus.isPending;
   return (
     <div className="mt-4 flex flex-wrap items-center gap-2">

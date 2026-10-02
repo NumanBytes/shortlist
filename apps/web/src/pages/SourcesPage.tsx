@@ -78,14 +78,16 @@ function AiSpendCard() {
             step="0.5"
             value={budget}
             onChange={(e) => setBudget(e.target.value)}
-            className="h-9 w-24 rounded-lg border border-border bg-surface px-2 text-sm text-fg"
+            className="h-9 w-20 rounded-lg border border-border bg-surface px-2 text-sm text-fg"
           />
-          <Button type="submit" size="sm" disabled={update.isPending}>
-            Save
-          </Button>
-          <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
-            Cancel
-          </Button>
+          <div className="flex gap-1">
+            <Button type="submit" size="sm" disabled={update.isPending}>
+              Save
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
+              Cancel
+            </Button>
+          </div>
         </form>
       )}
       {update.isError && <p className="mt-2 text-xs text-danger-fg">{update.error.message}</p>}

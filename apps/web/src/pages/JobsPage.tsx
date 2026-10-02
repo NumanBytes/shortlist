@@ -113,7 +113,7 @@ function JobsList({ selectedId }: { selectedId?: string }) {
       />
 
       {jobs.isSuccess && all.length > 0 && (
-        <fieldset className="m-0 flex min-w-0 gap-1.5 overflow-x-auto border-0 p-0">
+        <fieldset className="mx-0 flex min-w-0 gap-1.5 overflow-x-auto border-0 p-0">
           <legend className="sr-only">Filter by verdict</legend>
           {(
             [

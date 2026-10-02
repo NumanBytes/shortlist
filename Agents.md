@@ -583,9 +583,11 @@ first job, inline details pushing the list down, no overview, no dark mode).
   (tree-shaken).
 - **Navigation:** a bottom tab bar on phones (thumb reach, safe-area aware) and top
   navigation on desktop; Evidence shows a "to review" count; sign-out lives in an
-  account menu.
-- **Jobs:** the **score ring** leads every row; one column of icon actions (open
-  posting, interested, skip); verdict filter chips with counts; with no filter and
+  account menu (closes on outside tap and Escape).
+- **Jobs:** the **score ring** leads every row; the source and icon actions (open
+  posting, interested, skip — 40px tap targets) sit in a footer row, so a row is only as
+  tall as its content; company-board jobs say "company site" rather than repeating the
+  company; moving a job out of the list shows a toast with **Undo**; verdict filter chips with counts; with no filter and
   best-match order, **SKIP jobs fold into "Show N weaker matches"** (never hidden for
   good). Detail is its own route (`/jobs/:id`): **full screen on phones, a side panel
   beside the list on desktop**; score card → why it fits → gaps → risks → description
@@ -596,8 +598,12 @@ first job, inline details pushing the list down, no overview, no dark mode).
   mode badge is dropped when the location already says it.
 - **Sources:** AI spend as stat tiles; sources needing attention (FAILED/EMPTY) listed
   first; healthy rows carry no badge; real switches.
-- Every screen was verified in a headless browser at phone and desktop sizes, in light
-  and dark, against a copy of the user's real data.
+- Every screen was verified in a headless browser at phone (390px), tablet (768px) and
+  desktop (1280–1440px) sizes, in light and dark, including interactive states (menus,
+  editing, errors, toasts), against a copy of the user's real data. A second audit pass
+  caught: `m-0` on `<fieldset>` wiping the parent's `space-y` gap (controls touching
+  content), tall rows from stacked icons, repeated company names, a menu that didn't
+  close, and no feedback when a job left the list.
 
 ### 8.5 Other security decisions
 
@@ -1281,14 +1287,6 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
 
 ### 17.3 Open decisions
 
-- **Scoring quality issues seen in the first real run (2026-10-02)** — awaiting the
-  user's go-ahead: (1) the model mapped "Prompt Engineering" as only *related* to the
-  user's verified "Prompt engineering" — fix: exact name matches always count as the
-  same, in code; (2) alternatives ("AWS / GCP / Azure / Digital Ocean / Firebase") were
-  extracted as five separate gaps — fix: prompt for one combined requirement; (3)
-  remote jobs limited to Poland, Argentina, France, South Africa, Nepal… passed the
-  filter — fix: an allow-list of regions for remote roles instead of a block-list.
-  (1) re-scores free; (2) needs re-analysis (~$0.18).
 - **Scoring weight calibration** (§12.1): PREFERRED/BONUS weights and the 45/70 verdict
   thresholds — tune on the user's real scored jobs, not a single sample.
 - **Career data completeness:** Git, REST APIs, npm, pnpm, prompting added

@@ -1,5 +1,5 @@
 import { Briefcase, LogOut, Radar, ShieldCheck } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router';
 import { useAuth } from '../auth/AuthProvider';
 import { useSkills } from '../lib/queries';
@@ -49,17 +49,31 @@ function NavItem({ link, mobile, badge }: { link: (typeof LINKS)[number]; mobile
 function AccountMenu() {
   const { state, logout } = useAuth();
   const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: PointerEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    document.addEventListener('pointerdown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
   if (state.status !== 'signedIn') return null;
   const initial = state.user.name.trim().charAt(0).toUpperCase() || '?';
   return (
-    <div className="relative">
+    <div className="relative" ref={ref}>
       <button
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label="Account"
         onClick={() => setOpen((o) => !o)}
-        className="flex size-9 items-center justify-center rounded-full bg-surface-2 text-sm font-semibold text-fg focus-visible:outline-2 focus-visible:outline-accent"
+        className="flex size-10 items-center justify-center rounded-full bg-surface-2 text-sm font-semibold text-fg focus-visible:outline-2 focus-visible:outline-accent"
       >
         {initial}
       </button>

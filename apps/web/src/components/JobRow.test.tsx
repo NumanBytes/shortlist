@@ -49,6 +49,22 @@ describe('JobRow', () => {
     expect(JSON.parse(fetchMock.mock.calls[1]![1]!.body as string)).toEqual({ status: 'SKIPPED' });
   });
 
+  it('confirms a move with a toast, and Undo restores the previous status', async () => {
+    const fetchMock = mockFetch({ ...job, status: 'INTERESTED' });
+    row();
+    await userEvent.click(screen.getByRole('button', { name: 'Mark interested' }));
+    expect(await screen.findByText('Moved to Interested')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    expect(JSON.parse(fetchMock.mock.calls[1]![1]!.body as string)).toEqual({ status: 'DISCOVERED' });
+  });
+
+  it("names a company board as 'company site' rather than repeating the company", () => {
+    row();
+    expect(screen.getByText('company site')).toBeInTheDocument();
+    expect(screen.getAllByText(/Septem Systems/)).toHaveLength(1);
+  });
+
   it('shows why a job has no score yet', () => {
     row({ ...job, match: null, analysisStatus: 'DEFERRED', analysisError: 'Daily analysis cap reached' });
     expect(screen.getByText('Scoring deferred')).toBeInTheDocument();

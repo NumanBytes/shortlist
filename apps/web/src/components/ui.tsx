@@ -117,7 +117,7 @@ export function Segmented<T extends string>({
   label: string;
 }) {
   return (
-    <fieldset className="m-0 flex min-w-0 gap-1 overflow-x-auto rounded-lg border-0 bg-surface-2 p-1">
+    <fieldset className="mx-0 flex min-w-0 gap-1 overflow-x-auto rounded-lg border-0 bg-surface-2 p-1">
       <legend className="sr-only">{label}</legend>
       {options.map((o) => {
         const active = o.value === value;
