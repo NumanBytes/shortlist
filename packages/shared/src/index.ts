@@ -10,3 +10,4 @@ export * from './discovery-queue.js';
 export * from './job.schema.js';
 export * from './ai.schema.js';
 export * from './scoring.js';
+export * from './profile.schema.js';

@@ -13,5 +13,6 @@ import { TokensService } from './tokens.service.js';
     // APP_GUARD applies AuthGuard to every route in the app, not just this module's.
     { provide: APP_GUARD, useClass: AuthGuard },
   ],
+  exports: [AuthService],
 })
 export class AuthModule {}

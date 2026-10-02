@@ -22,6 +22,9 @@ export const PUBLIC_USER_SELECT = {
   headline: true,
   targetRole: true,
   location: true,
+  phone: true,
+  linkedinUrl: true,
+  githubUrl: true,
   createdAt: true,
 } satisfies Prisma.UserSelect;
 

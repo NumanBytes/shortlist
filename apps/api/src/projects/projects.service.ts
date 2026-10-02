@@ -6,7 +6,9 @@ import { PrismaService } from '../prisma/prisma.service.js';
 // Fields that change what linked evidence claims. isShipped matters most: "shipped"
 // is the line between a PRODUCTION-grade project and a WORKING one. URLs are excluded —
 // moving a repo doesn't change what was built.
-const CLAIM_FIELDS = ['name', 'description', 'isShipped', 'startDate', 'endDate'] as const;
+// workExperienceId too: linking a project to (or unlinking it from) a paid role decides
+// whether its evidence counts as commercial work.
+const CLAIM_FIELDS = ['name', 'description', 'isShipped', 'startDate', 'endDate', 'workExperienceId'] as const;
 
 const WITH_EVIDENCE = {
   evidence: { include: { skill: { select: { id: true, name: true } } } },
@@ -31,12 +33,21 @@ export class ProjectsService {
     return found;
   }
 
-  create(userId: string, input: CreateProjectInput) {
+  async create(userId: string, input: CreateProjectInput) {
+    await this.assertRoleOwned(userId, input.workExperienceId);
     return this.prisma.project.create({ data: { ...input, userId }, include: WITH_EVIDENCE });
+  }
+
+  // A project can only belong to one of the caller's own roles.
+  private async assertRoleOwned(userId: string, workExperienceId: string | null | undefined) {
+    if (!workExperienceId) return;
+    const found = await this.prisma.workExperience.count({ where: { id: workExperienceId, userId } });
+    if (!found) throw new BadRequestException('workExperienceId does not match any of your work experiences');
   }
 
   async update(userId: string, id: string, input: UpdateProjectInput) {
     const existing = await this.get(userId, id);
+    await this.assertRoleOwned(userId, input.workExperienceId);
 
     const problem = projectDatesProblem({
       startDate: input.startDate !== undefined ? input.startDate : existing.startDate,

@@ -1,9 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { UpdateSkillEvidenceInput } from '@shortlist/shared';
+import type {
+  CreateEducationInput,
+  UpdateEducationInput,
+  UpdateProfileInput,
+  UpdateSkillEvidenceInput,
+} from '@shortlist/shared';
 import { api } from './api';
 import type {
   AiUsage,
   DiscoverySource,
+  Education,
+  PublicUser,
   Evidence,
   JobDetail,
   JobListItem,
@@ -124,5 +131,37 @@ export function useSetSourceEnabled() {
     mutationFn: ({ id, isEnabled }: { id: string; isEnabled: boolean }) =>
       api(`/discovery/sources/${id}`, { method: 'PATCH', body: { isEnabled } }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: jobKeys.sources }),
+  });
+}
+
+// ── Profile & education (the resume header) ─────────────────────────────────
+export const profileKeys = { profile: ['profile'] as const, education: ['education'] as const };
+
+export const useProfile = () => useQuery({ queryKey: profileKeys.profile, queryFn: () => api<PublicUser>('/profile') });
+
+export function useUpdateProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: UpdateProfileInput) => api<PublicUser>('/profile', { method: 'PATCH', body }),
+    onSuccess: (user) => queryClient.setQueryData(profileKeys.profile, user),
+  });
+}
+
+export const useEducation = () => useQuery({ queryKey: profileKeys.education, queryFn: () => api<Education[]>('/education') });
+
+export function useSaveEducation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id?: string; body: CreateEducationInput | UpdateEducationInput }) =>
+      id ? api<Education>(`/education/${id}`, { method: 'PATCH', body }) : api<Education>('/education', { method: 'POST', body }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: profileKeys.education }),
+  });
+}
+
+export function useDeleteEducation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api(`/education/${id}`, { method: 'DELETE' }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: profileKeys.education }),
   });
 }

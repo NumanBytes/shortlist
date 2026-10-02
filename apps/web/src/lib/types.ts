@@ -10,7 +10,19 @@ export interface PublicUser {
   headline: string | null;
   targetRole: string | null;
   location: string | null;
+  phone: string | null;
+  linkedinUrl: string | null;
+  githubUrl: string | null;
   createdAt: string;
+}
+
+export interface Education {
+  id: string;
+  degree: string;
+  institution: string;
+  location: string | null;
+  startYear: number | null;
+  endYear: number | null;
 }
 
 export interface AuthResponse {

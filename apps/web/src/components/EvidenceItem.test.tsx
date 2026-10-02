@@ -56,7 +56,7 @@ describe('EvidenceItem', () => {
   it('rewording sends only the new text, and warns that it un-verifies', async () => {
     const fetchMock = mockFetch({ ...evidence, whatIDid: 'Built and designed RBAC screens' });
     renderItem({ ...evidence, isVerified: true });
-    await userEvent.click(screen.getByRole('button', { name: 'Reword' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Edit' }));
     expect(screen.getByText(/un-verifies this item/)).toBeInTheDocument();
 
     const box = screen.getByLabelText('What you did');
@@ -70,10 +70,32 @@ describe('EvidenceItem', () => {
     expect(JSON.parse(init.body as string)).toEqual({ whatIDid: 'Built and designed RBAC screens' });
   });
 
+  it('changes where and how deeply — sending only what changed', async () => {
+    const fetchMock = mockFetch({ ...evidence, context: 'PERSONAL', depth: 'WORKING' });
+    renderItem();
+    await userEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    await userEvent.selectOptions(screen.getByLabelText('Where'), 'PERSONAL');
+    await userEvent.selectOptions(screen.getByLabelText('How deeply'), 'WORKING');
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe('/api/v1/evidence/e1');
+    expect(JSON.parse(init.body as string)).toEqual({ context: 'PERSONAL', depth: 'WORKING' });
+  });
+
+  it('closes without a request when nothing changed', async () => {
+    const fetchMock = mockFetch({});
+    renderItem();
+    await userEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument();
+  });
+
   it('validates with the shared schema before sending', async () => {
     const fetchMock = mockFetch({});
     renderItem();
-    await userEvent.click(screen.getByRole('button', { name: 'Reword' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Edit' }));
     await userEvent.clear(screen.getByLabelText('What you did'));
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect(await screen.findByText(/too small|at least|required/i)).toBeInTheDocument();
