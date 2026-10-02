@@ -15,8 +15,10 @@ class FakeWriter implements ResumeWriter {
   configured = true;
   prompts: { system: string; user: string }[] = [];
   next: (prompt: { user: string }) => Partial<AnalyzerResult> | Error = () => ({});
+  during: () => Promise<void> = async () => undefined; // runs while "the model is writing"
   async write(prompt: { system: string; user: string }): Promise<AnalyzerResult> {
     this.prompts.push(prompt);
+    await this.during();
     const r = this.next(prompt);
     if (r instanceof Error) throw r;
     return {
@@ -135,6 +137,29 @@ describe('ResumeService.tailor', () => {
     const usage = await prisma.aiUsage.findFirstOrThrow({ where: { jobId: job.id } });
     expect(usage).toMatchObject({ purpose: 'TAILOR_RESUME', succeeded: true });
     expect(Number(usage.costUsd)).toBeCloseTo(0.025); // 5000 × $2/M + 1500 × $10/M
+  });
+
+  // Code review: generatedAt was stamped when the variant was saved, after the model call.
+  // Evidence edited and re-verified during the call then predated the resume, so it looked
+  // current while carrying the old wording. It must be stamped when the evidence was read.
+  it('dates the resume from when evidence was read, so an edit during the call makes it stale', async () => {
+    const { job, react } = await setup();
+    const { svc, writer } = service();
+    writer.next = (p) => ({ text: output(p.user) });
+    const item = react.evidence[0]!;
+    writer.during = async () => {
+      await new Promise((r) => setTimeout(r, 20));
+      await prisma.skillEvidence.update({ where: { id: item.id }, data: { whatIDid: 'Used React a little.', isVerified: false } });
+      await prisma.skillEvidence.update({ where: { id: item.id }, data: { isVerified: true, verifiedAt: new Date() } });
+    };
+
+    await svc.tailor(job.id);
+
+    const v = (await prisma.jobResume.findUniqueOrThrow({ where: { jobId: job.id }, include: { variant: true } })).variant!;
+    const edited = await prisma.skillEvidence.findUniqueOrThrow({ where: { id: item.id } });
+    expect(v.evidenceIds).toContain(item.id);
+    // The staleness rule (API) is updatedAt > generatedAt — it must hold here.
+    expect(edited.updatedAt.getTime()).toBeGreaterThan(v.generatedAt.getTime());
   });
 
   it('runs only for a job that is waiting to be tailored', async () => {

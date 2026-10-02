@@ -78,4 +78,42 @@ describe('ResumeSection', () => {
     expect(await screen.findByText('Out of date')).toBeInTheDocument();
     expect(screen.getByText(/React: no longer verified/)).toBeInTheDocument();
   });
+
+  // Code review: a failed, deferred or running "Tailor again" hid the job's existing
+  // resume, because the card only linked to it when the status was READY.
+  it.each([
+    ['FAILED', /Tailoring failed: Couldn't reach Claude/],
+    ['DEFERRED', /Tailoring deferred: Monthly AI budget reached/],
+    ['PENDING', /Tailoring from your verified evidence/],
+  ] as const)('keeps the existing resume reachable when a new attempt is %s', async (status, message) => {
+    const error = status === 'FAILED' ? "Couldn't reach Claude" : status === 'DEFERRED' ? 'Monthly AI budget reached' : null;
+    mockFetch({ ...ready({ status: 'APPROVED' }), status, error });
+    renderWithProviders(<ResumeSection job={job} />);
+    expect(await screen.findByText(message)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Open & save PDF/ })).toHaveAttribute('href', '/jobs/j1/resume');
+    expect(screen.getByText(/Your current resume for this job is still below/)).toBeInTheDocument();
+  });
+
+  // Code review: one click re-tailored (and billed) even an approved, current resume.
+  it('asks before re-tailoring a resume that is still current', async () => {
+    const fetch = mockFetch(ready({ status: 'APPROVED' }));
+    renderWithProviders(<ResumeSection job={job} />);
+    await userEvent.click(await screen.findByRole('button', { name: /Tailor again/ }));
+    expect(fetch.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(false);
+    expect(screen.getByText(/needs a fresh review/)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(fetch.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(false);
+
+    await userEvent.click(screen.getByRole('button', { name: /Tailor again/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Yes, tailor' }));
+    await waitFor(() => expect(bodyOf(fetch, 'POST')).toEqual({ mode: 'tailor' }));
+  });
+
+  it('re-tailors an out-of-date resume in one click — it has to be redone anyway', async () => {
+    const fetch = mockFetch(ready({ status: 'APPROVED', stale: ['React: changed since'] }));
+    renderWithProviders(<ResumeSection job={job} />);
+    await userEvent.click(await screen.findByRole('button', { name: /Tailor again/ }));
+    await waitFor(() => expect(bodyOf(fetch, 'POST')).toEqual({ mode: 'tailor' }));
+  });
 });

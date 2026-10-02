@@ -1130,7 +1130,11 @@ automated runs on the API; anything the user does by hand can use Pro.
 **The model words; code decides what may be claimed** — the same split as scoring (§12.1).
 
 - **Trigger:** only the user, from a job they marked Interested ("Tailor a resume",
-  ≈ $0.03). Nothing tailors automatically, so no score threshold is needed yet. The job
+  ≈ $0.03). "Tailor again" on a resume that is still current asks for a second click
+  (it costs money and replaces a reviewed resume); an out-of-date one re-tailors directly.
+  While a new attempt runs, fails or is deferred, the job's existing resume stays
+  reachable on its card (code review, 2026-10-03).
+  Nothing tailors automatically, so no score threshold is needed yet. The job
   must be scored: tailoring works from the analysis's requirement list.
 - **Model:** Sonnet (`AI_MODELS.tailorResume`) — writing is where quality shows. Budget
   guard: the monthly cap only (the daily cap is for nightly analysis). Same rules as
@@ -1151,7 +1155,10 @@ automated runs on the API; anything the user does by hand can use Pro.
      or its projects' items for Experience; that project's items for Projects) — personal
      work can't become an Experience bullet;
   3. no "Azure" anywhere; no Node.js/Express in paid work (§7.2);
-  4. no number that isn't in the cited items' own words (no invented metrics);
+  4. no number that isn't in the cited items' own words (no invented metrics). Numbers are
+     compared **whole**: digits inside a word ("B2C", "HTML5", "2019") are not numbers.
+     Found in code review (2026-10-03): a substring match let "2 years across 19 services"
+     pass because the evidence said "B2C … since 2019", and refused "HTML5";
   5. no technology named that it doesn't cite — a name counts as covered if it's a cited
      item's skill, the posting's name for it (from the analysis's exact matches), or
      named in the cited items' own text; "APIs" inside a covered "REST APIs" doesn't count;
@@ -1211,8 +1218,11 @@ Developer" often ask for the same things.
 
 A resume is **out of date** when any evidence it relies on (`evidenceIds`: every cited
 item plus the items behind each listed skill) has been deleted, un-verified, or changed
-after the resume was generated (`updatedAt > generatedAt`). This is **computed when read**,
-not flagged on write: every claim change — rewording, a skill rename, a role edit —
+after the resume was generated (`updatedAt > generatedAt`). `generatedAt` is the moment
+the worker **read** the evidence, not when it saved the result: stamping it after the
+≈30s model call hid an edit + re-verify made during the call (code review, 2026-10-03).
+Staleness is **computed when read**, not flagged on write: every claim change —
+rewording, a skill rename, a role edit —
 already touches the evidence row (un-verifying it), so no current or future write path has
 to remember to mark resumes. Re-verifying an item after an edit doesn't make an old resume
 current again: its wording came from the old text. An out-of-date resume can't be
@@ -1389,6 +1399,7 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
 | 2026-10-02 | PDF via the browser's print to PDF on an A4 stylesheet, in the user's CV layout; no PDF library | §13.1 |
 | 2026-10-02 | "Save as PDF" only after approval; approve is its own endpoint and refused when stale | §13.1 |
 | 2026-10-02 | Resume staleness derived at read time from cited evidence, never stored | §13.3 |
+| 2026-10-03 | Code review fixes: whole-number check; `generatedAt` = evidence read time; existing resume stays reachable during/after a failed re-tailor; "Tailor again" on a current resume needs confirmation | §13.1, §13.3 |
 | 2026-10-02 | `TailoredResume` replaced by `ResumeVariant` + `JobResume`; reuse threshold is a setting (0.85) | §5.2, §13.2, §13.4 |
 | 2026-10-02 | CV reconciled: title Software Engineer, Docker PRODUCTION + CI/CD WORKING, CV-only claims added unverified, context-less CV skills recorded PERSONAL/WORKING | User's answers (§7.5) |
 

@@ -182,6 +182,13 @@ export function mentionSpans(text: string, name: string): [number, number][] {
   return spans;
 }
 
+// Numbers that stand on their own ("2 years", "40%", "1,200"), compared whole. Digits
+// inside a word are part of a name ("B2C", "HTML5", "S3"), not a claim — matching them
+// as substrings let "2 years" pass because the evidence said "B2C" (code review).
+export function standaloneNumbers(text: string): string[] {
+  return text.match(/(?<![A-Za-z0-9.,])\d+(?:[.,]\d+)*(?![A-Za-z0-9])/g) ?? [];
+}
+
 const splitOptions = (name: string) =>
   name
     .split(/\s+\/\s+/)
@@ -254,8 +261,9 @@ export function checkBullet(
   }
 
   const source = cited.map((e) => e.whatIDid).join('\n');
-  for (const n of full.match(/\d+(?:[.,]\d+)?/g) ?? []) {
-    if (!source.includes(n)) return { ok: false, reason: `adds "${n}", which isn't in your evidence` };
+  const stated = new Set(standaloneNumbers(source));
+  for (const n of standaloneNumbers(full)) {
+    if (!stated.has(n)) return { ok: false, reason: `adds "${n}", which isn't in your evidence` };
   }
 
   // Every technology the bullet names must be one it cites (or one the cited items'
