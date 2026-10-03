@@ -1,5 +1,6 @@
 import { AlertTriangle, ArrowLeft, Check, ExternalLink, RotateCw, Star, X } from 'lucide-react';
 import { Link, useParams, useSearchParams } from 'react-router';
+import { PartialJobNotice } from '../components/PartialJobNotice';
 import { ResumeSection } from '../components/ResumeSection';
 import { ScoreRing } from '../components/ScoreRing';
 import { useToast } from '../components/Toast';
@@ -56,6 +57,7 @@ function Detail({ job }: { job: JobDetail }) {
           {job.company}
           {location && <> · {location}</>}
         </p>
+        {job.salary && <p className="mt-1 text-sm font-medium text-fg">{job.salary}</p>}
         <p className="mt-1 text-xs text-subtle">
           {isAggregator(job) ? `via ${providerLabel(job.source)}` : `${job.jobSource?.name ?? job.company} careers`} · found{' '}
           {timeAgo(job.discoveredAt)}
@@ -100,6 +102,8 @@ function Detail({ job }: { job: JobDetail }) {
       ) : (
         <AnalysisState job={job} />
       )}
+
+      {job.isPartial && <PartialJobNotice job={job} />}
 
       <ResumeSection job={job} />
 
@@ -158,7 +162,7 @@ function Detail({ job }: { job: JobDetail }) {
 
       <details className="group rounded-xl border border-border bg-surface">
         <summary className="cursor-pointer list-none px-3 py-2.5 text-sm font-semibold text-fg marker:hidden">
-          Job description <span className="font-normal text-subtle group-open:hidden">· show</span>
+          {job.isPartial ? 'Alert summary' : 'Job description'} <span className="font-normal text-subtle group-open:hidden">· show</span>
         </summary>
         <div className="max-h-[60vh] overflow-y-auto border-t border-border px-3 py-3 text-sm leading-relaxed whitespace-pre-line text-muted">
           {job.rawJD || 'No description.'}

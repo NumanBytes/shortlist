@@ -117,3 +117,32 @@ describe('defaults, tuned from the first live run', () => {
     expect(screen({ workMode: 'REMOTE', location: 'India - Remote' })).toEqual({ pass: false, reason: 'remote, but limited to "india"' });
   });
 });
+
+// Alert-email jobs have only a title and a one-line summary (Agents.md §10.5). Titles from
+// the first real Gmail check (2026-10-03), where stage A alone let all of these through.
+describe('summary screen — alert jobs with no description', () => {
+  const summary = (title: string, snippet = '') => filter.screenSummary(posting({ title }), snippet).pass;
+
+  it.each([
+    'TELECOMMUNICATION ENGINEER',
+    'Associate Electrical Engineer',
+    'Mechanical/Product Design Engineer',
+    'Technical Engineer – Power Systems & Transmission Planning',
+    'BSS Integration Engineer',
+    'Senior C# Developer',
+  ])('drops "%s"', (title) => {
+    expect(summary(title, 'Great team, competitive salary.')).toBe(false);
+  });
+
+  it.each(['Full Stack Engineer', 'Associate Software Engineer', 'Sr. Full Stack Engineer', 'Frontend Developer', 'Web Developer'])(
+    'keeps the software role "%s" even when the summary names no stack',
+    (title) => {
+      expect(summary(title, '4+ years of professional experience shipping production systems.')).toBe(true);
+    },
+  );
+
+  it('keeps any title when the summary names the stack', () => {
+    expect(summary('Developer', 'Build features with React and TypeScript.')).toBe(true);
+    expect(summary('Senior/Mid-Level MERN Engineer')).toBe(true); // stack word in the title
+  });
+});

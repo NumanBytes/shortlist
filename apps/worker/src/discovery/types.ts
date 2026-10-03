@@ -11,6 +11,7 @@ export interface Posting {
   workMode: WorkMode | null; // null = the source didn't say
   url: string; // the original posting; "Apply" always goes here (attribution terms)
   postedAt: Date | null;
+  salary?: string | null; // as the source wrote it, when it gives one
   // Some sources include the description in their list response. Others need one
   // request per posting — those provide loadDescription, which the pipeline only calls
   // for postings that already passed the cheap title/location/age screen.

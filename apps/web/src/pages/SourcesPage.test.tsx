@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router';
 import { SourcesPage } from './SourcesPage';
 
 const usage = {
@@ -13,14 +14,22 @@ const usage = {
 
 function setup() {
   const fetchMock = vi.fn(async (url: string, init: RequestInit = {}) => {
-    const body = url.endsWith('/ai/usage') ? usage : url.endsWith('/discovery/sources') ? [] : {};
+    const body = url.endsWith('/ai/usage')
+      ? usage
+      : url.endsWith('/discovery/sources')
+        ? []
+        : url.endsWith('/gmail')
+          ? { configured: false, connection: null, last30Days: { alerts: 0, notAlerts: 0, deferred: 0, failed: 0, portals: [] } }
+          : {};
     return new Response(JSON.stringify(init.method === 'PATCH' ? usage.settings : body), { status: 200 });
   });
   vi.stubGlobal('fetch', fetchMock);
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={client}>
-      <SourcesPage />
+      <MemoryRouter>
+        <SourcesPage />
+      </MemoryRouter>
     </QueryClientProvider>,
   );
   return fetchMock;

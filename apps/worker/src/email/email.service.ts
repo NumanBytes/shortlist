@@ -1,18 +1,44 @@
+import { InjectQueue } from '@nestjs/bullmq';
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { GoogleApiError, SecretBox, headerValue, senderAddress, type GmailApi, type GoogleOAuth } from '@shortlist/shared/node';
+import { ANALYSIS_QUEUE, EmailExtractionSchema, costUsd, type EmailExtraction } from '@shortlist/shared';
+import { GoogleApiError, SecretBox, type GmailApi, type GoogleOAuth } from '@shortlist/shared/node';
+import type { Queue } from 'bullmq';
+import { enqueueAnalyses } from '../analysis/analysis.processor.js';
+import { BudgetGuard } from '../analysis/budget-guard.js';
+import { OutOfCreditError, PermanentAnalyzerError } from '../analysis/job-analyzer.js';
+import { compileFilter } from '../discovery/filter.js';
+import { storeJobs } from '../discovery/job-store.js';
+import { loadPreferences } from '../discovery/preferences.js';
+import type { Posting } from '../discovery/types.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { portalFor, toAlertEmail, type AlertEmail, type EmailParser, type EmailPosting } from './alert-email.js';
+import { EMAIL_EXTRACTOR, buildExtractionPrompt, checkExtracted, type EmailExtractor } from './extract.js';
+import { indeedParser } from './parsers/indeed.js';
 
 export const WORKER_GOOGLE_OAUTH = Symbol('WORKER_GOOGLE_OAUTH');
 export const WORKER_GMAIL_API = Symbol('WORKER_GMAIL_API');
 export const SECRET_BOX = Symbol('SECRET_BOX');
+
+// Code parsers, only where a sender's volume justifies one (Agents.md §10.4). Every other
+// sender is read by the model fallback.
+export const EMAIL_PARSERS: EmailParser[] = [indeedParser];
+
+// Labelled mail that is obviously not an alert — skipped without a model call.
+const NOT_ALERT_SUBJECT =
+  /your application (was|has been) (sent|viewed|received|submitted)|application (received|submitted|viewed)|verify your (email|account)|password reset|security alert|sign-in attempt/i;
 
 // A failure retrying can't fix (grant revoked, label missing). The processor maps it to
 // UnrecoverableError; the reason is already on the connection for the user to see.
 export class PermanentEmailError extends Error {}
 
 export type CheckOutcome =
-  | { status: 'SUCCESS' | 'EMPTY'; read: number }
+  | { status: 'SUCCESS' | 'EMPTY'; read: number; jobsNew: number }
   | { status: 'SKIPPED'; reason: string };
+
+type Reading =
+  | { status: 'PARSED'; parser: string; postings: EmailPosting[]; note: string | null }
+  | { status: 'NOT_ALERT'; parser: string | null; note: string }
+  | { status: 'DEFERRED' | 'FAILED'; parser: string | null; note: string };
 
 // First check looks back this far; later checks overlap the previous one by a margin
 // (Gmail's `after:` is day-granular) and skip what was already read.
@@ -28,9 +54,12 @@ export class EmailService {
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly budget: BudgetGuard,
     @Inject(WORKER_GOOGLE_OAUTH) private readonly oauth: GoogleOAuth | null,
     @Inject(WORKER_GMAIL_API) private readonly gmail: GmailApi,
     @Inject(SECRET_BOX) private readonly box: SecretBox | null,
+    @Inject(EMAIL_EXTRACTOR) private readonly extractor: EmailExtractor,
+    @InjectQueue(ANALYSIS_QUEUE) private readonly analysisQueue: Queue,
   ) {}
 
   async check(userId: string): Promise<CheckOutcome> {
@@ -60,36 +89,159 @@ export class EmailService {
       pageToken = page.nextPageToken;
     } while (pageToken && ids.length < MAX_MESSAGES);
 
-    const seen = new Set(
-      (await this.prisma.emailMessage.findMany({ where: { userId, gmailMessageId: { in: ids } }, select: { gmailMessageId: true } })).map(
-        (m) => m.gmailMessageId,
-      ),
-    );
-    const fresh = ids.filter((id) => !seen.has(id)).slice(0, MAX_MESSAGES);
+    const known = await this.prisma.emailMessage.findMany({ where: { userId, gmailMessageId: { in: ids } }, select: { gmailMessageId: true } });
+    const seen = new Set(known.map((m) => m.gmailMessageId));
+    // Deferred messages (budget, no API key) and ones read before parsing existed are read
+    // again by id — they may be older than this check's window.
+    const retry = (
+      await this.prisma.emailMessage.findMany({ where: { userId, status: { in: ['DEFERRED', 'UNPARSED'] } }, select: { gmailMessageId: true } })
+    ).map((m) => m.gmailMessageId);
+    const toRead = [...new Set([...ids.filter((id) => !seen.has(id)), ...retry])].slice(0, MAX_MESSAGES);
 
-    for (const id of fresh) {
-      // Metadata only for now: who sent it and when. Portal parsers (next step) will read
-      // the body in memory and turn it into jobs; until then a message is UNPARSED, and
-      // the Sources page lists those senders so we know which portal to support first.
-      const m = await this.gmail.getMessage(accessToken, id, 'metadata');
-      await this.prisma.emailMessage.create({
-        data: {
-          userId,
-          gmailMessageId: id,
-          sender: senderAddress(headerValue(m, 'From')),
-          receivedAt: new Date(Number(m.internalDate)),
-          status: 'UNPARSED',
-        },
+    const byPortal = new Map<string, { label: string; postings: EmailPosting[]; emails: number }>();
+    for (const id of toRead) {
+      // Body read in memory only: parsed, then dropped.
+      const m = await this.gmail.getMessage(accessToken, id, 'raw');
+      const email = toAlertEmail(Buffer.from(m.raw ?? '', 'base64url'), new Date(Number(m.internalDate)));
+      const { portal, label: portalLabel } = portalFor(email.sender);
+      const r = await this.read(userId, email, portalLabel);
+      const data = {
+        sender: email.sender,
+        receivedAt: email.receivedAt,
+        portal,
+        status: r.status,
+        parser: r.parser,
+        note: r.note?.slice(0, 500) ?? null,
+        jobsFound: r.status === 'PARSED' ? r.postings.length : 0,
+        error: null,
+      };
+      await this.prisma.emailMessage.upsert({
+        where: { userId_gmailMessageId: { userId, gmailMessageId: id } },
+        create: { userId, gmailMessageId: id, ...data },
+        update: { ...data, readAt: new Date() },
       });
+      if (r.status === 'PARSED') {
+        const p = byPortal.get(portal) ?? { label: portalLabel, postings: [], emails: 0 };
+        p.postings.push(...r.postings);
+        p.emails++;
+        byPortal.set(portal, p);
+      }
     }
 
-    const status = fresh.length === 0 ? 'EMPTY' : 'SUCCESS';
+    // Each portal's jobs go through the same title/location filter and dedupe as board
+    // discovery, recorded as a run against that portal's EMAIL_INBOX source.
+    let jobsNew = 0;
+    const toAnalyse: string[] = [];
+    const filter = byPortal.size ? compileFilter(await loadPreferences(this.prisma, userId)) : null;
+    for (const [portal, p] of byPortal) {
+      const r = await this.storePortal(userId, portal, p.label, p.postings, filter!);
+      jobsNew += r.newJobIds.length;
+      toAnalyse.push(...r.newJobIds, ...r.completedJobIds);
+    }
+    if (toAnalyse.length) {
+      // Best effort, like discovery: the nightly sweep picks up anything left PENDING.
+      await enqueueAnalyses(this.analysisQueue, toAnalyse, `email-${userId}-${startedAt.getTime()}`).catch((err: Error) =>
+        this.logger.warn(`Couldn't queue ${toAnalyse.length} email jobs for analysis: ${err.message}`),
+      );
+    }
+
+    const status = toRead.length === 0 ? 'EMPTY' : 'SUCCESS';
     await this.prisma.gmailConnection.update({
       where: { userId },
-      data: { lastCheckedAt: startedAt, lastCheckStatus: status, lastCheckFound: fresh.length, lastError: null },
+      data: { lastCheckedAt: startedAt, lastCheckStatus: status, lastCheckFound: toRead.length, lastError: null },
     });
-    this.logger.log(`Gmail ${c.emailAddress}: ${status} — ${fresh.length} new labelled message(s)`);
-    return { status, read: fresh.length };
+    this.logger.log(`Gmail ${c.emailAddress}: ${status} — ${toRead.length} message(s) read, ${jobsNew} new job(s)`);
+    return { status, read: toRead.length, jobsNew };
+  }
+
+  // One email → jobs. A code parser if the sender has one; the model otherwise, or when the
+  // parser finds nothing in what should be an alert (it may be out of date).
+  private async read(userId: string, email: AlertEmail, portalLabel: string): Promise<Reading> {
+    if (NOT_ALERT_SUBJECT.test(email.subject)) return { status: 'NOT_ALERT', parser: null, note: 'not a job alert (subject)' };
+
+    const parser = email.sender ? EMAIL_PARSERS.find((p) => p.matches(email.sender!)) : undefined;
+    let note: string | null = null;
+    if (parser) {
+      try {
+        const r = parser.parse(email);
+        if (r.kind === 'not_alert') return { status: 'NOT_ALERT', parser: parser.portal, note: r.reason };
+        if (r.postings.length > 0) return { status: 'PARSED', parser: parser.portal, postings: r.postings, note: null };
+        note = `${portalLabel} parser found no jobs — read by AI instead; the parser may be out of date`;
+      } catch (err) {
+        note = `${portalLabel} parser failed (${(err as Error).message}) — read by AI instead`;
+      }
+    }
+
+    if (!this.extractor.configured) return { status: 'DEFERRED', parser: null, note: 'ANTHROPIC_API_KEY is not set in the worker' };
+    const guard = await this.budget.checkMonthly(userId);
+    if (!guard.allowed) return { status: 'DEFERRED', parser: null, note: guard.reason };
+
+    const prompt = buildExtractionPrompt(email);
+    let result;
+    try {
+      result = await this.extractor.extract(prompt);
+    } catch (err) {
+      if (err instanceof OutOfCreditError) return { status: 'DEFERRED', parser: null, note: err.message };
+      if (err instanceof PermanentAnalyzerError) return { status: 'FAILED', parser: 'ai', note: err.message };
+      throw err; // transient: the check retries; messages already recorded aren't read twice
+    }
+
+    // Log the spend before using the output: the call was billed either way.
+    const parsed = parseExtraction(result.text, result.stopReason);
+    await this.prisma.aiUsage.create({
+      data: {
+        userId,
+        purpose: 'EXTRACT_EMAIL',
+        model: result.model,
+        ...result.usage,
+        costUsd: costUsd(result.model, result.usage),
+        succeeded: parsed.ok,
+      },
+    });
+    if (!parsed.ok) return { status: 'FAILED', parser: 'ai', note: parsed.reason };
+    if (!parsed.value.isJobEmail) return { status: 'NOT_ALERT', parser: 'ai', note: note ?? 'not a job alert' };
+
+    const { postings, dropped } = checkExtracted(parsed.value, email, prompt.refs);
+    if (dropped.length) this.logger.warn(`${portalLabel}: dropped ${dropped.length} extracted job(s): ${dropped.map((d) => d.reason).join(', ')}`);
+    return { status: 'PARSED', parser: 'ai', postings, note };
+  }
+
+  private async storePortal(userId: string, portal: string, label: string, postings: EmailPosting[], filter: ReturnType<typeof compileFilter>) {
+    // The seeded email_alerts:<portal> row when there is one, else created on first use.
+    // EMAIL_INBOX sources are never run by the discovery fan-out.
+    const key = `email_alerts:${portal.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`;
+    const source = await this.prisma.jobSource.upsert({
+      where: { userId_key: { userId, key } },
+      create: { userId, key, name: label, type: 'EMAIL_INBOX', config: { provider: 'email_alerts', note: 'Read from job-alert emails in Gmail' }, isEnabled: false },
+      update: {},
+    });
+    const run = await this.prisma.discoveryRun.create({ data: { jobSourceId: source.id, status: 'RUNNING' } });
+
+    const matched = postings
+      .map((p): Posting => ({ ...p, externalId: p.externalId ?? p.url, description: null }))
+      // Stage A as for boards (posting age not enforced: an alert is new by definition), then
+      // the summary stage: no description, so a software-role title or a stack keyword in
+      // the title or summary (Agents.md §10.5).
+      .filter((p) => {
+        const snippet = postings.find((e) => e.url === p.url)?.snippet ?? '';
+        return filter.screenListing(p, { enforceMaxAge: false }).pass && filter.screenSummary(p, snippet).pass;
+      });
+    const items = matched.map((p) => {
+      const snippet = postings.find((e) => e.url === p.url)?.snippet;
+      return { posting: p, description: snippet ? `From the ${label} alert: ${snippet}` : '', partial: true };
+    });
+    const stored = await storeJobs(this.prisma, { userId, jobSourceId: source.id, discoveryRunId: run.id, provider: portal }, items);
+
+    const now = new Date();
+    const status = postings.length === 0 ? 'EMPTY' : 'SUCCESS';
+    await this.prisma.$transaction([
+      this.prisma.discoveryRun.update({
+        where: { id: run.id },
+        data: { status, finishedAt: now, jobsFound: postings.length, jobsMatched: matched.length, jobsNew: stored.newJobIds.length },
+      }),
+      this.prisma.jobSource.update({ where: { id: source.id }, data: { lastRunAt: now, lastRunStatus: status } }),
+    ]);
+    return stored;
   }
 
   // Ids of every user with a working connection — for the scheduled fan-out.
@@ -131,4 +283,17 @@ export class EmailService {
       data: { lastError: reason.slice(0, 1000), lastCheckedAt: new Date(), lastCheckStatus: 'FAILED' },
     });
   }
+}
+
+function parseExtraction(text: string, stopReason: string | null): { ok: true; value: EmailExtraction } | { ok: false; reason: string } {
+  if (stopReason === 'max_tokens') return { ok: false, reason: 'Model output was cut off (max_tokens)' };
+  if (stopReason === 'refusal') return { ok: false, reason: 'Model declined to read this email' };
+  let json: unknown;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    return { ok: false, reason: 'Model output was not valid JSON' };
+  }
+  const r = EmailExtractionSchema.safeParse(json);
+  return r.success ? { ok: true, value: r.data } : { ok: false, reason: `Model output failed validation: ${r.error.issues[0]?.message ?? 'unknown'}` };
 }

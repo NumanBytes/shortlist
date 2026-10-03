@@ -5,6 +5,8 @@ export const AI_MODELS = {
   analyzeJob: 'claude-haiku-4-5',
   // Writing is where quality shows; still ~$0.03 per resume (Agents.md §13.1).
   tailorResume: 'claude-sonnet-5-5',
+  // Reading jobs out of alert emails no code parser handles: short, structured, cheap.
+  extractEmail: 'claude-haiku-4-5',
 } as const;
 
 // USD per million tokens. Batch API halves these (not used yet — §12.1).

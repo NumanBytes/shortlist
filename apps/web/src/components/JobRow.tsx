@@ -52,9 +52,12 @@ export function JobRow({ job, selected }: { job: JobListItem; selected: boolean 
             {job.company}
             {location && <> · {location}</>}
           </p>
-          {(showMode || job.redFlags.length > 0 || job.analysisStatus !== 'DONE') && (
+          {job.salary && <p className="mt-0.5 truncate text-xs font-medium text-fg">{job.salary}</p>}
+          {(showMode || job.isPartial || job.redFlags.length > 0 || job.analysisStatus !== 'DONE') && (
             <div className="mt-1.5 flex flex-wrap gap-1.5">
               {showMode && <Badge>{job.workMode === 'ONSITE' ? 'On-site' : job.workMode!.charAt(0) + job.workMode!.slice(1).toLowerCase()}</Badge>}
+              {/* From an alert email: scored from a summary only (Agents.md §10.5). */}
+              {job.isPartial && <Badge>From alert</Badge>}
               {job.redFlags.length > 0 && <Badge tone="danger">Possible scam</Badge>}
               {job.analysisStatus === 'DEFERRED' && <Badge tone="stretch">Scoring deferred</Badge>}
               {job.analysisStatus === 'FAILED' && <Badge tone="danger">Scoring failed</Badge>}

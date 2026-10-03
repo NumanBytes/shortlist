@@ -17,7 +17,10 @@ export function timeAgo(iso: string | null, now = Date.now()): string {
 export const providerLabel = (provider: string | null) => (provider && PROVIDER_LABELS[provider]) || provider || 'unknown';
 
 export const AGGREGATORS = new Set(['remoteok', 'remotive', 'arbeitnow', 'himalayas', 'jobicy', 'weworkremotely']);
-export const isAggregator = (job: Pick<JobListItem, 'source'>) => AGGREGATORS.has(job.source ?? '');
+// Listed somewhere other than the company's own board — an aggregator or a job-alert email —
+// so it's attributed "via <portal>", and its posting age means something.
+export const isAggregator = (job: Pick<JobListItem, 'source' | 'jobSource'>) =>
+  AGGREGATORS.has(job.source ?? '') || job.jobSource?.type === 'EMAIL_INBOX';
 
 // "Lahore, Punjab, pk" → "Lahore, Punjab, PK". Sources are inconsistent about case.
 export function prettyLocation(location: string | null): string | null {
@@ -30,7 +33,7 @@ export function prettyLocation(location: string | null): string | null {
 
 // Posting age only means something on aggregators (Agents.md §9.6): a company board's
 // publish date can be years old for a role that is still open, so don't show it there.
-export function postedLabel(job: Pick<JobListItem, 'source' | 'postedAt'>): string | null {
+export function postedLabel(job: Pick<JobListItem, 'source' | 'postedAt' | 'jobSource'>): string | null {
   if (!job.postedAt || !isAggregator(job)) return null;
   return `posted ${timeAgo(job.postedAt)}`;
 }

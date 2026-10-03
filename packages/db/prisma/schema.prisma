@@ -74,6 +74,7 @@ enum MatchVerdict {
 
 enum AiPurpose {
   ANALYZE_JOB // requirement extraction + skill mapping (Haiku)
+  EXTRACT_EMAIL // jobs read out of an alert email no code parser handles (Haiku)
   TAILOR_RESUME // later (Sonnet)
   DISCOVER_SOURCES // later (web search)
 }
@@ -295,6 +296,10 @@ model Job {
   source    String? // provider, e.g. "greenhouse", "remoteok" — shown as attribution
   sourceUrl String? // the original posting; "Apply" always links here
   rawJD     String  @db.Text
+  // From a job-alert email (Agents.md §10.5): only the alert's summary is known until the
+  // user pastes the full description, or the same job turns up on a board that has it.
+  isPartial Boolean @default(false)
+  salary    String? // as the source wrote it ("Rs 60,000 - Rs 70,000 a month")
 
   // Guards against the same posting appearing from multiple sources.
   dedupeHash String
@@ -346,6 +351,7 @@ model DiscoveryPreferences {
   titleInclude       String[] // title must contain one of these
   titleExclude       String[] // ...and none of these
   stackKeywords      String[] // title or description must mention one of these
+  roleTitleTerms     String[] // no description (alert emails): stack keyword in title/summary, or one of these in the title
   onsiteLocations    String[] // on-site/hybrid roles must be in one of these
   allowRemote        Boolean
   remoteAllowRegions String[] // a remote role passes only if limited to these regions (or worldwide)
@@ -573,9 +579,11 @@ model EmailMessage {
   gmailMessageId String
 
   sender     String? // the From address
+  portal     String? // e.g. "indeed", "arc.dev" — which source its jobs are credited to
   receivedAt DateTime
   status     EmailStatus
-  parser     String? // which portal's parser handled it
+  parser     String? // "indeed" (code) or "ai" (model fallback)
+  note       String? // e.g. "Indeed parser found no jobs — read by AI": a parser may be out of date
   jobsFound  Int         @default(0)
   error      String?
   readAt     DateTime    @default(now())
@@ -586,6 +594,8 @@ model EmailMessage {
 
 enum EmailStatus {
   PARSED
-  UNPARSED // no parser for this sender yet
-  FAILED // a parser threw
+  NOT_ALERT // labelled, but not a job alert (an application receipt, a newsletter)
+  UNPARSED // read before parsing existed (2026-10-03); never produced now
+  DEFERRED // needed the model, but the budget or API key wasn't there — retried next check
+  FAILED // couldn't be read (invalid model output, a parser threw)
 }

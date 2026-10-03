@@ -1,14 +1,10 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import {
-  DEFAULT_DISCOVERY_PREFERENCES,
-  ImplementedSourceConfigSchema,
-  PlannedSourceConfigSchema,
-  type DiscoveryPreferencesInput,
-} from '@shortlist/shared';
+import { ImplementedSourceConfigSchema, PlannedSourceConfigSchema } from '@shortlist/shared';
 import type { DiscoveryRunStatus } from '@shortlist/db';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { dedupeHash } from './dedupe.js';
 import { compileFilter } from './filter.js';
+import { storeJobs } from './job-store.js';
+import { loadPreferences } from './preferences.js';
 import type { AdapterRegistry, Posting } from './types.js';
 
 export const ADAPTER_REGISTRY = Symbol('ADAPTER_REGISTRY');
@@ -51,7 +47,7 @@ export class DiscoveryService {
 
     try {
       const config = this.parseConfig(source.config);
-      const filter = compileFilter(await this.preferencesFor(source.userId));
+      const filter = compileFilter(await loadPreferences(this.prisma, source.userId));
       const rejections: Record<string, number> = {};
       const count = (reason: string) => (rejections[reason] = (rejections[reason] ?? 0) + 1);
 
@@ -83,8 +79,14 @@ export class DiscoveryService {
         else count(v.reason);
       });
 
-      const newJobIds = await this.store({ userId: source.userId, jobSourceId: source.id, discoveryRunId: run.id, provider: config.provider }, matched);
-      const jobsNew = newJobIds.length;
+      const stored = await storeJobs(
+        this.prisma,
+        { userId: source.userId, jobSourceId: source.id, discoveryRunId: run.id, provider: config.provider },
+        matched,
+      );
+      const jobsNew = stored.newJobIds.length;
+      // New jobs, plus alert-only jobs this source just completed: both need (re)analysis.
+      const newJobIds = [...stored.newJobIds, ...stored.completedJobIds];
       const status: DiscoveryRunStatus = postings.length === 0 ? 'EMPTY' : 'SUCCESS';
       await this.finish(run.id, source.id, status, {
         jobsFound: postings.length,
@@ -111,72 +113,6 @@ export class DiscoveryService {
       throw new PermanentSourceError(`No adapter for provider "${planned.data.provider}" yet (planned for a later milestone)`);
     }
     throw new PermanentSourceError(`Invalid source config: ${implemented.error.issues.map((i) => i.message).join('; ')}`);
-  }
-
-  private async preferencesFor(userId: string): Promise<DiscoveryPreferencesInput> {
-    const row = await this.prisma.discoveryPreferences.findUnique({ where: { userId } });
-    if (!row) return DEFAULT_DISCOVERY_PREFERENCES;
-    const { id: _id, userId: _u, updatedAt: _t, ...prefs } = row;
-    return prefs;
-  }
-
-  // Inserts matched postings not seen before; bumps lastSeenAt on ones that were.
-  // Returns the IDs of the new ones.
-  private async store(
-    ctx: { userId: string; jobSourceId: string; discoveryRunId: string; provider: string },
-    matched: { posting: Posting; description: string }[],
-  ): Promise<string[]> {
-    const { userId } = ctx;
-    if (matched.length === 0) return [];
-
-    // The same posting can appear twice within one source; keep the first.
-    const byHash = new Map<string, { posting: Posting; description: string }>();
-    for (const m of matched) {
-      const hash = dedupeHash(m.posting.company, m.posting.title);
-      if (!byHash.has(hash)) byHash.set(hash, m);
-    }
-    const hashes = [...byHash.keys()];
-    const existing = new Set(
-      (
-        await this.prisma.job.findMany({
-          where: { userId, dedupeHash: { in: hashes } },
-          select: { dedupeHash: true },
-        })
-      ).map((j) => j.dedupeHash),
-    );
-
-    const [created] = await this.prisma.$transaction([
-      this.prisma.job.createManyAndReturn({
-        data: hashes
-          .filter((h) => !existing.has(h))
-          .map((h) => {
-            const { posting: p, description } = byHash.get(h)!;
-            return {
-              userId,
-              jobSourceId: ctx.jobSourceId,
-              discoveryRunId: ctx.discoveryRunId,
-              dedupeHash: h,
-              title: p.title,
-              company: p.company,
-              location: p.location,
-              workMode: p.workMode,
-              source: ctx.provider, // shown as attribution ("via Remote OK")
-              sourceUrl: p.url,
-              rawJD: description,
-              postedAt: p.postedAt,
-            };
-          }),
-        // Another source for the same user may insert the same hash concurrently; the
-        // unique index decides, and the loser simply counts it as not new.
-        skipDuplicates: true,
-        select: { id: true },
-      }),
-      this.prisma.job.updateMany({
-        where: { userId, dedupeHash: { in: [...existing] } },
-        data: { lastSeenAt: new Date() },
-      }),
-    ]);
-    return created.map((j) => j.id);
   }
 
   private async finish(

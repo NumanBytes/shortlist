@@ -87,10 +87,12 @@ export interface JobListItem {
   discoveredAt: string;
   lastSeenAt: string;
   appliedAt: string | null;
-  jobSource: { id: string; name: string } | null;
+  jobSource: { id: string; name: string; type: 'ATS_BOARD' | 'AGGREGATOR_API' | 'EMAIL_INBOX' | 'MANUAL' } | null;
   analysisStatus: AnalysisStatus;
   analysisError: string | null;
   redFlags: string[];
+  isPartial: boolean; // from an alert email: only a summary until the description is pasted
+  salary: string | null;
   match: { overallScore: number; commercialScore: number; verdict: Verdict } | null;
 }
 
@@ -189,6 +191,7 @@ export interface JobResume {
   reused: boolean;
   overlap: number | null;
   canTailor: boolean;
+  needsDescription: boolean; // alert-only job: paste the full description before tailoring
   variant: {
     id: string;
     status: 'DRAFT' | 'APPROVED';
@@ -215,5 +218,18 @@ export interface GmailStatus {
     lastCheckStatus: RunStatus | null;
     lastCheckFound: number | null;
   } | null;
-  last30Days: { parsed: number; unparsed: number; failed: number; unparsedSenders: { sender: string | null; count: number }[] };
+  last30Days: {
+    alerts: number;
+    notAlerts: number;
+    deferred: number;
+    failed: number;
+    portals: {
+      portal: string;
+      label: string;
+      emails: number;
+      jobsFound: number;
+      parserWarnings: number;
+      lastRun: { status: RunStatus; jobsNew: number; finishedAt: string | null } | null;
+    }[];
+  };
 }

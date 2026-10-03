@@ -793,6 +793,15 @@ developer in Lahore:
 - *Matching:* case-insensitive, whole-word on non-alphanumeric boundaries — "react"
   matches "React.js developer" but not "reactive"; "next.js" and "c++" work.
 
+**Alert jobs (2026-10-03):** a job read from an email has no description, so stage B
+can't run. Instead the **summary stage** passes it if a stack keyword appears in its
+title or summary, **or** its title names a software role (`roleTitleTerms`: software,
+full stack, frontend, web developer, …). This keeps "Full Stack Engineer" whose summary
+names no technology, and drops "Associate Electrical Engineer" — from the first real
+Gmail check, where stage A alone let 8 such roles through. Borderline roles (a PHP
+full-stack job) pass and are left to scoring. Like every filter setting, the list is a
+`DiscoveryPreferences` column with a default in shared.
+
 ### 9.7 Deduplication
 
 `dedupeHash = sha256(normalize(company) | normalize(title))`, unique per user. Normalizing
@@ -884,7 +893,7 @@ the whole market for free.
 
 ---
 
-## 10. Email job alerts (connection built 2026-10-03; parsers next)
+## 10. Email job alerts (built 2026-10-03)
 
 ### 10.1 What and why
 
@@ -957,26 +966,77 @@ email — so access is designed to be as narrow as Gmail allows.
   saves recent labelled mail as `.eml` under `apps/worker/test/fixtures/email/.private/`,
   which is **git-ignored** (it holds the user's name, address and tracking links).
   Committed parser fixtures must be scrubbed copies.
-- **Next (planned):** one parser per sender/portal (the same one-per-platform principle as
-  adapters), producing postings; each portal's results recorded as a `DiscoveryRun`
-  against its existing `EMAIL_INBOX` source row (LinkedIn, Wellfound, Rozee.pk,
-  remote.co… are already seeded), with the same RUNNING/SUCCESS/EMPTY/FAILED
-  visibility; the same title/location filter and deduplication; the description-keyword
-  stage can't apply to alerts that carry no description (§10.5).
+- **How an email becomes jobs (built 2026-10-03; decided with the user): code parsers
+  where volume justifies them, the model for everything else, code checks on both.**
+  1. The worker fetches each new message (`format=raw`), decodes it in memory with a
+     hand-rolled MIME reader (`email/mime.ts`: nested multipart, quoted-printable,
+     base64, charsets, RFC 2047 headers) into plain text plus a de-duplicated link list.
+     Nothing is stored but the outcome.
+  2. Obvious non-alerts are skipped by subject without a model call ("your application
+     was sent", "verify your email"…).
+  3. **Code parser** if the sender has one — today Indeed (`parsers/indeed.ts`), written
+     against real captured alerts. Free and exact. It reads the daily alerts *and* the
+     "your job alert is now active" confirmations (they list jobs too); with Indeed's job
+     key it stores a clean `pk.indeed.com/viewjob?jk=…` link, otherwise the portal's own
+     link. Salary, the one-line summary and "posted N days ago" come along.
+  4. **Model fallback (Haiku)** for every sender without a parser — so a new portal works
+     the day its first email arrives, with no code. The model sees the email text and the
+     links as short refs (`L3`); it returns jobs (title, company, location, work mode,
+     salary, link ref) or "not a job email". **Code then keeps a job only if its title and
+     company appear in the email word for word** (case and punctuation aside) **and its
+     link ref exists** — an invented job or URL can't get through. Every call is budget-
+     guarded (monthly cap), logged to `AiUsage` as `EXTRACT_EMAIL` before its output is
+     used; over budget or without a key the message is **DEFERRED and read again on the
+     next check by id** (never dropped); invalid output → FAILED.
+  5. **Self-healing:** if a code parser finds no jobs in what should be an alert (or
+     throws), the model reads it instead and the message records a note; the Sources page
+     shows "<portal>'s email layout may have changed — read by AI for now". A redesign is
+     a visible warning, not silently missing jobs.
+  6. Each portal's jobs are recorded as a `DiscoveryRun` against its `EMAIL_INBOX` source
+     (`email_alerts:<portal>` — the seeded LinkedIn/Rozee.pk/Wellfound/remote.co rows,
+     created on first use for others). Email sources are never run by the nightly
+     fan-out or "Run now", and are shown on the Gmail card, not the board list.
+  7. Same stage-A filter as boards (posting age not enforced: an alert is new by
+     definition), then the **summary stage** (§9.6, `roleTitleTerms`), the same dedupe,
+     shared `storeJobs()`; new jobs are queued for scoring.
+- **Which senders get a code parser:** decided by data, not guesses — a sender with
+  several emails a day and a stable layout. One sender at one email a day through the
+  model costs ≈ $0.09/month, less than maintaining a parser. Plan: Indeed (built),
+  LinkedIn next once its alert format is confirmed, the rest through the model.
+  Recommendation emails (Wellfound, Arc.dev, Welcome to the Jungle) change layout most and
+  stay on the model.
+- **Cost:** an alert is ≈ 1–2k tokens as text ≈ $0.003 per model-read email; with
+  Indeed in code, well under a dollar a month.
+- **Fixtures:** `scrub:email` turns a captured email into a committable fixture — the
+  user's name and address replaced, every link stripped to host + path (keeping only
+  public job ids like Indeed's `jk`), click-tracking paths and long IDs redacted, routing
+  headers dropped. The Indeed fixtures were checked for leftover personal data and IDs.
+- **First real check (2026-10-03):** 13 labelled emails → 11 alerts (10 Indeed by code, 1
+  LinkedIn by the model — one call), 2 skipped (a confirmation with no jobs, a LinkedIn
+  application receipt), 21 new jobs — of which 8 were electrical/mechanical/telecom roles
+  that stage A alone let through. That run is why the summary stage exists; the 8 (none
+  acted on) were removed.
 
-### 10.5 Partial information and "paste once"
+### 10.5 Partial information and "paste once" (built 2026-10-03)
 
-Alert emails usually carry title, company, location and a link — not the full
-description — and fetching the page behind the link would be scraping. So:
-- Such jobs are marked **partial info** and get a rough score from what the alert
-  contains (enough to decide Skip vs Interested).
-- **Repeated alerts collapse into one job** by dedupe hash — the user never pastes the
-  same job twice.
-- **"Paste full description" appears only on jobs the user marked Interested**, because
-  only tailoring needs it. Most alerts are skipped and never need it.
-- Often no paste is needed at all: if the same job is on a watched company board or
-  aggregator, the full description is filled from there; and board discovery (§9.12)
-  turns alert-only companies into watched sources over time.
+Alert emails carry title, company, location, sometimes salary and a one-line summary —
+not the description — and fetching the page behind the link would be scraping. So:
+- Such jobs are stored with **`isPartial = true`**, the summary as their text ("From the
+  Indeed alert: …") and the **salary** text (new `Job.salary`, shown on the card). They
+  are **scored roughly**: the analysis prompt says only a summary is available and to
+  list only requirements it states or the title names directly. The card says "From
+  alert"; the job page explains the score is rough.
+- **Repeated alerts collapse into one job** by dedupe hash — the user never pastes twice.
+- **"Paste full description"** (`POST /jobs/:id/description`, 200–50,000 chars) appears
+  on the job page **once the job is Interested** — only tailoring needs it, and most
+  alerts are skipped. It replaces the summary, clears `isPartial`, and queues the job
+  for scoring again (≈ $0.006). Allowed only on partial jobs (409 otherwise).
+- **Tailoring waits for it:** a resume tailored to a two-line summary would be tailored to
+  a guess, so `canTailor` is false (and the API refuses with 409) until the description
+  is pasted; the Resume card says so.
+- **Often no paste is needed:** if the same job (company + title) turns up on a watched
+  board or aggregator with a description, `storeJobs()` fills it in, clears `isPartial`
+  and queues the job for scoring again. Its first link (where it was found) is kept.
 
 ### 10.6 Setting up Google (one-time, by the user)
 
@@ -1466,6 +1526,13 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
 | 2026-10-03 | Node-only shared code (crypto, Google) behind `@shortlist/shared/node`, never bundled into the web app | §10.3 |
 | 2026-10-03 | Inbox checked every two hours + "Check now"; messages recorded once (metadata only); unparsed senders listed | §10.4 |
 | 2026-10-03 | Parsers are written against captured real emails (git-ignored); committed fixtures are scrubbed | §10.4 |
+| 2026-10-03 | Alert emails → jobs: code parsers only where volume justifies one (Indeed now), Haiku for every other sender; code keeps a model-read job only if its title and company appear in the email and its link ref exists | §10.4, user-approved |
+| 2026-10-03 | A code parser that finds nothing hands the email to the model and the Sources page warns the layout may have changed | §10.4 |
+| 2026-10-03 | Over-budget email extraction is DEFERRED and re-read by id next check; obvious non-alerts skipped by subject | §10.4 |
+| 2026-10-03 | Hand-rolled MIME reader; bodies parsed in memory, never stored; scrubbed fixtures via `scrub:email` | §10.4 |
+| 2026-10-03 | Partial jobs (`isPartial`, `salary`): rough score from the summary; paste full description once Interested; tailoring waits for it; a board with the description completes it | §10.5 |
+| 2026-10-03 | Alert jobs pass a summary stage: stack keyword in title/summary or a software-role title (`roleTitleTerms`) | §9.6 — first real check let 8 non-software roles through |
+| 2026-10-03 | Email sources excluded from the nightly fan-out, "Run now" and the board list; shown on the Gmail card | §10.4 |
 | 2026-10-03 | Code review fixes: whole-number check; `generatedAt` = evidence read time; existing resume stays reachable during/after a failed re-tailor; "Tailor again" on a current resume needs confirmation | §13.1, §13.3 |
 | 2026-10-02 | `TailoredResume` replaced by `ResumeVariant` + `JobResume`; reuse threshold is a setting (0.85) | §5.2, §13.2, §13.4 |
 | 2026-10-02 | CV reconciled: title Software Engineer, Docker PRODUCTION + CI/CD WORKING, CV-only claims added unverified, context-less CV skills recorded PERSONAL/WORKING | User's answers (§7.5) |
@@ -1507,10 +1574,10 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
    reads only verified evidence.
 2. **One real tailoring run** on a job the user picks (≈ $0.03), then tune the prompt or
    checks on what it produces. (Tailoring, reuse, staleness and the PDF: built — §13.)
-3. **Email job alerts** (§10). Connection, label-only reading and health: built
-   (2026-10-03). **User:** set up Google (§10.6) and connect. **Next:** capture real alert
-   emails, then per-portal parsers, partial-info jobs, "paste full description", board
-   discovery.
+3. **Email job alerts** (§10): built 2026-10-03 — Gmail connected, Indeed parser, model
+   fallback for every other portal, partial jobs and "paste full description". **Next:**
+   a LinkedIn code parser once its alert volume and layout are confirmed; board discovery
+   from alert-only companies (§9.12).
 4. **"Add a job"** (§11, incl. the Android share target). (AI scoring + budget guard:
    built — §12.)
 5. **Resume extras** (§13): base variants per niche and a library page, removing a single

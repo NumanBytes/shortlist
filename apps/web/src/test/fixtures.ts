@@ -13,9 +13,11 @@ export const job: JobListItem = {
   discoveredAt: new Date().toISOString(),
   lastSeenAt: new Date().toISOString(),
   appliedAt: null,
-  jobSource: { id: 's1', name: 'Septem Systems' },
+  jobSource: { id: 's1', name: 'Septem Systems', type: 'ATS_BOARD' },
   analysisStatus: 'DONE',
   analysisError: null,
   redFlags: [],
+  isPartial: false,
+  salary: null,
   match: { overallScore: 86, commercialScore: 80, verdict: 'APPLY' },
 };

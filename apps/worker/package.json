@@ -15,7 +15,8 @@
     "test:watch": "vitest",
     "test:integration": "vitest run --config ./vitest.config.integration.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "capture:emails": "node dist/cli/capture-emails.js"
+    "capture:emails": "node dist/cli/capture-emails.js",
+    "scrub:email": "node dist/cli/scrub-email.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.130.0",

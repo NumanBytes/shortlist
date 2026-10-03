@@ -18,8 +18,9 @@ export class DiscoveryService {
   // Each source with its most recent run — the health view. A FAILED or EMPTY source
   // is shown as such, never folded into "no jobs today".
   async listSources(userId: string) {
+    // Email-alert sources are shown on the Gmail card instead (they aren't fetched).
     const sources = await this.prisma.jobSource.findMany({
-      where: { userId },
+      where: { userId, type: { not: 'EMAIL_INBOX' } },
       orderBy: [{ isEnabled: 'desc' }, { name: 'asc' }],
       include: {
         discoveryRuns: { orderBy: { startedAt: 'desc' }, take: 1 },
@@ -53,7 +54,7 @@ export class DiscoveryService {
   async runNow(userId: string) {
     const cutoff = new Date(Date.now() - MANUAL_RUN_COOLDOWN_HOURS * 3600 * 1000);
     const sources = await this.prisma.jobSource.findMany({
-      where: { userId, isEnabled: true },
+      where: { userId, isEnabled: true, type: { not: 'EMAIL_INBOX' } },
       select: { id: true, name: true, lastRunAt: true },
     });
     const due = sources.filter((s) => !s.lastRunAt || s.lastRunAt < cutoff);
