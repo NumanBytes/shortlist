@@ -20,6 +20,27 @@ const EnvSchema = z.object({
   // Parallel model calls. Low on purpose: bounds rate-limit pressure and how far a burst
   // can overshoot the daily cap before the guard sees it.
   ANALYSIS_CONCURRENCY: z.coerce.number().int().min(1).max(10).default(2),
+
+  // Gmail job alerts (Agents.md §10). Optional as a group, like ANTHROPIC_API_KEY: without
+  // them, email checks report "not configured" instead of failing. Same values as the API.
+  GOOGLE_CLIENT_ID: z.string().min(1).optional(),
+  GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
+  TOKEN_ENCRYPTION_KEY: z
+    .string()
+    .refine((v) => Buffer.from(v, 'base64').length === 32, 'TOKEN_ENCRYPTION_KEY must be 32 bytes, base64-encoded')
+    .optional(),
+  // How often connected inboxes are checked. Alerts arrive through the day; every two
+  // hours keeps new jobs fresh without hammering the API (each check is a few requests).
+  GMAIL_CHECK_CRON: z.string().default('15 */2 * * *'),
+}).superRefine((env, ctx) => {
+  const google = [env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET, env.TOKEN_ENCRYPTION_KEY];
+  if (google.some(Boolean) && !google.every(Boolean)) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['GOOGLE_CLIENT_ID'],
+      message: 'Set all of GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and TOKEN_ENCRYPTION_KEY, or none',
+    });
+  }
 });
 
 export type Env = z.infer<typeof EnvSchema>;

@@ -117,6 +117,9 @@ model User {
   education       Education[]
   aiUsage         AiUsage[]
   resumeVariants  ResumeVariant[]
+  gmail           GmailConnection?
+  oauthStates     OAuthState[]
+  emailMessages   EmailMessage[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -510,4 +513,79 @@ model Education {
   updatedAt DateTime @updatedAt
 
   @@index([userId])
+}
+
+// ── Email job alerts (Agents.md §10) ──────────────────────────────────────────
+
+// The user's Gmail, connected read-only. The refresh token is the only credential and is
+// stored encrypted (AES-256-GCM, bound to the user id); access tokens are never stored.
+// The worker reads ONLY messages under `labelName`.
+model GmailConnection {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  emailAddress    String
+  refreshTokenEnc String // SecretBox "v1.<iv>.<tag>.<ciphertext>"
+  labelName       String @default("Shortlist")
+
+  status    GmailStatus @default(ACTIVE)
+  lastError String?
+
+  connectedAt     DateTime            @default(now())
+  lastCheckedAt   DateTime?
+  // Health of the last check, shown like a source's last run: never a silent blank.
+  lastCheckStatus DiscoveryRunStatus?
+  lastCheckFound  Int? // new labelled messages read by the last check
+
+  updatedAt DateTime @updatedAt
+}
+
+enum GmailStatus {
+  ACTIVE
+  NEEDS_RECONNECT // Google refused the grant (revoked, expired) — the user must reconnect
+}
+
+// One pending "Connect Gmail" attempt. `stateHash` ties Google's redirect back to the user
+// who started it; `nonceHash` ties it to the same BROWSER (a cookie), so an attacker can't
+// send someone their own consent link and attach the victim's mailbox to the attacker's
+// account (OAuth login CSRF). Single use, 10-minute life.
+model OAuthState {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  stateHash    String   @unique
+  nonceHash    String
+  codeVerifier String // PKCE; useless without the authorization code, gone in 10 minutes
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+}
+
+// One row per labelled Gmail message the worker has read: never read twice. Metadata
+// only — the body is parsed in memory and never stored.
+model EmailMessage {
+  id             String @id @default(uuid())
+  userId         String
+  user           User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gmailMessageId String
+
+  sender     String? // the From address
+  receivedAt DateTime
+  status     EmailStatus
+  parser     String? // which portal's parser handled it
+  jobsFound  Int         @default(0)
+  error      String?
+  readAt     DateTime    @default(now())
+
+  @@unique([userId, gmailMessageId])
+  @@index([userId, readAt])
+}
+
+enum EmailStatus {
+  PARSED
+  UNPARSED // no parser for this sender yet
+  FAILED // a parser threw
 }

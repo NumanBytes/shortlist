@@ -6,3 +6,6 @@ coverage/
 .env.*
 !.env.example
 .idea/
+
+# Real job-alert emails captured for writing parsers — personal data, never committed.
+apps/worker/test/fixtures/email/.private/

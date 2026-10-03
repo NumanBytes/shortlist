@@ -39,3 +39,18 @@ export const ResumeJob = {
 export interface TailorResumeData {
   jobId: string;
 }
+
+// Email alerts queue (Agents.md §10). Reading Gmail is I/O against one mailbox per user,
+// on its own schedule; kept apart so a slow mailbox never delays discovery or scoring.
+export const EMAIL_QUEUE = 'email';
+
+export const EmailJob = {
+  // Fans out one Check per connected Gmail account. Fired on a schedule.
+  CheckAll: 'email-check-all',
+  // Read new messages under the user's Shortlist label.
+  Check: 'email-check',
+} as const;
+
+export interface CheckEmailData {
+  userId: string;
+}

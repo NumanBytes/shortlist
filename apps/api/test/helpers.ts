@@ -1,4 +1,4 @@
-import { Test } from '@nestjs/testing';
+import { Test, type TestingModuleBuilder } from '@nestjs/testing';
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../src/app.module.js';
@@ -30,9 +30,10 @@ export function refreshCookieFrom(res: { headers: Record<string, unknown> }): st
 // Test files run in parallel, so each file tracks the users IT created and deletes
 // only those — a blanket "delete every test-domain user" would wipe users another
 // file is still using. Deleting a user cascades to everything they own.
-export async function createTestApp() {
+// `configure` lets a test swap providers for fakes (e.g. Google) before the app compiles.
+export async function createTestApp(configure: (b: TestingModuleBuilder) => TestingModuleBuilder = (b) => b) {
   process.env.BCRYPT_ROUNDS = '4'; // hashing speed isn't under test
-  const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+  const moduleRef = await configure(Test.createTestingModule({ imports: [AppModule] })).compile();
   const app: INestApplication = configureApp(moduleRef.createNestApplication());
   await app.init();
   const prisma = app.get(PrismaService);

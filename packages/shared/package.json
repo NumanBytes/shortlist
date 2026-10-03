@@ -9,6 +9,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./node": {
+      "types": "./dist/node/index.d.ts",
+      "default": "./dist/node/index.js"
     }
   },
   "scripts": {
@@ -20,6 +24,7 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@types/node": "^24.13.6",
     "typescript": "^6.0.3"
   }
 }

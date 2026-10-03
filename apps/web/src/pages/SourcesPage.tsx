@@ -1,5 +1,6 @@
 import { AlertTriangle, ChevronDown, Play, Sparkles } from 'lucide-react';
 import { useState } from 'react';
+import { GmailCard } from '../components/GmailCard';
 import { Badge, Button, Card, Skeleton, Switch, type Tone } from '../components/ui';
 import { providerLabel, timeAgo } from '../lib/format';
 import { useAiUsage, useRunDiscovery, useSetSourceEnabled, useSources, useUpdateAiSettings } from '../lib/queries';
@@ -143,6 +144,7 @@ export function SourcesPage() {
     <main className="mx-auto max-w-2xl space-y-4">
       <h1 className="text-lg font-semibold text-fg">Sources</h1>
       <AiSpendCard />
+      <GmailCard />
 
       <Card className="p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">

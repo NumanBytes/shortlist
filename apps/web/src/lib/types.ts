@@ -201,3 +201,19 @@ export interface JobResume {
   sources: Record<string, { skillName: string; whatIDid: string; isVerified: boolean }>;
   reuse: { variantId: string; overlap: number; approvedAt: string | null; usedFor: string[] }[];
 }
+
+// ── Gmail job alerts (Agents.md §10) ─────────────────────────────────────────
+export interface GmailStatus {
+  configured: boolean;
+  connection: {
+    emailAddress: string;
+    labelName: string;
+    status: 'ACTIVE' | 'NEEDS_RECONNECT';
+    lastError: string | null;
+    connectedAt: string;
+    lastCheckedAt: string | null;
+    lastCheckStatus: RunStatus | null;
+    lastCheckFound: number | null;
+  } | null;
+  last30Days: { parsed: number; unparsed: number; failed: number; unparsedSenders: { sender: string | null; count: number }[] };
+}
