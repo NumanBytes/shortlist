@@ -18,10 +18,12 @@ const LIST_SELECT = {
   discoveredAt: true,
   lastSeenAt: true,
   appliedAt: true,
-  jobSource: { select: { id: true, name: true } },
+  jobSource: { select: { id: true, name: true, type: true } },
   analysisStatus: true,
   analysisError: true,
   redFlags: true, // a suspected scam is flagged on the card itself
+  isPartial: true, // from an alert email: only a summary until the description is pasted
+  salary: true,
   match: { select: { overallScore: true, commercialScore: true, verdict: true } },
 } satisfies Prisma.JobSelect;
 
@@ -108,6 +110,21 @@ export class JobsService {
     await this.prisma.job.update({ where: { id }, data: { analysisStatus: 'PENDING', analysisError: null } });
     await this.queues.enqueueAnalysis(id, `manual-${Date.now()}`);
     return { queued: true };
+  }
+
+  // "Paste full description" (Agents.md §10.5): an alert gave only a summary; the user pastes
+  // the posting, and the job is scored again from the real text.
+  async pasteDescription(userId: string, id: string, description: string) {
+    const job = await this.prisma.job.findFirst({ where: { id, userId }, select: { isPartial: true } });
+    if (!job) throw new NotFoundException('Job not found');
+    if (!job.isPartial) throw new ConflictException('This job already has its full description');
+    await this.prisma.job.update({
+      where: { id },
+      data: { rawJD: description, isPartial: false, analysisStatus: 'PENDING', analysisError: 'Description pasted — scoring again' },
+    });
+    // Best effort: if the queue is down, the nightly sweep scores it.
+    await this.queues.enqueueAnalysis(id, `pasted-${Date.now()}`).catch(() => undefined);
+    return this.get(userId, id);
   }
 
   async get(userId: string, id: string) {

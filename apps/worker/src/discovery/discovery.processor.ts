@@ -42,7 +42,7 @@ export class DiscoveryProcessor extends WorkerHost implements OnModuleInit {
   // never holds up the others. Job ids derive from this batch's id: if the fan-out job
   // itself is retried, re-adding the same ids is a no-op instead of duplicate runs.
   private async fanOut(job: Job) {
-    const sources = await this.prisma.jobSource.findMany({ where: { isEnabled: true }, select: { id: true } });
+    const sources = await this.prisma.jobSource.findMany({ where: { isEnabled: true, type: { not: 'EMAIL_INBOX' } }, select: { id: true } });
     await this.queue.addBulk(
       sources.map((s) => ({
         name: DiscoveryJob.Source,

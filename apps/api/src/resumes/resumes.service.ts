@@ -36,6 +36,7 @@ export class ResumesService {
       where: { id: jobId, userId },
       select: {
         analysisStatus: true,
+        isPartial: true,
         requirements: { select: { skillName: true, importance: true } },
         resume: { include: { variant: true } },
       },
@@ -56,7 +57,10 @@ export class ResumesService {
       reused: record?.reused ?? false,
       overlap: record?.overlap ?? null,
       // Tailoring works from the analysis's requirement list, so the job must be scored.
-      canTailor: job.analysisStatus === 'DONE',
+      // and an alert-only job needs its full description first: a resume tailored to a
+      // two-line summary would be tailored to a guess (Agents.md §10.5).
+      canTailor: job.analysisStatus === 'DONE' && !job.isPartial,
+      needsDescription: job.isPartial,
       variant: variant && {
         id: variant.id,
         status: variant.status,
@@ -74,7 +78,7 @@ export class ResumesService {
   async prepare(userId: string, jobId: string, input: PrepareResumeInput) {
     const job = await this.prisma.job.findFirst({
       where: { id: jobId, userId },
-      select: { analysisStatus: true, requirements: { select: { skillName: true, importance: true } }, resume: true },
+      select: { analysisStatus: true, isPartial: true, requirements: { select: { skillName: true, importance: true } }, resume: true },
     });
     if (!job) throw new NotFoundException('Job not found');
 
@@ -92,6 +96,7 @@ export class ResumesService {
       return this.forJob(userId, jobId);
     }
 
+    if (job.isPartial) throw new ConflictException('Paste the full job description first — the alert only had a summary');
     if (job.analysisStatus !== 'DONE') throw new ConflictException('Score this job first — tailoring uses its requirements');
     if (job.resume?.status === 'PENDING') return this.forJob(userId, jobId); // already on its way
     await this.prisma.jobResume.upsert({

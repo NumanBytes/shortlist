@@ -14,6 +14,7 @@ export interface PromptJob {
   company: string;
   location: string | null;
   rawJD: string;
+  isPartial?: boolean; // from an alert email: only a summary, not the posting (Agents.md §10.5)
 }
 
 // Generous: real descriptions are far shorter. If one is longer, the request says so.
@@ -58,6 +59,9 @@ export function buildAnalysisPrompt(job: PromptJob, skills: PromptSkill[]) {
     `Title: ${job.title}`,
     `Company: ${job.company}`,
     `Location: ${job.location ?? 'not stated'}`,
+    ...(job.isPartial
+      ? ['Note: only a job-alert summary is available, not the full posting. List only requirements the summary states or the title names directly (e.g. "React Developer" → React); do not guess the rest.']
+      : []),
     '',
     description || '(no description)',
     '</job_posting>',

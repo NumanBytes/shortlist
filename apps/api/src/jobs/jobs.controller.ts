@@ -1,6 +1,8 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
 import {
   ListJobsQuerySchema,
+  PasteDescriptionSchema,
+  type PasteDescriptionInput,
   UpdateJobSchema,
   type ListJobsQuery,
   type UpdateJobInput,
@@ -28,6 +30,16 @@ export class JobsController {
   @HttpCode(HttpStatus.ACCEPTED)
   analyze(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.jobs.analyze(user.id, id);
+  }
+
+  @Post(':id/description')
+  @HttpCode(HttpStatus.OK)
+  pasteDescription(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body(new ZodValidationPipe(PasteDescriptionSchema)) body: PasteDescriptionInput,
+  ) {
+    return this.jobs.pasteDescription(user.id, id, body.description);
   }
 
   @Patch(':id')

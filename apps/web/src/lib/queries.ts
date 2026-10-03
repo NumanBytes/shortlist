@@ -232,3 +232,16 @@ export function useDisconnectGmail() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: gmailKeys.status }),
   });
 }
+
+// "Paste full description" (Agents.md §10.5): completes an alert-only job; it's scored again.
+export function usePasteDescription() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, description }: { id: string; description: string }) =>
+      api<JobDetail>(`/jobs/${id}/description`, { method: 'POST', body: { description } }),
+    onSuccess: (job) => {
+      queryClient.setQueryData(jobKeys.detail(job.id), job);
+      void queryClient.invalidateQueries({ queryKey: jobKeys.all });
+    },
+  });
+}

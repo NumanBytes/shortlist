@@ -31,12 +31,15 @@ export interface ScreenOptions {
 export interface CompiledFilter {
   screenListing(p: Posting, options: ScreenOptions): Verdict;
   screenDescription(p: Posting, description: string): Verdict;
+  // Stage B for a job known only from an alert's summary (no description to search).
+  screenSummary(p: Posting, summary: string): Verdict;
 }
 
 export function compileFilter(prefs: DiscoveryPreferencesInput): CompiledFilter {
   const titleIn = termMatcher(prefs.titleInclude);
   const titleOut = termMatcher(prefs.titleExclude);
   const stack = termMatcher(prefs.stackKeywords);
+  const softwareRole = termMatcher(prefs.roleTitleTerms);
   const onsite = termMatcher(prefs.onsiteLocations);
   const allowed = new Set(prefs.remoteAllowRegions.map((r) => r.toLowerCase()));
   const WORLDWIDE = /\b(worldwide|anywhere|global(ly)?|international)\b/i;
@@ -78,6 +81,13 @@ export function compileFilter(prefs: DiscoveryPreferencesInput): CompiledFilter 
     // Stage B — needs the description, which may have cost a request to fetch.
     screenDescription(p, description) {
       return stack(`${p.title}\n${description}`) ? PASS : reject('no core-stack keyword in title or description');
+    },
+
+    // Stage B for alert jobs: a summary rarely names the stack, so a software-role title is
+    // enough; the rough score sorts the rest. "Electrical Engineer" has neither and is dropped.
+    screenSummary(p, summary) {
+      if (stack(`${p.title}\n${summary}`) || softwareRole(p.title)) return PASS;
+      return reject('alert: no core-stack keyword and not a software role');
     },
   };
 }

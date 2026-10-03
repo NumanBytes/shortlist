@@ -115,20 +115,41 @@ function Body({ status, onCheck }: { status: GmailStatus; onCheck: () => void })
         {c.lastCheckedAt
           ? `Last check ${timeAgo(c.lastCheckedAt)}: ${c.lastCheckStatus === 'FAILED' ? 'failed' : `${c.lastCheckFound ?? 0} new message${c.lastCheckFound === 1 ? '' : 's'}`}.`
           : 'Not checked yet.'}{' '}
-        Last 30 days: {s.parsed + s.unparsed + s.failed} alert emails read.
+        Last 30 days: {s.alerts} alert email{s.alerts === 1 ? '' : 's'} read
+        {s.notAlerts > 0 && `, ${s.notAlerts} skipped as not alerts`}.
       </p>
-      {s.unparsedSenders.length > 0 && (
-        <div className="rounded-lg bg-surface-2 px-3 py-2">
-          <p className="text-xs font-medium text-fg">Not turned into jobs yet — no parser for these senders:</p>
-          <ul className="mt-1 space-y-0.5 text-xs text-muted">
-            {s.unparsedSenders.map((u) => (
-              <li key={u.sender ?? 'unknown'} className="flex justify-between gap-3">
-                <span className="truncate">{u.sender ?? 'unknown sender'}</span>
-                <span className="tabular-nums">{u.count}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
+      {s.portals.length > 0 && (
+        <ul className="divide-y divide-border rounded-lg bg-surface-2 text-xs">
+          {s.portals.map((p) => (
+            <li key={p.portal} className="px-3 py-2">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="font-medium text-fg">{p.label}</span>
+                <span className="text-muted tabular-nums">
+                  {p.emails} email{p.emails === 1 ? '' : 's'} · {p.jobsFound} job{p.jobsFound === 1 ? '' : 's'}
+                </span>
+              </div>
+              {p.lastRun && (
+                <p className="text-subtle">
+                  Last: {p.lastRun.jobsNew} new{p.lastRun.finishedAt ? `, ${timeAgo(p.lastRun.finishedAt)}` : ''}
+                </p>
+              )}
+              {p.parserWarnings > 0 && (
+                // A code parser found nothing in what looked like an alert, and the model read
+                // it instead (Agents.md §10.4) — the portal likely changed its email layout.
+                <p className="mt-0.5 flex gap-1.5 text-stretch-fg">
+                  <AlertTriangle className="size-3.5 shrink-0" /> {p.label}'s email layout may have changed — read by AI for now
+                  ({p.parserWarnings})
+                </p>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      {(s.deferred > 0 || s.failed > 0) && (
+        <p className="text-xs text-muted">
+          {s.deferred > 0 && `${s.deferred} waiting for AI budget (read on the next check). `}
+          {s.failed > 0 && `${s.failed} couldn't be read.`}
+        </p>
       )}
       <div className="flex flex-wrap items-center gap-2">
         {c.status === 'ACTIVE' ? (
@@ -172,8 +193,13 @@ function FilterHelp() {
       <ol className="list-decimal space-y-1 border-t border-border py-2 pr-3 pl-8 text-sm text-muted">
         <li>Open a job-alert email from one portal (LinkedIn, Indeed, Rozee.pk, Wellfound…).</li>
         <li>
-          Click <strong className="text-fg">⋮ → Filter messages like these</strong>, check the From address is the alerts
-          sender, then <strong className="text-fg">Create filter</strong>.
+          Click <strong className="text-fg">▾</strong> next to “to me” and copy the <strong className="text-fg">from</strong>{' '}
+          address (e.g. donotreply@jobalert.indeed.com).
+        </li>
+        <li>
+          Click <strong className="text-fg">⋮ → Filter messages like these</strong>. Put that address in{' '}
+          <strong className="text-fg">From</strong> and clear anything Gmail filled in (such as “list:…” — it would match only
+          one alert), then <strong className="text-fg">Create filter</strong>.
         </li>
         <li>
           Tick <strong className="text-fg">Apply the label</strong> → New label “Shortlist”, and{' '}

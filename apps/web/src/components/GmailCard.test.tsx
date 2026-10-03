@@ -4,7 +4,7 @@ import type { GmailStatus } from '../lib/types';
 import { mockFetch, renderWithProviders } from '../test/render';
 import { GmailCard } from './GmailCard';
 
-const empty = { parsed: 0, unparsed: 0, failed: 0, unparsedSenders: [] };
+const empty = { alerts: 0, notAlerts: 0, deferred: 0, failed: 0, portals: [] };
 const notConnected: GmailStatus = { configured: true, connection: null, last30Days: empty };
 const connected = (over: Partial<NonNullable<GmailStatus['connection']>> = {}): GmailStatus => ({
   configured: true,
@@ -19,7 +19,15 @@ const connected = (over: Partial<NonNullable<GmailStatus['connection']>> = {}): 
     lastCheckFound: 3,
     ...over,
   },
-  last30Days: { parsed: 0, unparsed: 3, failed: 0, unparsedSenders: [{ sender: 'jobalerts-noreply@linkedin.com', count: 3 }] },
+  last30Days: {
+    alerts: 3,
+    notAlerts: 1,
+    deferred: 0,
+    failed: 0,
+    portals: [
+      { portal: 'indeed', label: 'Indeed', emails: 3, jobsFound: 22, parserWarnings: 1, lastRun: { status: 'SUCCESS', jobsNew: 6, finishedAt: new Date().toISOString() } },
+    ],
+  },
 });
 
 const posts = (fetch: ReturnType<typeof mockFetch>, method = 'POST') =>
@@ -47,12 +55,15 @@ describe('GmailCard', () => {
     expect(posts(fetch)).toEqual([expect.stringMatching(/\/gmail\/connect$/)]);
   });
 
-  it('shows the connection, the last check and which senders have no parser yet', async () => {
+  it('shows the connection, the last check, results per portal, and a parser warning', async () => {
     const fetch = mockFetch(connected());
     renderWithProviders(<GmailCard />);
     expect(await screen.findByText('numan@gmail.com')).toBeInTheDocument();
     expect(screen.getByText(/3 new messages/)).toBeInTheDocument();
-    expect(screen.getByText('jobalerts-noreply@linkedin.com')).toBeInTheDocument();
+    expect(screen.getByText(/1 skipped as not alerts/)).toBeInTheDocument();
+    expect(screen.getByText('Indeed')).toBeInTheDocument();
+    expect(screen.getByText(/3 emails · 22 jobs/)).toBeInTheDocument();
+    expect(screen.getByText(/email layout may have changed/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: /Check now/ }));
     await waitFor(() => expect(posts(fetch)).toEqual([expect.stringMatching(/\/gmail\/check$/)]));
   });
@@ -79,5 +90,11 @@ describe('GmailCard', () => {
     mockFetch(notConnected);
     renderWithProviders(<GmailCard />, { path: '/sources', route: '/sources?gmail=mismatch' });
     expect(await screen.findByRole('alert')).toHaveTextContent(/didn’t start in this browser/);
+  });
+
+  it('tells you to filter on the From address, not the list id Gmail suggests', async () => {
+    mockFetch(notConnected);
+    renderWithProviders(<GmailCard />);
+    expect(await screen.findByText(/it would match only one alert/)).toBeInTheDocument();
   });
 });

@@ -7,7 +7,7 @@ import { ResumeSection } from './ResumeSection';
 
 const job: JobDetail = { ...listJob, status: 'INTERESTED', rawJD: '', seniority: null, yearsRequired: null, analyzedAt: null, requirements: [], match: null };
 
-const none: JobResume = { status: 'NONE', error: null, reused: false, overlap: null, canTailor: true, variant: null, sources: {}, reuse: [] };
+const none: JobResume = { status: 'NONE', error: null, reused: false, overlap: null, canTailor: true, needsDescription: false, variant: null, sources: {}, reuse: [] };
 const ready = (over: Partial<NonNullable<JobResume['variant']>> = {}): JobResume => ({
   ...none,
   status: 'READY',

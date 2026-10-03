@@ -10,6 +10,10 @@ export const DiscoveryPreferencesSchema = z
     titleInclude: terms,
     titleExclude: terms,
     stackKeywords: terms,
+    // Jobs with no description (alert emails, Agents.md §10.5) can't be checked for the
+    // stack, so they pass if the title or summary names a stack keyword OR the title names
+    // one of these software roles. Keeps "Full Stack Engineer"; drops "Electrical Engineer".
+    roleTitleTerms: terms,
     onsiteLocations: terms,
     allowRemote: z.boolean(),
     remoteAllowRegions: terms,
@@ -40,6 +44,10 @@ export const DEFAULT_DISCOVERY_PREFERENCES: DiscoveryPreferencesInput = {
   stackKeywords: [
     'react', 'react.js', 'reactjs', 'next.js', 'nextjs', 'typescript', 'javascript',
     'node', 'node.js', 'nodejs', 'nestjs', 'express', 'mern', 'tailwind', 'angular',
+  ],
+  roleTitleTerms: [
+    'software', 'full stack', 'full-stack', 'fullstack', 'frontend', 'front-end', 'front end',
+    'web developer', 'web engineer', 'web application', 'ui developer', 'ui engineer',
   ],
   onsiteLocations: ['lahore', 'pakistan', 'pk'],
   allowRemote: true,

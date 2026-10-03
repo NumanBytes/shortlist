@@ -14,6 +14,7 @@ const resume = (status: 'DRAFT' | 'APPROVED', stale: string[] = []): JobResume =
   reused: false,
   overlap: null,
   canTailor: true,
+  needsDescription: false,
   reuse: [],
   sources: { e1: { skillName: 'React', whatIDid: 'Used React to build frontend features.', isVerified: true } },
   variant: {

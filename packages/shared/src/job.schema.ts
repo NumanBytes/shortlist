@@ -46,4 +46,14 @@ export const PROVIDER_LABELS: Record<string, string> = {
   himalayas: 'Himalayas',
   jobicy: 'Jobicy',
   weworkremotely: 'We Work Remotely',
+  // Job-alert email portals (Agents.md §10) — same ids as the worker's portalFor().
+  indeed: 'Indeed',
+  linkedin: 'LinkedIn',
+  'rozee-pk': 'Rozee.pk',
+  wellfound: 'Wellfound',
+  arc: 'Arc.dev',
+  wttj: 'Welcome to the Jungle',
+  glassdoor: 'Glassdoor',
+  mustakbil: 'Mustakbil',
+  'remote-co': 'remote.co',
 };

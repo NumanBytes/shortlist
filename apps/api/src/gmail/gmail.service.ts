@@ -41,7 +41,8 @@ export class GmailService {
 
   async status(userId: string) {
     const since = new Date(Date.now() - SUMMARY_DAYS * 24 * 3600 * 1000);
-    const [connection, byStatus, unparsed] = await Promise.all([
+    const recent = { userId, readAt: { gte: since } };
+    const [connection, byStatus, byPortal, warnings, sources] = await Promise.all([
       this.prisma.gmailConnection.findUnique({
         where: { userId },
         select: {
@@ -55,25 +56,41 @@ export class GmailService {
           lastCheckFound: true,
         },
       }),
-      this.prisma.emailMessage.groupBy({ by: ['status'], where: { userId, readAt: { gte: since } }, _count: true }),
-      // Senders with no parser yet — tells the user (and us) which portal to support next.
-      this.prisma.emailMessage.groupBy({
-        by: ['sender'],
-        where: { userId, status: 'UNPARSED', readAt: { gte: since } },
-        _count: true,
-        orderBy: { _count: { sender: 'desc' } },
-        take: 10,
+      this.prisma.emailMessage.groupBy({ by: ['status'], where: recent, _count: true }),
+      this.prisma.emailMessage.groupBy({ by: ['portal'], where: { ...recent, status: 'PARSED' }, _count: true, _sum: { jobsFound: true } }),
+      // A code parser that found nothing (or threw) and handed the email to the model: the
+      // portal probably changed its email layout (Agents.md §10.4).
+      this.prisma.emailMessage.groupBy({ by: ['portal'], where: { ...recent, note: { contains: 'parser' } }, _count: true }),
+      this.prisma.jobSource.findMany({
+        where: { userId, type: 'EMAIL_INBOX', lastRunAt: { not: null } },
+        select: { key: true, name: true, discoveryRuns: { orderBy: { startedAt: 'desc' }, take: 1, select: { status: true, jobsNew: true, finishedAt: true } } },
       }),
     ]);
     const counts = Object.fromEntries(byStatus.map((g) => [g.status, g._count]));
+    const warningsBy = new Map(warnings.map((w) => [w.portal, w._count]));
+    const sourceBy = new Map(sources.map((src) => [src.key, src]));
     return {
       configured: this.configured,
       connection,
       last30Days: {
-        parsed: counts.PARSED ?? 0,
-        unparsed: counts.UNPARSED ?? 0,
+        alerts: counts.PARSED ?? 0,
+        notAlerts: counts.NOT_ALERT ?? 0,
+        deferred: counts.DEFERRED ?? 0,
         failed: counts.FAILED ?? 0,
-        unparsedSenders: unparsed.map((u) => ({ sender: u.sender, count: u._count })),
+        portals: byPortal
+          .filter((p) => p.portal)
+          .sort((a, b) => b._count - a._count)
+          .map((p) => {
+            const src = sourceBy.get(`email_alerts:${p.portal!.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`);
+            return {
+              portal: p.portal!,
+              label: src?.name ?? p.portal!,
+              emails: p._count,
+              jobsFound: p._sum.jobsFound ?? 0,
+              parserWarnings: warningsBy.get(p.portal) ?? 0,
+              lastRun: src?.discoveryRuns[0] ?? null,
+            };
+          }),
       },
     };
   }

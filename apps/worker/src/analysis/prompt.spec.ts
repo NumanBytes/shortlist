@@ -33,4 +33,9 @@ describe('buildAnalysisPrompt', () => {
     const p = buildAnalysisPrompt(job, [{ id: 'a', name: 'React', category: 'LIBRARY' }]);
     expect(p.user).not.toMatch(/commercial|production|CloudCard/i);
   });
+
+  it('tells the model when only an alert summary is available (partial job)', () => {
+    expect(buildAnalysisPrompt({ ...job, isPartial: true }, []).user).toMatch(/only a job-alert summary is available/);
+    expect(buildAnalysisPrompt(job, []).user).not.toMatch(/job-alert summary/);
+  });
 });

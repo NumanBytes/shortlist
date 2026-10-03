@@ -135,6 +135,8 @@ function Body({ job, resume }: { job: JobDetail; resume: JobResume }) {
           </Button>
           <span className="text-xs text-subtle">From verified evidence only · about $0.03</span>
         </div>
+      ) : resume.needsDescription ? (
+        <p className="text-muted">The alert only had a summary. Paste the full description above, and a resume can be tailored to it.</p>
       ) : (
         <p className="text-muted">Tailoring uses this job's requirements, so it can start once scoring finishes.</p>
       )}

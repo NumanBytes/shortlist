@@ -1,11 +1,13 @@
 import { BullModule, InjectQueue } from '@nestjs/bullmq';
 import { Inject, Injectable, Logger, Module, type OnApplicationBootstrap } from '@nestjs/common';
-import { EMAIL_QUEUE, EmailJob } from '@shortlist/shared';
+import { ANALYSIS_QUEUE, EMAIL_QUEUE, EmailJob } from '@shortlist/shared';
 import { HttpGmailApi, HttpGoogleOAuth, SecretBox } from '@shortlist/shared/node';
 import type { Queue } from 'bullmq';
 import { ENV } from '../config/config.module.js';
 import type { Env } from '../config/env.js';
+import { AnalysisModule } from '../analysis/analysis.module.js';
 import { EmailProcessor } from './email.processor.js';
+import { AnthropicEmailExtractor, EMAIL_EXTRACTOR } from './extract.js';
 import { EmailService, SECRET_BOX, WORKER_GMAIL_API, WORKER_GOOGLE_OAUTH } from './email.service.js';
 
 export const EMAIL_SCHEDULER_ID = 'gmail-check';
@@ -32,7 +34,7 @@ export class EmailScheduler implements OnApplicationBootstrap {
 }
 
 @Module({
-  imports: [BullModule.registerQueue({ name: EMAIL_QUEUE })],
+  imports: [BullModule.registerQueue({ name: EMAIL_QUEUE }, { name: ANALYSIS_QUEUE }), AnalysisModule],
   providers: [
     EmailService,
     EmailProcessor,
@@ -47,6 +49,7 @@ export class EmailScheduler implements OnApplicationBootstrap {
           : null,
     },
     { provide: WORKER_GMAIL_API, useValue: new HttpGmailApi() },
+    { provide: EMAIL_EXTRACTOR, inject: [ENV], useFactory: (env: Env) => new AnthropicEmailExtractor(env.ANTHROPIC_API_KEY) },
     { provide: SECRET_BOX, inject: [ENV], useFactory: (env: Env) => (env.TOKEN_ENCRYPTION_KEY ? new SecretBox(env.TOKEN_ENCRYPTION_KEY) : null) },
   ],
 })
