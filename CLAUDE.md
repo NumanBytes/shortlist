@@ -20,6 +20,8 @@ pnpm --filter @shortlist/worker capture:emails you@x.com [max]
                         # save recent Shortlist-label emails as .eml (git-ignored) for writing parsers
 pnpm --filter @shortlist/worker scrub:email in.eml out.eml "Your Name" you@x.com
                         # make a committable fixture: personal data, tracking and IDs removed
+pnpm --filter @shortlist/worker preview:resume <jobId>
+                        # real tailoring call (~$0.03, logged to AiUsage), printed with word counts, NOT saved
 pnpm build              # shared -> db (prisma generate) -> api -> worker -> web
 pnpm typecheck          # tsc --noEmit across all packages
 pnpm test               # unit tests (*.spec.ts) in every package — does NOT run e2e
