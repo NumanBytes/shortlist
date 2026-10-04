@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode } from 'react';
 
 // Shared UI primitives, built only on the semantic tokens in index.css. Sizes follow the
 // mobile design (2026-10-04): 44px touch targets, 12px radius buttons, 16px cards.
@@ -235,8 +235,12 @@ export function EmptyState({ icon, title, children }: { icon: ReactNode; title: 
 }
 
 // A bottom sheet on phones, a centred dialog on wider screens. Built on the native
-// <dialog>: showModal() gives focus trapping, Escape to close and an inert background for
-// free — the accessibility a hand-made overlay would have to re-implement.
+// <dialog>: showModal() gives focus trapping, Escape to close, an inert background and
+// focus returned to the trigger — the accessibility a hand-made overlay would have to
+// re-implement. Motion (design spec): in 240 ms, out 180 ms ease-in, scrim fades; on
+// phones it can be dragged down to dismiss (past 30% of its height, or a fast flick).
+const CLOSE_MS = 180;
+
 export function Sheet({
   open,
   onClose,
@@ -251,17 +255,64 @@ export function Sheet({
   footer?: ReactNode;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const [rendered, setRendered] = useState(open); // keeps content while it slides out
+  const [dragY, setDragY] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const drag = useRef<{ y: number; t: number; lastY: number; lastT: number; id: number } | null>(null);
+  const [flung, setFlung] = useState(false); // closing from a drag: finish from there
+  if (open && !rendered) setRendered(true);
+
   useEffect(() => {
     const d = ref.current;
     if (!d) return;
     if (open && !d.open) {
+      d.classList.remove('sheet-closing');
+      setDragY(0);
       if (typeof d.showModal === 'function') d.showModal();
       else d.setAttribute('open', ''); // jsdom has no showModal
-    } else if (!open && d.open) {
-      if (typeof d.close === 'function') d.close();
-      else d.removeAttribute('open');
+      return;
     }
-  }, [open]);
+    if (!open && d.open) {
+      if (!flung) d.classList.add('sheet-closing');
+      const t = setTimeout(() => {
+        if (typeof d.close === 'function') d.close();
+        else d.removeAttribute('open');
+        d.classList.remove('sheet-closing');
+        setFlung(false);
+        setDragY(0);
+        setRendered(false);
+      }, CLOSE_MS);
+      return () => clearTimeout(t);
+    }
+  }, [open, flung]);
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    if (e.button !== 0) return;
+    drag.current = { y: e.clientY, t: e.timeStamp, lastY: e.clientY, lastT: e.timeStamp, id: e.pointerId };
+    (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
+    setDragging(true);
+  };
+  const onPointerMove = (e: React.PointerEvent) => {
+    const g = drag.current;
+    if (!g || g.id !== e.pointerId) return;
+    setDragY(Math.max(0, e.clientY - g.y)); // only downwards
+    g.lastY = e.clientY;
+    g.lastT = e.timeStamp;
+  };
+  const onPointerUp = (e: React.PointerEvent) => {
+    const g = drag.current;
+    drag.current = null;
+    setDragging(false);
+    if (!g) return;
+    const height = ref.current?.offsetHeight || 1;
+    const velocity = (e.clientY - g.lastY) / Math.max(1, e.timeStamp - g.lastT) || (e.clientY - g.y) / Math.max(1, e.timeStamp - g.t);
+    // A flick counts only with some distance behind it, so a twitch never closes it.
+    if (dragY > height * 0.3 || (velocity > 0.5 && dragY > 40)) {
+      setFlung(true);
+      setDragY(height); // finish the slide from where the finger let go
+      onClose();
+    } else setDragY(0); // spring back
+  };
 
   return (
     // Clicking the backdrop closes it; the keyboard equivalent is Escape, which the native
@@ -270,19 +321,35 @@ export function Sheet({
     <dialog
       ref={ref}
       aria-label={title}
-      onClose={onClose}
       onCancel={(e) => {
         e.preventDefault();
         onClose();
       }}
       // A click on the dialog element itself (not its content) is a click on the scrim.
       onClick={(e) => e.target === e.currentTarget && onClose()}
+      style={{
+        transform: dragY ? `translateY(${dragY}px)` : undefined,
+        transition: dragging ? 'none' : flung ? `transform ${CLOSE_MS}ms ease-in` : 'transform 200ms cubic-bezier(.2,.8,.2,1)',
+      }}
       className="m-0 mt-auto max-h-[92dvh] w-full max-w-none overflow-hidden rounded-t-[28px] bg-surface p-0 text-fg shadow-[0_-12px_40px_rgb(0_0_0/0.18)] backdrop:bg-scrim open:animate-sheet-up sm:m-auto sm:max-w-md sm:rounded-[28px] print:hidden"
     >
-      {open && (
-        <div className="flex max-h-[92dvh] flex-col">
-          <div aria-hidden="true" className="mx-auto mt-2 h-[5px] w-9 shrink-0 rounded-full bg-border sm:hidden" />
-          <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-3 pb-4">{children}</div>
+      {rendered && (
+        // Focus lands on the sheet itself, not its first button: a ring on "Copy posting
+        // link" reads as a selection on a phone. Tab still reaches the first action next.
+        // oxlint-disable-next-line jsx-a11y/no-autofocus
+        <div tabIndex={-1} autoFocus className="flex max-h-[92dvh] flex-col outline-none">
+          {/* The grab handle: drag it down to dismiss (phones). */}
+          <div
+            aria-hidden="true"
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerCancel={onPointerUp}
+            className="flex h-6 shrink-0 cursor-grab touch-none items-center justify-center sm:hidden"
+          >
+            <span className="h-[5px] w-9 rounded-full bg-border" />
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-1 pb-4 sm:pt-5">{children}</div>
           {footer && <div className="shrink-0 px-5 pt-2 pb-[max(1.25rem,env(safe-area-inset-bottom))]">{footer}</div>}
         </div>
       )}

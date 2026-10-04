@@ -3,7 +3,8 @@ import { AlertTriangle, CircleX, Clock, FileText, RefreshCw, RotateCw, Sparkles 
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { elapsed } from '../lib/format';
-import { TAILOR_POLL_LIMIT_MS, resumeKeys, useJobResume, usePrepareResume } from '../lib/queries';
+import { PushLink } from './PushLink';
+import { TAILOR_POLL_LIMIT_MS, resumeKeys, useCancelTailoring, useJobResume, usePrepareResume } from '../lib/queries';
 import type { JobDetail, JobResume } from '../lib/types';
 import { useNow } from '../lib/useNow';
 import { Badge, Button, Card, Sheet, buttonStyles } from './ui';
@@ -69,16 +70,30 @@ const SLOW_MS = 2 * 60 * 1000;
 export function TailoringProgress({ jobId, resume }: { jobId: string; resume: JobResume }) {
   const now = useNow();
   const queryClient = useQueryClient();
+  const cancel = useCancelTailoring();
+  // Cancel removes a run that hasn't started (nothing is charged); one the worker is
+  // already writing can't be recalled, and the API says so.
+  const cancelButton = (
+    <>
+      <Button variant="ghost" className="w-full" onClick={() => cancel.mutate(jobId)} disabled={cancel.isPending}>
+        {cancel.isPending ? 'Cancelling…' : 'Cancel'}
+      </Button>
+      {cancel.isError && <p className="text-center text-xs text-danger-fg">{cancel.error.message}</p>}
+    </>
+  );
   const waited = resume.queuedAt ? now - new Date(resume.queuedAt).getTime() : 0;
   const time = elapsed(resume.queuedAt, now);
 
   if (resume.workerOnline === false) {
     return (
-      <output className="block">
-        <Callout tone="stretch" icon={<AlertTriangle className="size-[18px]" />} title="Still waiting — the background worker isn't running.">
-          Queued {time} ago, so tailoring hasn't started. Nothing has been charged. It starts by itself once the worker is back.
-        </Callout>
-      </output>
+      <div className="space-y-1">
+        <output className="block">
+          <Callout tone="stretch" icon={<AlertTriangle className="size-[18px]" />} title="Still waiting — the background worker isn't running.">
+            Queued {time} ago, so tailoring hasn't started. Nothing has been charged. It starts by itself once the worker is back.
+          </Callout>
+        </output>
+        {cancelButton}
+      </div>
     );
   }
   if (waited > TAILOR_POLL_LIMIT_MS) {
@@ -89,13 +104,20 @@ export function TailoringProgress({ jobId, resume }: { jobId: string; resume: Jo
             Far longer than tailoring takes. Something is stuck.
           </Callout>
         </output>
-        <Button variant="secondary" className="w-full" onClick={() => void queryClient.invalidateQueries({ queryKey: resumeKeys.job(jobId) })}>
-          <RotateCw className="size-4" /> Check again
-        </Button>
+        <div className="grid grid-cols-2 gap-2">
+          <Button variant="secondary" onClick={() => void queryClient.invalidateQueries({ queryKey: resumeKeys.job(jobId) })}>
+            <RotateCw className="size-4" /> Check again
+          </Button>
+          <Button variant="ghost" onClick={() => cancel.mutate(jobId)} disabled={cancel.isPending}>
+            Cancel
+          </Button>
+        </div>
+        {cancel.isError && <p className="text-center text-xs text-danger-fg">{cancel.error.message}</p>}
       </div>
     );
   }
   return (
+    <div className="space-y-2">
     <output className="block space-y-2.5">
       <span className="flex items-center gap-2.5">
         <span aria-hidden="true" className="size-4 shrink-0 animate-spin rounded-full border-2 border-accent border-r-transparent" />
@@ -112,6 +134,8 @@ export function TailoringProgress({ jobId, resume }: { jobId: string; resume: Jo
           : 'Usually under a minute. Runs on the server — you can leave this page.'}
       </span>
     </output>
+    {cancelButton}
+    </div>
   );
 }
 
@@ -170,9 +194,9 @@ function Body({ job, resume }: { job: JobDetail; resume: JobResume }) {
           </div>
         )}
         <div className="grid grid-cols-2 gap-2">
-          <Link to={`/jobs/${job.id}/resume`} className={`${buttonStyles(stale ? 'secondary' : 'primary')} ${resume.status !== 'PENDING' && resume.canTailor ? '' : 'col-span-2'}`}>
+          <PushLink to={`/jobs/${job.id}/resume`} dir="forward" className={`${buttonStyles(stale ? 'secondary' : 'primary')} ${resume.status !== 'PENDING' && resume.canTailor ? '' : 'col-span-2'}`}>
             <FileText className="size-4" /> {approved ? 'Open & save PDF' : 'Review'}
-          </Link>
+          </PushLink>
           {resume.status !== 'PENDING' && resume.canTailor && (
             <TailorAgain onConfirm={tailor} busy={busy} needsConfirm={!stale} approvedAt={v.approvedAt ?? v.generatedAt} />
           )}

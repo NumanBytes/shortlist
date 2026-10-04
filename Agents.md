@@ -898,9 +898,74 @@ board at the same size**, and every difference was listed and fixed:
   `data-theme="dark"`. The choice is stored per device in `localStorage` and applied by
   an inline script in `index.html` **before the first paint** (no flash), and the
   status-bar colour follows it.
-- **Still not done:** editing roles and projects (rows don't open; no "Add role"), "Edit
-  URL" on a failing source, cancelling a tailoring run, the "···" menus, and swipe
-  gestures.
+- **Done next (2026-10-05)**; see "Interactions and motion" below.
+
+### 8.4.2 Interactions and motion (2026-10-05)
+
+The design's remaining features, and every animation in its motion spec ("subtle and
+fast: 150–250ms", easing `cubic-bezier(.2,.8,.2,1)`, exits `ease-in`):
+- **Push (row → detail, detail → resume review):** the new screen slides in from the right
+  in 240ms while the old one moves 30% left and dims to 70%; back reverses it in 200ms.
+  The score ring is a **shared element** that grows from 44 to 88px. This uses the **View
+  Transitions API**, with these choices:
+  - **No react-router `viewTransition` option.** It only works with the data router, and
+    this app uses `<BrowserRouter>`. `PushLink` / `pushNavigate()` call
+    `document.startViewTransition` directly.
+  - **The callback waits for the route to commit.** Its promise resolves from a layout
+    effect (`<RouteCommitted>`), because react-router applies navigation as a
+    low-priority update that `flushSync` can't force. Without this the browser snapshotted
+    the *list* as the new screen.
+  - **Only the tapped card's ring carries the transition name** (`nameSharedRing`). When
+    every ring had one, the untapped rings stayed put while the list slid away.
+  - **The job is prefetched for up to 250ms before pushing**, so the detail ring is there
+    to grow into.
+  - Phones only; wide screens show list and detail side by side.
+  - Browsers without the API just navigate.
+  - These were verified by probing the running animations (one `root` push, one
+    `ring-<id>` group, both old and new) and by a capture at 1/10 speed.
+- **Edge-swipe back** (40% of the width, or a flick that has also travelled 15%). It is
+  enabled **only in the installed app**, because a browser tab has its own edge swipe and
+  two gestures on one edge would fight.
+- **Bottom sheet:**
+  - in 240ms, out 180ms ease-in (the sheet stays rendered while it slides), and the
+    backdrop fades;
+  - **drag the handle down to dismiss** (past 30% of its height, or a flick that has
+    travelled at least 40px);
+  - focus moves to the sheet itself, not its first button, because a ring there looked
+    like a selection on a phone.
+- **Swipe a job row** (`useSwipeRow`):
+  - the row follows the finger over a green "Interested" or grey "Skip" layer; only a
+    mostly-horizontal drag counts, with `touch-action: pan-y pinch-zoom`;
+  - past 35% the icon grows to 1.15× with a light haptic (`navigator.vibrate`, which
+    Android supports and iOS ignores);
+  - released past that, the row exits in 180ms, the gap closes in 200ms, and *then* the
+    status is saved and the Undo toast shows; the ★/✕ buttons play the same exit;
+  - **Undo slides the row back** from the side it left (200ms).
+  - New: right → Interested, left → Skip. Interested: left → back to New. Skipped: right
+    → back to New.
+- **Toast:** rises 12px and fades in (200ms), stays 5s, then drops out (200ms). **The
+  tailoring pill** rises 8px.
+- **Reduced motion:** movement becomes 150ms fades, view transitions become a crossfade,
+  spinners stay, and skeleton pulses stop.
+
+The features:
+- **Roles and projects are editable on Profile** (add, edit, delete; `CareerForms.tsx`).
+  Forms validate with the shared schemas and send only changed fields. A claim change says
+  it will un-verify linked evidence, and deleting asks first and says what happens.
+- **"Edit URL"** on a failing company board: `PATCH /discovery/sources/:id/address`.
+  `parseBoardAddress()` (shared) accepts the board's link or bare name for Greenhouse,
+  Lever, SmartRecruiters and Workable, refuses links to another platform, stores only the
+  board name, and clears the cooldown so Retry works at once. Aggregators have fixed
+  addresses. Sources now return `board`.
+- **Cancel a tailoring run:** `POST /jobs/:id/resume/cancel`. A run still waiting (or in
+  retry backoff) is removed from the queue, found via its deduplication id, so nothing is
+  charged. One the worker has started returns 409, because its Claude call is in flight.
+  The job's previous resume is kept.
+- **"···" menus.** The design shows them but not their contents, so these were chosen to
+  be useful and already supported:
+  - **Job:** copy the posting link, score again, skip / move back to New.
+  - **Resume review:** **copy as plain text** (for application forms that want pasted
+    text, in the printed order, without removed bullets), tailor again, open the job.
 
 ### 8.5 Other security decisions
 
@@ -1813,6 +1878,8 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
 | 2026-10-02 | Tailoring only on the user's request, from an Interested, scored job | §13.1 |
 | 2026-10-02 | Exposure-only skills go in a code-labelled "Learning" group | §13.1 |
 | 2026-10-02 | PDF via the browser's print to PDF on an A4 stylesheet, in the user's CV layout; no PDF library | §13.1 |
+| 2026-10-05 | Motion spec implemented: View Transitions push + shared ring (manual `startViewTransition`, waits for route commit), edge-swipe back (installed app only), sheet slide-out + drag-to-dismiss, row swipe with Undo return, toast exit; reduced-motion fades | §8.4.2 |
+| 2026-10-05 | Roles/projects editing, Edit URL (`parseBoardAddress`), cancel tailoring (dedup id lookup; 409 once running), ··· menus incl. copy resume as text | §8.4.2 |
 | 2026-10-04 | Design fidelity pass (side-by-side with each board) + phase 3 screens; System/Light/Dark appearance (pre-paint, per device); single-source retry, today's spend, jobs this week | §8.4.1 — user doubted fidelity, asked for a theme switch |
 | 2026-10-04 | E2E tests use Redis database 15, never 0 | §15.3 — a running dev worker consumed the jobs e2e tests queued |
 | 2026-10-04 | Mobile design implemented in the existing PWA (tokens, Geist, native-`<dialog>` sheets, pushed screens without tab bar, status sheet, `GET /jobs/counts`); fake progress steps, the sample resume and "Forgot password" not copied | §8.4.1 — user's Claude Design boards |

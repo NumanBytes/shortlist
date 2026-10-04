@@ -3,10 +3,19 @@ import {
   ImplementedSourceConfigSchema,
   JobSourceConfigSchema,
   MANUAL_RUN_COOLDOWN_HOURS,
+  isBoardProvider,
+  parseBoardAddress,
   type UpdateJobSourceInput,
+  type UpdateSourceAddressInput,
 } from '@shortlist/shared';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { JobQueues } from '../queue/job-queues.js';
+
+const boardNameOf = (config: unknown): string | null => {
+  const c = (config ?? {}) as Record<string, unknown>;
+  const name = c.board ?? c.site ?? c.company ?? c.account;
+  return typeof c.provider === 'string' && isBoardProvider(c.provider) && typeof name === 'string' ? name : null;
+};
 
 const COOLDOWN_MS = MANUAL_RUN_COOLDOWN_HOURS * 3600 * 1000;
 const RUNNING_WINDOW_MS = 30 * 60 * 1000;
@@ -37,6 +46,8 @@ export class DiscoveryService {
         provider: parsed.success ? parsed.data.provider : 'unknown',
         // Whether the worker can run it yet (vs. recorded for a later milestone).
         supported: ImplementedSourceConfigSchema.safeParse(config).success,
+        // The company board's name, for "Edit URL" (null for aggregators — fixed addresses).
+        board: boardNameOf(config),
         jobCount: _count.jobs,
         lastRun: discoveryRuns[0] ?? null,
       };
@@ -112,6 +123,22 @@ export class DiscoveryService {
       cooldownHours: MANUAL_RUN_COOLDOWN_HOURS,
       jobsThisWeek,
     };
+  }
+
+  // "Edit URL" on a company board that failed (the board may have moved). Only the board's
+  // name is stored; a new address also clears the cooldown so it can be retried at once.
+  async setAddress(userId: string, id: string, input: UpdateSourceAddressInput) {
+    const source = await this.prisma.jobSource.findFirst({ where: { id, userId } });
+    if (!source) throw new NotFoundException('Source not found');
+    const provider = (source.config as { provider?: string } | null)?.provider ?? '';
+    if (!isBoardProvider(provider)) throw new BadRequestException("This source's address can't be edited");
+    const parsed = parseBoardAddress(provider, input.address);
+    if (!parsed.ok) throw new BadRequestException(parsed.error);
+    return this.prisma.jobSource.update({
+      where: { id },
+      data: { config: parsed.config, lastRunAt: null, lastRunStatus: null },
+      select: { id: true, config: true },
+    });
   }
 
   // "Retry" on one source that failed or came back empty. Same cooldown as "run now", so a

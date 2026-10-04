@@ -130,6 +130,40 @@ export class JobQueues implements OnModuleDestroy {
     }
   }
 
+  // "Cancel" on a tailoring run (Agents.md §13.1). A job still waiting (or in retry
+  // backoff) is removed, so the model is never called. One the worker has started can't be
+  // recalled — its Claude call is already in flight — so say so instead of pretending.
+  async cancelTailoring(jobId: string): Promise<'removed' | 'running' | 'none'> {
+    const attempt = (async () => {
+      const id = await this.resume.getDeduplicationJobId(`tailor-${jobId}`);
+      const job = id ? await this.resume.getJob(id) : undefined;
+      if (!job) return 'none' as const;
+      const state = await job.getState();
+      if (state === 'active') return 'running' as const;
+      if (state === 'completed' || state === 'failed') return 'none' as const;
+      try {
+        await job.remove(); // fails if the worker locked it a moment ago
+      } catch {
+        return 'running' as const;
+      }
+      await this.resume.removeDeduplicationKey(`tailor-${jobId}`);
+      return 'removed' as const;
+    })();
+    let timer: NodeJS.Timeout | undefined;
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error(`no response from Redis in ${ENQUEUE_TIMEOUT_MS}ms`)), ENQUEUE_TIMEOUT_MS);
+    });
+    try {
+      return await Promise.race([attempt, timeout]);
+    } catch (err) {
+      this.logger.error(`Cancel failed: ${(err as Error).message}`);
+      throw new ServiceUnavailableException(UNAVAILABLE);
+    } finally {
+      clearTimeout(timer);
+      attempt.catch(() => undefined);
+    }
+  }
+
   // Is a worker consuming the queues? Its heartbeat key (written by apps/worker) exists
   // only while one runs. Read-only and best effort: null when Redis can't answer, so a
   // status view says "unknown" instead of failing the request.

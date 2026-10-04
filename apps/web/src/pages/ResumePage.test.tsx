@@ -73,6 +73,20 @@ describe('ResumePage', () => {
     expect(sheet).toHaveTextContent(/Commercial.*Production.*Verified/);
   });
 
+  it('copies the resume as plain text from the ··· menu, in the printed order', async () => {
+    const writeText = vi.fn(() => Promise.resolve());
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    setup(resume('APPROVED'));
+    render();
+    await userEvent.click(await screen.findByRole('button', { name: 'More actions' }));
+    await userEvent.click(screen.getByRole('button', { name: /Copy as plain text/ }));
+    const text = (writeText.mock.calls[0] as unknown as [string])[0];
+    expect(text).toMatch(/^Numan Razzaq\n/);
+    expect(text).toMatch(/EXPERIENCE\nSoftware Engineer \| CloudCard Inc\. — May 2024 - Present\n• Frontend: Built frontend features in React\./);
+    expect(text.indexOf('SKILLS')).toBeLessThan(text.indexOf('EDUCATION'));
+    expect(text).not.toMatch(/Led a team of 12/); // removed bullets are never copied
+  });
+
   it('asks for approval before offering the PDF — never optimistically', async () => {
     const fetch = setup(resume('DRAFT'));
     render();

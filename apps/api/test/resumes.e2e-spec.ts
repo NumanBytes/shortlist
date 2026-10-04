@@ -1,4 +1,7 @@
-import { createTestApp, type TestApp, type TestUser } from './helpers.js';
+import { RESUME_QUEUE } from '@shortlist/shared';
+import { Queue } from 'bullmq';
+import { Redis } from 'ioredis';
+import { createTestApp, TEST_REDIS_URL, type TestApp, type TestUser } from './helpers.js';
 
 // The worker writes resumes; here the variants are inserted directly, as the worker would.
 describe('Resumes (e2e)', () => {
@@ -84,6 +87,34 @@ describe('Resumes (e2e)', () => {
     const active = await t.http().get('/api/v1/resumes/active').set(user.auth).expect(200);
     expect(active.body).toEqual([{ jobId: j.id, title: 'Frontend Engineer', company: 'Kwanso', queuedAt: res.body.queuedAt }]);
     expect((await t.http().get('/api/v1/resumes/active').set(other.auth).expect(200)).body).toEqual([]);
+  });
+
+  it('cancels a tailoring run that has not started — nothing queued, nothing charged, the old resume kept', async () => {
+    const redis = new Redis(TEST_REDIS_URL, { maxRetriesPerRequest: null });
+    const queue = new Queue(RESUME_QUEUE, { connection: redis });
+    try {
+      const user = await t.register();
+      const e = await evidence(user, 'React');
+      const fresh = await job(user, ['React']);
+      await t.http().post(`/api/v1/jobs/${fresh.id}/resume`).set(user.auth).send({ mode: 'tailor' }).expect(202);
+      const res = await t.http().post(`/api/v1/jobs/${fresh.id}/resume/cancel`).set(user.auth).expect(200);
+      expect(res.body.status).toBe('NONE');
+      const waiting = (await queue.getJobs(['waiting', 'delayed', 'active'])).filter((j) => j.data.jobId === fresh.id);
+      expect(waiting).toHaveLength(0);
+      await t.http().post(`/api/v1/jobs/${fresh.id}/resume/cancel`).set(user.auth).expect(409); // nothing left to cancel
+      await t.http().post(`/api/v1/jobs/${fresh.id}/resume/cancel`).set(other.auth).expect(404);
+
+      // A job that already had a resume keeps it.
+      const had = await job(user, ['React']);
+      const v = await variant(user, e.id, ['react']);
+      await t.prisma.jobResume.create({ data: { jobId: had.id, status: 'READY', variantId: v.id } });
+      await t.http().post(`/api/v1/jobs/${had.id}/resume`).set(user.auth).send({ mode: 'tailor' }).expect(202);
+      const kept = await t.http().post(`/api/v1/jobs/${had.id}/resume/cancel`).set(user.auth).expect(200);
+      expect(kept.body).toMatchObject({ status: 'READY', variant: { id: v.id } });
+    } finally {
+      await queue.close();
+      await redis.quit();
+    }
   });
 
   it('reports NONE for a job without a resume, and 404 for someone else’s job', async () => {

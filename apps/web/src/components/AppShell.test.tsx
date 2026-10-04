@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { mockFetch, renderWithProviders } from '../test/render';
 import { AppShell } from './AppShell';
@@ -31,7 +31,8 @@ describe('AppShell account sheet', () => {
     renderWithProviders(<AppShell />);
     await userEvent.click(screen.getByRole('button', { name: 'Account' }));
     await userEvent.click(screen.getByRole('dialog', { name: 'Account' })); // the dialog itself = its backdrop
-    expect(screen.queryByText('numan@example.com')).not.toBeInTheDocument();
+    // It slides out (180 ms) before it's gone.
+    await waitFor(() => expect(screen.queryByText('numan@example.com')).not.toBeInTheDocument());
   });
 });
 

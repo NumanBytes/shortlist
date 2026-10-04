@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { JobListItem } from '../lib/types';
 import { job } from '../test/fixtures';
@@ -49,10 +49,35 @@ describe('JobRow', () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());
     expect(fetchMock.mock.calls[0]![0]).toBe('/api/v1/jobs/j1');
     expect(JSON.parse(fetchMock.mock.calls[0]![1]!.body as string)).toEqual({ status: 'INTERESTED' });
+  });
 
+  it('skips a job — the row animates away first, then the change is saved', async () => {
+    const fetchMock = mockFetch({ ...job, status: 'SKIPPED' });
+    row();
     await userEvent.click(screen.getByRole('button', { name: 'Skip' }));
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
-    expect(JSON.parse(fetchMock.mock.calls[1]![1]!.body as string)).toEqual({ status: 'SKIPPED' });
+    expect(fetchMock).not.toHaveBeenCalled(); // still animating out
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(JSON.parse(fetchMock.mock.calls[0]![1]!.body as string)).toEqual({ status: 'SKIPPED' });
+  });
+
+  it('swiping right past the threshold marks it interested; a short swipe springs back', async () => {
+    const fetchMock = mockFetch({ ...job, status: 'INTERESTED' });
+    row();
+    const card = screen.getByRole('link', { name: /Full Stack Software Engineer/ }).parentElement!;
+    // jsdom has no layout: give the row a width so 35% means something.
+    Object.defineProperty(card.parentElement!, 'offsetWidth', { value: 300, configurable: true });
+    const swipe = (to: number) => {
+      fireEvent.pointerDown(card, { button: 0, clientX: 10, clientY: 10, pointerId: 1 });
+      fireEvent.pointerMove(card, { clientX: 10 + to / 2, clientY: 12, pointerId: 1 });
+      fireEvent.pointerMove(card, { clientX: 10 + to, clientY: 12, pointerId: 1 });
+      fireEvent.pointerUp(card, { clientX: 10 + to, clientY: 12, pointerId: 1 });
+    };
+    swipe(60); // 20% — not enough
+    await new Promise((r) => setTimeout(r, 450));
+    expect(fetchMock).not.toHaveBeenCalled();
+    swipe(150); // 50%
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(JSON.parse(fetchMock.mock.calls[0]![1]!.body as string)).toEqual({ status: 'INTERESTED' });
   });
 
   it('confirms a move with a toast, and Undo restores the previous status', async () => {

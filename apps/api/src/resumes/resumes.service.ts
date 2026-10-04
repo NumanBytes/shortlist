@@ -129,6 +129,22 @@ export class ResumesService {
     return this.forJob(userId, jobId);
   }
 
+  // Cancel a tailoring run that hasn't started (Agents.md §13.1). The job's previous resume,
+  // if any, stays as it was; nothing is charged because the model was never called.
+  async cancel(userId: string, jobId: string) {
+    const job = await this.prisma.job.findFirst({ where: { id: jobId, userId }, select: { resume: true } });
+    if (!job) throw new NotFoundException('Job not found');
+    if (job.resume?.status !== 'PENDING') throw new ConflictException('Nothing is being tailored for this job');
+    const result = await this.queues.cancelTailoring(jobId);
+    if (result === 'running') throw new ConflictException("It's already being written — it can't be stopped now. It finishes in about a minute.");
+    if (job.resume.variantId) {
+      await this.prisma.jobResume.update({ where: { jobId }, data: { status: 'READY', error: null } });
+    } else {
+      await this.prisma.jobResume.delete({ where: { jobId } });
+    }
+    return this.forJob(userId, jobId);
+  }
+
   // "I've read every bullet and it's true." Its own endpoint, like verifying evidence.
   async approve(userId: string, variantId: string) {
     const variant = await this.prisma.resumeVariant.findFirst({ where: { id: variantId, userId } });

@@ -67,6 +67,11 @@ export interface Project {
   name: string;
   description: string | null;
   workExperienceId: string | null;
+  liveUrl: string | null;
+  repoUrl: string | null;
+  isShipped: boolean;
+  startDate: string | null;
+  endDate: string | null;
 }
 
 export type JobStatus =
@@ -148,6 +153,7 @@ export interface DiscoverySource {
   type: 'ATS_BOARD' | 'AGGREGATOR_API' | 'EMAIL_INBOX' | 'MANUAL';
   provider: string;
   supported: boolean;
+  board: string | null; // a company board's name, editable via "Edit URL"; null for aggregators
   isEnabled: boolean;
   lastRunAt: string | null;
   lastRunStatus: RunStatus | null;

@@ -1,6 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   CreateEducationInput,
+  CreateProjectInput,
+  CreateWorkExperienceInput,
+  UpdateProjectInput,
+  UpdateWorkExperienceInput,
   CreateSkillEvidenceInput,
   CreateSkillInput,
   UpdateEducationInput,
@@ -189,6 +193,30 @@ export function useRunSource() {
   });
 }
 
+// "Edit URL": a new link (or name) for a company board that moved.
+export function useSetSourceAddress() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, address }: { id: string; address: string }) => api(`/discovery/sources/${id}/address`, { method: 'PATCH', body: { address } }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: jobKeys.sources });
+      void queryClient.invalidateQueries({ queryKey: jobKeys.discoveryStatus });
+    },
+  });
+}
+
+// "Cancel" a tailoring run that hasn't started (409 if the worker is already writing it).
+export function useCancelTailoring() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (jobId: string) => api<JobResume>(`/jobs/${jobId}/resume/cancel`, { method: 'POST' }),
+    onSuccess: (data, jobId) => {
+      queryClient.setQueryData(resumeKeys.job(jobId), data);
+      void queryClient.invalidateQueries({ queryKey: resumesActiveKey });
+    },
+  });
+}
+
 export function useSetSourceEnabled() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -197,6 +225,32 @@ export function useSetSourceEnabled() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: jobKeys.sources }),
   });
 }
+
+// ── Roles and projects (career truth, Agents.md §6) ───────────────────────────
+// A change to what a role or project claims un-verifies its linked evidence on the
+// server, so the skills list is refetched too.
+function useCareerMutation<V>(request: (vars: V) => Promise<unknown>) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: request,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: keys.workExperiences });
+      void queryClient.invalidateQueries({ queryKey: keys.projects });
+      void queryClient.invalidateQueries({ queryKey: keys.skills });
+    },
+  });
+}
+
+export const useSaveRole = () =>
+  useCareerMutation(({ id, body }: { id?: string; body: CreateWorkExperienceInput | UpdateWorkExperienceInput }) =>
+    id ? api(`/work-experiences/${id}`, { method: 'PATCH', body }) : api('/work-experiences', { method: 'POST', body }),
+  );
+export const useDeleteRole = () => useCareerMutation((id: string) => api(`/work-experiences/${id}`, { method: 'DELETE' }));
+export const useSaveProject = () =>
+  useCareerMutation(({ id, body }: { id?: string; body: CreateProjectInput | UpdateProjectInput }) =>
+    id ? api(`/projects/${id}`, { method: 'PATCH', body }) : api('/projects', { method: 'POST', body }),
+  );
+export const useDeleteProject = () => useCareerMutation((id: string) => api(`/projects/${id}`, { method: 'DELETE' }));
 
 // ── Profile & education (the resume header) ─────────────────────────────────
 export const profileKeys = { profile: ['profile'] as const, education: ['education'] as const };

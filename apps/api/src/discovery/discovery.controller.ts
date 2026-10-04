@@ -1,5 +1,5 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
-import { UpdateJobSourceSchema, type UpdateJobSourceInput } from '@shortlist/shared';
+import { UpdateJobSourceSchema, UpdateSourceAddressSchema, type UpdateJobSourceInput, type UpdateSourceAddressInput } from '@shortlist/shared';
 import { CurrentUser, type AuthUser } from '../auth/current-user.decorator.js';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
 import { DiscoveryService } from './discovery.service.js';
@@ -25,6 +25,15 @@ export class DiscoveryController {
     @Body(new ZodValidationPipe(UpdateJobSourceSchema)) body: UpdateJobSourceInput,
   ) {
     return this.discovery.setEnabled(user.id, id, body);
+  }
+
+  @Patch('sources/:id/address')
+  setAddress(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body(new ZodValidationPipe(UpdateSourceAddressSchema)) body: UpdateSourceAddressInput,
+  ) {
+    return this.discovery.setAddress(user.id, id, body);
   }
 
   // 202: queued for the worker.
