@@ -1,8 +1,10 @@
 @import 'tailwindcss';
+@import '@fontsource-variable/geist';
 
 /* Semantic color tokens. Components use these names (bg-surface, text-muted, …) — never
    raw palette colors — so light/dark and any future rebrand are one edit here. */
-:root {
+:root,
+:root[data-theme='light'] {
   --bg: #f5f6f8;
   --surface: #ffffff;
   --surface-2: #f0f2f5;
@@ -12,28 +14,40 @@
   --subtle: #8a93a3;
   --primary: #0f172a;
   --primary-fg: #ffffff;
+  /* Accent: primary buttons, active tab, links (mobile design, 2026-10-04). */
   --accent: #059669;
+  --accent-fg: #047857; /* accent-coloured text on a light surface */
+  --accent-soft: #d1fae5; /* tinted buttons, focus rings, selected rows */
+  --on-accent: #ffffff; /* text on a solid accent button */
   --apply: #10b981;
   --apply-bg: #d1fae5;
-  --apply-fg: #065f46;
+  --apply-fg: #047857;
   --stretch: #f59e0b;
   --stretch-bg: #fef3c7;
-  --stretch-fg: #92400e;
+  --stretch-fg: #b45309;
   --skip: #a3acba;
   --skip-bg: #eceff3;
-  --skip-fg: #475467;
+  --skip-fg: #586174;
   --danger: #dc2626;
   --danger-bg: #fee2e2;
-  --danger-fg: #991b1b;
+  --danger-fg: #b91c1c;
   --ring-track: #e6e9ee;
+  --scrim: rgb(15 23 42 / 0.36); /* behind a bottom sheet */
+  --glass: rgb(255 255 255 / 0.88); /* frosted tab bar */
+  --toast-accent: #34d399; /* Undo / spinner on the dark toast and pill */
+  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 4px 16px rgb(15 23 42 / 0.05);
   color-scheme: light;
 }
 
+/* Dark theme. Applied when the system is dark (unless the user chose Light), or when the
+   user chose Dark — the choice lives on <html data-theme>, set before first paint by the
+   script in index.html (lib/theme.ts). The token list is repeated because CSS can't share
+   one block between a media query and an attribute selector. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme='light']) {
     --bg: #0a0e16;
     --surface: #121825;
-    --surface-2: #1a2131;
+    --surface-2: #1a2233;
     --border: #253047;
     --fg: #e8edf4;
     --muted: #a1abbb;
@@ -41,22 +55,62 @@
     --primary: #e8edf4;
     --primary-fg: #0a0e16;
     --accent: #34d399;
-    --apply: #34d399;
-    --apply-bg: rgb(52 211 153 / 0.14);
-    --apply-fg: #6ee7b7;
-    --stretch: #fbbf24;
-    --stretch-bg: rgb(251 191 36 / 0.14);
-    --stretch-fg: #fcd34d;
-    --skip: #5b6678;
-    --skip-bg: #1f2738;
-    --skip-fg: #a1abbb;
+    --accent-fg: #34d399;
+    --accent-soft: rgb(52 211 153 / 0.14);
+    --on-accent: #04221a;
+    --apply: #10b981;
+    --apply-bg: rgb(16 185 129 / 0.14);
+    --apply-fg: #34d399;
+    --stretch: #f59e0b;
+    --stretch-bg: rgb(245 158 11 / 0.14);
+    --stretch-fg: #fbbf24;
+    --skip: #a3acba;
+    --skip-bg: rgb(163 172 186 / 0.14);
+    --skip-fg: #a3acba;
     --danger: #f87171;
     --danger-bg: rgb(248 113 113 / 0.14);
     --danger-fg: #fca5a5;
     --ring-track: #253047;
+    --scrim: rgb(0 0 0 / 0.6);
+    --glass: rgb(18 24 37 / 0.88);
+    --toast-accent: #047857;
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3);
     color-scheme: dark;
   }
 }
+:root[data-theme='dark'] {
+    --bg: #0a0e16;
+    --surface: #121825;
+    --surface-2: #1a2233;
+    --border: #253047;
+    --fg: #e8edf4;
+    --muted: #a1abbb;
+    --subtle: #6f7a8d;
+    --primary: #e8edf4;
+    --primary-fg: #0a0e16;
+    --accent: #34d399;
+    --accent-fg: #34d399;
+    --accent-soft: rgb(52 211 153 / 0.14);
+    --on-accent: #04221a;
+    --apply: #10b981;
+    --apply-bg: rgb(16 185 129 / 0.14);
+    --apply-fg: #34d399;
+    --stretch: #f59e0b;
+    --stretch-bg: rgb(245 158 11 / 0.14);
+    --stretch-fg: #fbbf24;
+    --skip: #a3acba;
+    --skip-bg: rgb(163 172 186 / 0.14);
+    --skip-fg: #a3acba;
+    --danger: #f87171;
+    --danger-bg: rgb(248 113 113 / 0.14);
+    --danger-fg: #fca5a5;
+    --ring-track: #253047;
+    --scrim: rgb(0 0 0 / 0.6);
+    --glass: rgb(18 24 37 / 0.88);
+    --toast-accent: #047857;
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3);
+    color-scheme: dark;
+  }
 
 @theme inline {
   --color-bg: var(--bg);
@@ -69,6 +123,15 @@
   --color-primary: var(--primary);
   --color-primary-fg: var(--primary-fg);
   --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+  --color-on-accent: var(--on-accent);
+  --color-scrim: var(--scrim);
+  --color-glass: var(--glass);
+  --color-toast-accent: var(--toast-accent);
+  --shadow-card: var(--shadow-card);
+  /* Geist, bundled with the app (works offline in the installed PWA). */
+  --font-sans: 'Geist Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --color-apply: var(--apply);
   --color-apply-bg: var(--apply-bg);
   --color-apply-fg: var(--apply-fg);
@@ -92,7 +155,41 @@
 body {
   background: var(--bg);
   color: var(--fg);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Motion (design's motion spec): subtle and fast, one easing curve. Reduced motion turns
+   movement into short fades. */
+@keyframes sheet-up {
+  from { transform: translateY(100%); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+}
+/* An indeterminate progress bar: moves without claiming a percentage. */
+@keyframes indeterminate {
+  from { left: -33%; }
+  to { left: 100%; }
+}
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(12px); }
+}
+@utility animate-sheet-up {
+  animation: sheet-up 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@utility animate-fade-in {
+  animation: fade-in 200ms linear;
+}
+@utility animate-rise-in {
+  animation: rise-in 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-sheet-up,
+  .animate-rise-in {
+    animation: fade-in 150ms linear;
+  }
 }
 
 /* Printing (the resume's "Save as PDF"): the user's CV page — US Letter, 1in margins

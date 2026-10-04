@@ -17,88 +17,52 @@ const evidence: Evidence = {
   verifiedAt: null,
 };
 
-function renderItem(e: Evidence = evidence) {
+function renderItem(e: Evidence = evidence, onEdit = vi.fn()) {
   const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
-  return render(
+  render(
     <QueryClientProvider client={client}>
-      <EvidenceItem evidence={e} source="Frontend Developer, CloudCard Inc." />
+      <ul>
+        <EvidenceItem evidence={e} source="Frontend Developer, CloudCard Inc." onEdit={onEdit} />
+      </ul>
     </QueryClientProvider>,
   );
+  return onEdit;
 }
 
 function mockFetch(body: unknown) {
-  const fn = vi.fn(() =>
-    Promise.resolve(new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } })),
-  );
+  const fn = vi.fn(() => Promise.resolve(new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } })));
   vi.stubGlobal('fetch', fn);
   return fn;
 }
 
 describe('EvidenceItem', () => {
-  it('shows the claim, its source, and that it is not verified', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('shows the claim in your words, where and how deeply, its source, and that it is not verified', () => {
     renderItem();
-    expect(screen.getByText('Built RBAC screens')).toBeInTheDocument();
-    expect(screen.getByText('Frontend Developer, CloudCard Inc.')).toBeInTheDocument();
-    expect(screen.getByText('Not verified')).toBeInTheDocument();
+    expect(screen.getByText('“Built RBAC screens”')).toBeInTheDocument();
+    expect(screen.getByText('Commercial')).toBeInTheDocument();
+    expect(screen.getByText('Production')).toBeInTheDocument();
+    expect(screen.getByText(/Frontend Developer, CloudCard Inc\./)).toBeInTheDocument();
+    expect(screen.getByText('Unverified')).toBeInTheDocument();
   });
 
   it('verify calls the dedicated verify endpoint — never a PATCH with isVerified', async () => {
-    const fetchMock = mockFetch({ ...evidence, isVerified: true });
+    const fetch = mockFetch({ ...evidence, isVerified: true });
     renderItem();
-    await userEvent.click(screen.getByRole('button', { name: /verify/i }));
-    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
-    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    await userEvent.click(screen.getByRole('button', { name: /Verify/ }));
+    await waitFor(() => expect(fetch).toHaveBeenCalled());
+    const [url, init] = fetch.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe('/api/v1/evidence/e1/verify');
     expect(init.method).toBe('POST');
     expect(init.body).toBeUndefined();
   });
 
-  it('rewording sends only the new text, and warns that it un-verifies', async () => {
-    const fetchMock = mockFetch({ ...evidence, whatIDid: 'Built and designed RBAC screens' });
-    renderItem({ ...evidence, isVerified: true });
+  it('a verified item offers Unverify; Edit opens the editor', async () => {
+    const onEdit = renderItem({ ...evidence, isVerified: true });
+    expect(screen.getByText('Verified')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Unverify' })).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Edit' }));
-    expect(screen.getByText(/un-verifies this item/)).toBeInTheDocument();
-
-    const box = screen.getByLabelText('What you did');
-    await userEvent.clear(box);
-    await userEvent.type(box, 'Built and designed RBAC screens');
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
-
-    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
-    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
-    expect(url).toBe('/api/v1/evidence/e1');
-    expect(JSON.parse(init.body as string)).toEqual({ whatIDid: 'Built and designed RBAC screens' });
-  });
-
-  it('changes where and how deeply — sending only what changed', async () => {
-    const fetchMock = mockFetch({ ...evidence, context: 'PERSONAL', depth: 'WORKING' });
-    renderItem();
-    await userEvent.click(screen.getByRole('button', { name: 'Edit' }));
-    await userEvent.selectOptions(screen.getByLabelText('Where'), 'PERSONAL');
-    await userEvent.selectOptions(screen.getByLabelText('How deeply'), 'WORKING');
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
-    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
-    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
-    expect(url).toBe('/api/v1/evidence/e1');
-    expect(JSON.parse(init.body as string)).toEqual({ context: 'PERSONAL', depth: 'WORKING' });
-  });
-
-  it('closes without a request when nothing changed', async () => {
-    const fetchMock = mockFetch({});
-    renderItem();
-    await userEvent.click(screen.getByRole('button', { name: 'Edit' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
-    expect(fetchMock).not.toHaveBeenCalled();
-    expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument();
-  });
-
-  it('validates with the shared schema before sending', async () => {
-    const fetchMock = mockFetch({});
-    renderItem();
-    await userEvent.click(screen.getByRole('button', { name: 'Edit' }));
-    await userEvent.clear(screen.getByLabelText('What you did'));
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
-    expect(await screen.findByText(/too small|at least|required/i)).toBeInTheDocument();
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(onEdit).toHaveBeenCalled();
   });
 });

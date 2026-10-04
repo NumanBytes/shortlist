@@ -56,11 +56,17 @@ export interface WorkExperience {
   id: string;
   company: string;
   title: string;
+  startDate: string;
+  endDate: string | null;
+  isCurrent: boolean;
+  location: string | null;
 }
 
 export interface Project {
   id: string;
   name: string;
+  description: string | null;
+  workExperienceId: string | null;
 }
 
 export type JobStatus =
@@ -129,6 +135,7 @@ export interface AiUsage {
   monthToDateUsd: number;
   callsThisMonth: number;
   analysesLast24h: number;
+  last24hUsd: number; // every AI call in the last 24h — the "Today" tile
   jobs: { pending: number; done: number; deferred: number; failed: number };
 }
 
@@ -172,6 +179,7 @@ export interface DiscoveryStatus {
   nextNightlyAt: string | null;
   workerOnline: boolean | null; // null: Redis didn't answer
   cooldownHours: number;
+  jobsThisWeek: number;
 }
 
 // A resume the worker is tailoring (or waiting to) — shown on every page.
@@ -223,7 +231,7 @@ export interface JobResume {
     stale: string[];
     content: ResumeContent;
   } | null;
-  sources: Record<string, { skillName: string; whatIDid: string; isVerified: boolean }>;
+  sources: Record<string, { skillName: string; whatIDid: string; isVerified: boolean; context: EvidenceContext; depth: EvidenceDepth; lastUsed: string }>;
   reuse: { variantId: string; overlap: number; approvedAt: string | null; usedFor: string[] }[];
 }
 

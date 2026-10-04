@@ -67,7 +67,7 @@ describe('JobRow', () => {
 
   it("names a company board as 'company site' rather than repeating the company", () => {
     row();
-    expect(screen.getByText(/· company site/)).toBeInTheDocument();
+    expect(screen.getByText('via company site')).toBeInTheDocument();
     expect(screen.getAllByText(/Septem Systems/)).toHaveLength(1);
   });
 

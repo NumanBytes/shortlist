@@ -1,35 +1,31 @@
-import { PartyPopper, Plus, ShieldCheck } from 'lucide-react';
+import { ChevronDown, ChevronUp, PartyPopper, Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useAuth } from '../auth/AuthProvider';
-import { AddEvidenceForm, AddSkillCard } from '../components/AddEvidence';
+import { PageHeader } from '../components/AppShell';
+import { EvidenceSheet, type EvidenceSheetMode } from '../components/AddEvidence';
 import { EvidenceItem } from '../components/EvidenceItem';
-import { Badge, Button, Card, EmptyState, Segmented, Skeleton } from '../components/ui';
+import { Badge, Button, Card, EmptyState, Skeleton } from '../components/ui';
 import { useProjects, useSkills, useWorkExperiences } from '../lib/queries';
-import type { Evidence } from '../lib/types';
+import type { Evidence, Skill } from '../lib/types';
 
-type Filter = 'unverified' | 'verified' | 'all';
-const matches = (e: Evidence, f: Filter) => f === 'all' || e.isVerified === (f === 'verified');
-
+// Evidence (design board 4): what you've done, grouped by skill, and the review queue.
+// Only verified evidence is used to score jobs or write a resume (Agents.md §6).
 export function ReviewPage() {
-  const { state } = useAuthName();
+  const email = useEmail();
   const skills = useSkills();
   const work = useWorkExperiences();
   const projects = useProjects();
+  const [sheet, setSheet] = useState<EvidenceSheetMode | null>(null);
+  // Which groups are open. Until the user toggles one, the first group with something to
+  // review opens by itself — the review queue leads.
+  const [open, setOpen] = useState<Record<string, boolean>>({});
 
-  const all = skills.data?.flatMap((s) => s.evidence) ?? [];
+  const list = skills.data ?? [];
+  const all = list.flatMap((s) => s.evidence);
   const verified = all.filter((e) => e.isVerified).length;
   const toReview = all.length - verified;
-  // Default to the review queue while there is one; otherwise show everything.
-  const [filter, setFilter] = useState<Filter | null>(null);
-  const [adding, setAdding] = useState(false);
-  const [addingTo, setAddingTo] = useState<string | null>(null); // skill id
-  // New evidence is unverified, so show the review queue where it just landed.
-  const added = () => {
-    setAdding(false);
-    setAddingTo(null);
-    setFilter('unverified');
-  };
-  const active: Filter = filter ?? (toReview > 0 ? 'unverified' : 'all');
+  const firstToReview = list.find((s) => s.evidence.some((e) => !e.isVerified))?.id;
+  const isOpen = (id: string) => open[id] ?? id === firstToReview;
 
   // Evidence stores only IDs for its role/project; resolve them to display names.
   const sourceName = useMemo(() => {
@@ -39,113 +35,148 @@ export function ReviewPage() {
     return (e: Evidence) => names.get(e.workExperienceId ?? e.projectId ?? '');
   }, [work.data, projects.data]);
 
-  const visible = (skills.data ?? [])
-    .map((s) => ({ ...s, evidence: s.evidence.filter((e) => matches(e, active)) }))
-    .filter((s) => s.evidence.length > 0);
-  const pct = all.length ? Math.round((verified / all.length) * 100) : 0;
+  // Skills with something to review come first (the design leads with the queue); the
+  // rest keep the API's alphabetical order.
+  const pendingOf = (s: Skill) => s.evidence.some((e) => !e.isVerified);
+  const shown = list.filter((s) => s.evidence.length > 0).sort((a, b) => Number(pendingOf(b)) - Number(pendingOf(a)));
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-lg font-semibold text-fg">Career evidence</h1>
-          {state && <p className="truncate text-sm text-muted">{state}</p>}
+    <div className="mx-auto max-w-2xl space-y-3">
+      <PageHeader title="Evidence" />
+
+      {all.length > 0 && (
+        <Card className="space-y-2.5 px-4 py-3.5">
+          <div className="flex items-baseline justify-between gap-3">
+            <p className="text-[15px] font-semibold text-fg">
+              {toReview > 0 ? (
+                <>
+                  <span className="tabular-nums">{toReview}</span> to review
+                </>
+              ) : (
+                'All verified'
+              )}
+            </p>
+            <p className="text-xs text-muted tabular-nums">
+              {verified} of {all.length} verified
+            </p>
+          </div>
+          <progress
+            aria-label="Verified evidence"
+            max={all.length}
+            value={verified}
+            className="block h-1.5 w-full appearance-none overflow-hidden rounded-full bg-surface-2 [&::-moz-progress-bar]:rounded-full [&::-moz-progress-bar]:bg-accent [&::-webkit-progress-bar]:bg-surface-2 [&::-webkit-progress-value]:rounded-full [&::-webkit-progress-value]:bg-accent"
+          />
+          <p className="text-xs text-muted">Resumes only use evidence you've verified. Verify an item only if it's true as worded.</p>
+        </Card>
+      )}
+
+      {skills.isPending && (
+        <div className="space-y-2.5" aria-busy="true">
+          <Skeleton className="h-14 w-full rounded-2xl" />
+          <Skeleton className="h-14 w-full rounded-2xl" />
         </div>
-        {!adding && (
-          <Button size="sm" onClick={() => setAdding(true)}>
-            <Plus className="size-4" /> Add skill
-          </Button>
-        )}
+      )}
+      {skills.isError && <p className="text-danger-fg">Couldn't load your skills: {skills.error.message}</p>}
+      {skills.isSuccess && all.length === 0 && (
+        <div className="space-y-2 text-sm text-muted">
+          <p>No evidence yet. Tap “Add skill”, or load your career data with the seed, then refresh:</p>
+          <pre className="overflow-x-auto rounded-lg bg-surface-2 p-3 text-xs text-fg">
+            {`SEED_USER_EMAIL=${email ?? 'you@example.com'} pnpm --filter @shortlist/db db:seed:career`}
+          </pre>
+          <p>Everything added starts unverified.</p>
+        </div>
+      )}
+      {skills.isSuccess && all.length > 0 && shown.length === 0 && <EmptyState icon={<PartyPopper className="size-6" />} title="Everything is verified" />}
+
+      <div className="space-y-2.5">
+        {shown.map((skill) => (
+          <SkillGroup
+            key={skill.id}
+            skill={skill}
+            open={isOpen(skill.id)}
+            onToggle={() => setOpen((o) => ({ ...o, [skill.id]: !isOpen(skill.id) }))}
+            sourceName={sourceName}
+            onEdit={(evidence) => setSheet({ kind: 'edit', evidence, skillName: skill.name })}
+            onAdd={() => setSheet({ kind: 'add', skill })}
+          />
+        ))}
       </div>
 
-      {adding && <AddSkillCard onDone={added} />}
+      {/* Floating "Add skill" above the tab bar on phones (design board 4); inline on desktop. */}
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={() => setSheet({ kind: 'new-skill' })}
+          className="fixed right-4 bottom-[calc(76px+env(safe-area-inset-bottom))] z-10 flex h-13 items-center gap-2 rounded-full bg-fg pr-5 pl-4 text-[15px] font-semibold text-bg shadow-[0_10px_28px_rgb(15_23_42/0.28)] sm:static sm:shadow-none print:hidden"
+        >
+          <Plus className="size-5" /> Add skill
+        </button>
+      </div>
 
-      <Card className="p-4">
-        <div className="flex items-start gap-3">
-          <ShieldCheck className="mt-0.5 size-5 shrink-0 text-accent" />
-          <p className="text-sm text-muted">
-            Only <strong className="text-fg">verified</strong> evidence is used to score jobs or write a resume. Verify an
-            item only if it's true as worded — edit it first if it isn't.
-          </p>
-        </div>
-        {all.length > 0 && (
-          <div className="mt-3">
-            <div className="flex items-baseline justify-between text-sm">
-              <span className="font-medium text-fg">
-                {verified} of {all.length} verified
-              </span>
-              {toReview > 0 ? <Badge tone="stretch">{toReview} to review</Badge> : <Badge tone="apply">All verified</Badge>}
-            </div>
-            {/* Decorative: the text above carries the same information. */}
-            <div className="mt-2 h-2 overflow-hidden rounded-full bg-ring-track" aria-hidden="true">
-              <div className="h-full rounded-full bg-apply transition-all" style={{ width: `${pct}%` }} />
-            </div>
-          </div>
-        )}
-      </Card>
-
-      <Segmented
-        label="Filter evidence"
-        value={active}
-        onChange={setFilter}
-        options={[
-          { value: 'unverified', label: 'To review', count: toReview },
-          { value: 'verified', label: 'Verified', count: verified },
-          { value: 'all', label: 'All', count: all.length },
-        ]}
-      />
-
-      <main className="space-y-5">
-        {skills.isPending && (
-          <div className="space-y-2" aria-busy="true">
-            <Skeleton className="h-24 w-full" />
-            <Skeleton className="h-24 w-full" />
-          </div>
-        )}
-        {skills.isError && <p className="text-danger-fg">Couldn't load your skills: {skills.error.message}</p>}
-        {skills.isSuccess && all.length === 0 && (
-          <div className="space-y-2 text-sm text-muted">
-            <p>No evidence yet. New accounts start empty — load your career data with the seed, then refresh:</p>
-            <pre className="overflow-x-auto rounded-lg bg-surface-2 p-3 text-xs text-fg">
-              {`SEED_USER_EMAIL=${state ?? 'you@example.com'} pnpm --filter @shortlist/db db:seed:career`}
-            </pre>
-            <p>Everything it adds starts unverified.</p>
-          </div>
-        )}
-        {skills.isSuccess && all.length > 0 && visible.length === 0 && (
-          <EmptyState icon={<PartyPopper className="size-8" />} title={active === 'unverified' ? 'Everything is verified' : 'Nothing here yet'} />
-        )}
-        {visible.map((skill) => (
-          <section key={skill.id} aria-labelledby={`skill-${skill.id}`}>
-            <div className="mb-2 flex items-center gap-2">
-              <h2 id={`skill-${skill.id}`} className="font-semibold text-fg">
-                {skill.name}
-              </h2>
-              <Badge>{skill.category.toLowerCase()}</Badge>
-            </div>
-            <ul className="space-y-2">
-              {skill.evidence.map((e) => (
-                <EvidenceItem key={e.id} evidence={e} source={sourceName(e)} />
-              ))}
-            </ul>
-            <div className="mt-2">
-              {addingTo === skill.id ? (
-                <AddEvidenceForm skill={skill} onDone={added} />
-              ) : (
-                <Button size="sm" variant="ghost" onClick={() => setAddingTo(skill.id)}>
-                  <Plus className="size-3.5" /> Add evidence for {skill.name}
-                </Button>
-              )}
-            </div>
-          </section>
-        ))}
-      </main>
+      <EvidenceSheet mode={sheet} onClose={() => setSheet(null)} onSaved={() => setSheet(null)} />
     </div>
   );
 }
 
-// The signed-in user's email, for the seed hint and the header.
-function useAuthName() {
+// A skill's evidence, collapsible. Collapsed, it says how many items wait for review.
+function SkillGroup({
+  skill,
+  open,
+  onToggle,
+  sourceName,
+  onEdit,
+  onAdd,
+}: {
+  skill: Skill;
+  open: boolean;
+  onToggle: () => void;
+  sourceName: (e: Evidence) => string | undefined;
+  onEdit: (e: Evidence) => void;
+  onAdd: () => void;
+}) {
+  const verified = skill.evidence.filter((e) => e.isVerified).length;
+  const pending = skill.evidence.length - verified;
+  const learning = skill.evidence.every((e) => e.depth === 'EXPOSURE');
+  return (
+    <section aria-label={`${skill.name} evidence`} className="overflow-hidden rounded-2xl border border-border bg-surface">
+      <button type="button" aria-expanded={open} onClick={onToggle} className="flex min-h-13 w-full items-center gap-2.5 pr-2 pl-4 text-left">
+        <span className="flex-1 text-[15px] font-semibold text-fg">
+          {skill.name}
+          {learning && <span className="text-xs font-medium text-muted"> · learning</span>}
+        </span>
+        {open || pending === 0 ? (
+          <span className="text-xs text-muted tabular-nums">
+            {verified} of {skill.evidence.length} verified
+          </span>
+        ) : (
+          <Badge tone="stretch">
+            <span className="tabular-nums">{pending}</span> to review
+          </Badge>
+        )}
+        <span className="grid size-8 place-items-center text-muted" aria-hidden="true">
+          {open ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+        </span>
+      </button>
+      {open && (
+        <>
+          <ul>
+            {skill.evidence.map((e) => (
+              <EvidenceItem key={e.id} evidence={e} source={sourceName(e)} onEdit={() => onEdit(e)} />
+            ))}
+          </ul>
+          <div className="border-t border-border px-2 py-1">
+            <Button variant="ghost" size="sm" className="text-accent-fg" onClick={onAdd}>
+              <Plus className="size-4" /> Add evidence for {skill.name}
+            </Button>
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
+
+// The signed-in user's email, for the seed hint.
+function useEmail() {
   const { state } = useAuth();
-  return { state: state.status === 'signedIn' ? state.user.email : null };
+  return state.status === 'signedIn' ? state.user.email : null;
 }

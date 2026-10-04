@@ -119,7 +119,7 @@ describe('Resumes (e2e)', () => {
 
     const res = await t.http().get(`/api/v1/jobs/${j.id}/resume`).set(me.auth).expect(200);
     expect(res.body).toMatchObject({ status: 'READY', variant: { id: v.id, status: 'DRAFT', stale: [] } });
-    expect(res.body.sources[e.id]).toMatchObject({ whatIDid: 'Used React.', isVerified: true });
+    expect(res.body.sources[e.id]).toMatchObject({ whatIDid: 'Used React.', isVerified: true, context: 'COMMERCIAL', depth: 'PRODUCTION', lastUsed: expect.any(String) });
   });
 
   it('approves only an up-to-date resume; editing or un-verifying its evidence makes it stale', async () => {

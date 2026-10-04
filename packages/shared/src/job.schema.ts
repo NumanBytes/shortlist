@@ -24,6 +24,9 @@ export const ListJobsQuerySchema = z
   .strict();
 export type ListJobsQuery = z.infer<typeof ListJobsQuerySchema>;
 
+export const JobCountsQuerySchema = z.object({ sourceId: z.string().uuid().optional() }).strict();
+export type JobCountsQuery = z.infer<typeof JobCountsQuerySchema>;
+
 // The user moves a job through their pipeline. Shortlist never applies on its own —
 // APPLIED only ever records what the user did (Agents.md §1: the human clicks submit).
 export const UpdateJobSchema = z.object({ status: JobStatus }).strict();

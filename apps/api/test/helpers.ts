@@ -9,6 +9,11 @@ import { AUTH_RATE_RULES, DEFAULT_AUTH_RATE_RULES } from '../src/rate-limit/rate
 const LOTS = { limit: 1_000_000, windowSeconds: 60 };
 
 export const TEST_EMAIL_DOMAIN = '@e2e.shortlist.test';
+
+// E2E tests use their own Redis database (15), never the development one (0). A dev
+// worker listens on database 0 and would grab the jobs these tests queue — failing every
+// "is it queued?" check and, worse, actually running test users' fake sources.
+export const TEST_REDIS_URL = 'redis://localhost:6379/15';
 export const TEST_PASSWORD = 'correct horse battery';
 export const uniqueEmail = () => `user-${crypto.randomUUID()}${TEST_EMAIL_DOMAIN}`;
 
@@ -36,6 +41,7 @@ export function refreshCookieFrom(res: { headers: Record<string, unknown> }): st
 // `configure` lets a test swap providers for fakes (e.g. Google) before the app compiles.
 export async function createTestApp(configure: (b: TestingModuleBuilder) => TestingModuleBuilder = (b) => b) {
   process.env.BCRYPT_ROUNDS = '4'; // hashing speed isn't under test
+  process.env.REDIS_URL = TEST_REDIS_URL;
   // Every e2e file registers users from 127.0.0.1, so by default the auth rate limits are
   // out of the way, in a namespace of this app's own. rate-limit.e2e-spec.ts sets real ones.
   const base = Test.createTestingModule({ imports: [AppModule] })

@@ -1,7 +1,7 @@
 import { DISCOVERY_QUEUE, EMAIL_QUEUE, WORKER_HEARTBEAT_KEY } from '@shortlist/shared';
 import { Queue } from 'bullmq';
 import { Redis } from 'ioredis';
-import { createTestApp, type TestApp, type TestUser } from './helpers.js';
+import { createTestApp, type TestApp, type TestUser, TEST_REDIS_URL } from './helpers.js';
 
 describe('Jobs & discovery (e2e)', () => {
   let t: TestApp;
@@ -14,7 +14,7 @@ describe('Jobs & discovery (e2e)', () => {
     t = await createTestApp();
     me = await t.register();
     other = await t.register();
-    redis = new Redis('redis://localhost:6379', { maxRetriesPerRequest: null });
+    redis = new Redis(TEST_REDIS_URL, { maxRetriesPerRequest: null });
     queue = new Queue(DISCOVERY_QUEUE, { connection: redis });
   });
 
@@ -83,6 +83,16 @@ describe('Jobs & discovery (e2e)', () => {
       const theirs = await t.http().get(`/api/v1/jobs?sourceId=${src.id}`).set(other.auth).expect(200);
       expect(theirs.body).toEqual([]);
       await t.http().get('/api/v1/jobs?sourceId=not-a-uuid').set(me.auth).expect(400);
+    });
+
+    it('counts jobs per status for the tabs — only the caller\'s', async () => {
+      const user = await t.register();
+      await job(user, { status: 'DISCOVERED' });
+      await job(user, { status: 'DISCOVERED' });
+      await job(user, { status: 'INTERESTED' });
+      await job(other, { status: 'INTERESTED' });
+      const res = await t.http().get('/api/v1/jobs/counts').set(user.auth).expect(200);
+      expect(res.body).toEqual({ DISCOVERED: 2, INTERESTED: 1 });
     });
 
     it('returns the full description on GET /jobs/:id, 404 for others', async () => {
@@ -187,6 +197,27 @@ describe('Jobs & discovery (e2e)', () => {
       // The older source becomes due first: 2h ago + 6h cooldown.
       expect(Date.parse(res.body.availableAt)).toBeCloseTo(Date.now() + 4 * 3600 * 1000, -4);
       expect(typeof res.body.workerOnline).toBe('boolean');
+    });
+
+    it('retries one source — not before its cooldown, and never another user\'s', async () => {
+      const user = await t.register();
+      const failed = await source(user, { lastRunAt: new Date(Date.now() - 7 * 3600 * 1000), lastRunStatus: 'FAILED' });
+      const recent = await source(user, { lastRunAt: new Date(Date.now() - 3600 * 1000) });
+      await t.http().post(`/api/v1/discovery/sources/${failed.id}/run`).set(user.auth).expect(202);
+      const res = await t.http().post(`/api/v1/discovery/sources/${recent.id}/run`).set(user.auth).expect(409);
+      expect(res.body.message).toMatch(/ran recently/);
+      await t.http().post(`/api/v1/discovery/sources/${failed.id}/run`).set(other.auth).expect(404);
+      const queued = (await queue.getJobs(['waiting', 'delayed', 'active'])).filter((j) => j.data.sourceId === failed.id);
+      expect(queued).toHaveLength(1);
+      await Promise.all(queued.map((j) => j.remove()));
+    });
+
+    it('counts the jobs found this week', async () => {
+      const user = await t.register();
+      await job(user);
+      await job(user, { discoveredAt: new Date(Date.now() - 10 * 24 * 3600 * 1000) });
+      const res = await t.http().get('/api/v1/discovery/status').set(user.auth).expect(200);
+      expect(res.body.jobsThisWeek).toBe(1);
     });
 
     it("knows whether a worker is running from its heartbeat", async () => {

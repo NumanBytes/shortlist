@@ -789,6 +789,119 @@ first job, inline details pushing the list down, no overview, no dark mode).
   content), tall rows from stacked icons, repeated company names, a menu that didn't
   close, and no feedback when a job left the list.
 
+### 8.4.1 Mobile design from Claude Design (2026-10-04)
+
+The user generated a mobile design in Claude Design from a prompt describing Shortlist's
+real screens, data and tokens, and asked for it to be implemented. That's 14 boards: jobs
+list and its states, job detail, status sheet, resume-card states, resume review, Evidence,
+Add skill, Sources, Profile, Sign in, patterns (sheets, toast, install prompt), a
+component sheet and a motion spec. It is implemented in the existing React + Tailwind PWA:
+**no native app and no rewrite**. Phones get the design; wider screens keep a top bar and
+the list/detail split.
+- **Tokens:**
+  - The existing names are kept (so every screen inherits the look), with the design's
+    values.
+  - Added: `accent-fg` / `accent-soft` / `on-accent` (the primary button is now the green
+    accent, not near-black), `scrim`, `glass` (frosted bars), `toast-accent` and
+    `shadow-card`.
+  - Font: **Geist**, bundled from `@fontsource-variable/geist`, not a CDN, so the installed
+    app works offline.
+  - Motion: 150–250ms with one easing curve; reduced motion turns movement into fades.
+- **Primitives** (`ui.tsx`): 44px touch targets; `Button` gains `tinted` and `lg`;
+  `buttonStyles()` styles a real link as a button; plus `Chip`, `SectionLabel`, and
+  **`Sheet`**. The sheet is built on the native `<dialog>`, whose `showModal()` gives focus
+  trapping, Escape to close and an inert background for free. It's a bottom sheet on phones
+  and a centred dialog on wider screens.
+- **Shell:**
+  - Large 30px page titles with the account avatar beside them on phones.
+  - The account menu became an account sheet.
+  - A frosted tab bar, which is **hidden on pushed screens** (a job and its resume), where
+    the screen has its own back link and bottom action bar.
+  - The tailoring indicator became the design's dark floating pill above the tab bar.
+- **Jobs list:** tab counts from a new `GET /jobs/counts` (per status, optional `sourceId`).
+  The freshness card reads "Check for new jobs", and shows "Available again in 3h" during
+  the cooldown when there's no Gmail to check. Verdict chips with dots; "N matches · Best
+  match" sort toggle; empty state with "See Interested"; an error state with Try again.
+- **Job detail:**
+  - Score hero; "Why it fits" maps each requirement to a verified-skill chip; Gaps end
+    with "Have experience here? Add evidence"; Risks; the description collapsed under
+    "Read more".
+  - A sticky bar with **status ▾ + Open posting**. Status changes moved into a **status
+    sheet** (Shortlist / Pipeline / Closed, plus "Move back to New"), which replaced the
+    separate Interested, I applied and Skip buttons and the stage dropdown.
+- **Resume card:** the design's states (reuse offer, tailor, tailoring, stalled, ready,
+  approved, out of date, failed, deferred with a link to the budget). Re-tailoring a
+  current resume asks in the design's confirm sheet.
+
+**Deliberately not copied from the design:**
+- The design's sample resume (a Summary section, different layout, and an "Azure AD B2C"
+  bullet, a known false claim, §7.2). The document stays matched to the user's CV
+  (§13.1).
+- **Step-by-step tailoring progress** ("Picked 9 items → Writing bullets → Checks"): the
+  worker reports no steps, so it would be fake. Instead there's an elapsed timer and an
+  indeterminate bar.
+- **"Forgot password?":** there's no email sending.
+- **Posting age on job rows:** the user's choice (only the found time).
+- **New features the design implies:** editing a failing source's URL, cancelling a
+  tailoring run, adding or editing roles and projects on Profile, and swipe gestures.
+  These are left for later, as separate work.
+
+Verified in a headless browser at 390×844 in light and dark, against a **copy** of the
+user's database on separate ports. Chrome is driven directly over the DevTools protocol;
+no Playwright is installed.
+
+**Phase 3 and a fidelity pass (2026-10-04).** The user doubted that the screens followed
+the boards exactly. Each implemented screen was then rendered **side by side with its
+board at the same size**, and every difference was listed and fixed:
+- **Fixes to phases 1–2:**
+  - two-line card footer ("via …" over "Found …");
+  - "82 / of 100" in the hero ring;
+  - a factual fit line, "4 of 5 required skills backed by verified evidence", computed
+    from the requirements;
+  - a status button that no longer truncates;
+  - a green "Done" and "Applied" (not "I applied") in the status sheet.
+- **Phase 3:**
+  - **Evidence:** a progress card and collapsible skill groups, with groups needing review
+    first; a collapsed group shows "N to review".
+  - **One evidence sheet** for adding a skill with its first evidence, adding evidence and
+    editing. Context and Depth are segmented controls with a plain-language hint. Edits
+    send only what changed and warn that they un-verify; new evidence is always
+    unverified. The design has no **Kind** field, but every skill needs a category, so a
+    compact Kind picker sits beside the name.
+  - **Resume review:** the page is shown at its real width, scaled to fit the phone, and
+    printing undoes the scaling. **Tapping a bullet opens a sheet with the evidence behind
+    it** (the user's words, context, depth, verified, date); this replaced the "Show
+    sources" switch. "Removed by checks" is listed with reasons, there's a sticky Approve
+    bar (Save as PDF once approved), and a faint DRAFT watermark. A printed check caught a
+    regression: an inline-block button's baseline is its *last* line, which dropped every
+    "●" to its bullet's last line in the PDF. The bullet button is now `block`, and
+    positions were re-measured against the CV (within 1pt).
+  - **Sources:** an AI-spend tile with a "Budget" link to Profile, a **Today** tile (new
+    `last24hUsd` on `/ai/usage`), a **Jobs this week** tile (new `jobsThisWeek` on
+    `/discovery/status`), and "Needs attention" with a **Retry for that one source**
+    (new `POST /discovery/sources/:id/run`, same cooldown, 409 with the time it can run
+    again). Then the Healthy list and the Gmail card ("Connected as …", On, Check now /
+    Disconnect). Finding new jobs lives on the Jobs page only.
+  - **Profile:** a back link, Edit (opens the contact sheet), an identity header, and
+    Experience / Projects / Education (education opens an edit sheet, and there's "Add
+    education"). The budget moved here: a monthly-cap stepper (the middle is editable and
+    an emptied field never becomes $0) and the resume-reuse slider. Account: Gmail and Sign
+    out.
+  - **Sign in:** the mark and promise up top; a Sign in / Register switch; a password
+    show/hide toggle.
+  - **Install prompt:** on Chrome/Android it keeps `beforeinstallprompt` and installs from
+    a button; on iPhone Safari it shows the two taps. Never shown inside the installed app,
+    and "Not now" is remembered on the device.
+- **Appearance (the user asked for it; the design has no control):** **System / Light /
+  Dark** in the account sheet. The dark tokens apply under
+  `prefers-color-scheme: dark` *unless* `<html data-theme="light">`, or always under
+  `data-theme="dark"`. The choice is stored per device in `localStorage` and applied by
+  an inline script in `index.html` **before the first paint** (no flash), and the
+  status-bar colour follows it.
+- **Still not done:** editing roles and projects (rows don't open; no "Add role"), "Edit
+  URL" on a failing source, cancelling a tailoring run, the "···" menus, and swipe
+  gestures.
+
 ### 8.5 Other security decisions
 
 - **PWA service worker:** precaches the app shell only; `/api` is excluded from the
@@ -1615,6 +1728,11 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
   headless browser at phone size against the real API/worker — with temporary accounts
   deleted afterwards.
 
+- **E2E tests use their own Redis database (15)** — `createTestApp()` sets it, and specs
+  that open Redis directly use `TEST_REDIS_URL`. A development worker listens on database
+  0; when both shared it, the worker grabbed jobs the tests had just queued (failing every
+  "is it queued?" check) and tried to run test users' fake sources (2026-10-04).
+
 ### 15.4 Database migrations
 
 - Normal changes: `prisma migrate dev --name …` (or `--create-only` then edit the SQL for
@@ -1695,6 +1813,9 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
 | 2026-10-02 | Tailoring only on the user's request, from an Interested, scored job | §13.1 |
 | 2026-10-02 | Exposure-only skills go in a code-labelled "Learning" group | §13.1 |
 | 2026-10-02 | PDF via the browser's print to PDF on an A4 stylesheet, in the user's CV layout; no PDF library | §13.1 |
+| 2026-10-04 | Design fidelity pass (side-by-side with each board) + phase 3 screens; System/Light/Dark appearance (pre-paint, per device); single-source retry, today's spend, jobs this week | §8.4.1 — user doubted fidelity, asked for a theme switch |
+| 2026-10-04 | E2E tests use Redis database 15, never 0 | §15.3 — a running dev worker consumed the jobs e2e tests queued |
+| 2026-10-04 | Mobile design implemented in the existing PWA (tokens, Geist, native-`<dialog>` sheets, pushed screens without tab bar, status sheet, `GET /jobs/counts`); fake progress steps, the sample resume and "Forgot password" not copied | §8.4.1 — user's Claude Design boards |
 | 2026-10-04 | Deploy on one VPS with Docker Compose (Caddy for HTTPS, Postgres 18, Redis, API, worker, migrate, nightly backup); DuckDNS hostname; empty env values = unset | §4 — user's choice over free tiers (Upstash quota vs BullMQ polling; sleeping hosts can't run the worker) |
 | 2026-10-04 | Tailoring prompt: ≤18 words, one topic, no company name, scope stated positively, no minimum (it caused padding); skill names resolved only to offered skills; `preview:resume` CLI | §13.1 — bullets averaged 20 words vs the CV's 12 |
 | 2026-10-04 | Login/register rate limits: Redis fixed-window counters (Lua), failed logins per account + attempts per IP + sign-ups per IP; 429 + Retry-After; fail open; `TRUST_PROXY_HOPS` | §8.1 — roadmap step 8 |

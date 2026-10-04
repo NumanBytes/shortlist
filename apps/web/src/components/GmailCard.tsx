@@ -32,12 +32,12 @@ export function GmailCard() {
 
   return (
     <Card className="p-4">
-      <div className="flex items-center gap-2">
-        <Mail className="size-4.5 text-accent" />
-        <h2 className="text-sm font-semibold text-fg">Email job alerts</h2>
-        {gmail.data?.connection &&
-          (gmail.data.connection.status === 'ACTIVE' ? <Badge tone="apply">Connected</Badge> : <Badge tone="danger">Reconnect</Badge>)}
-      </div>
+      {!gmail.data?.connection && (
+        <div className="mb-3 flex items-center gap-2">
+          <Mail className="size-5 text-muted" strokeWidth={1.75} />
+          <h2 className="text-[15px] font-semibold text-fg">Email job alerts</h2>
+        </div>
+      )}
 
       {outcome && OUTCOME[outcome] && (
         <div
@@ -51,7 +51,7 @@ export function GmailCard() {
         </div>
       )}
 
-      <div className="mt-3 text-sm">
+      <div className="text-sm">
         {gmail.isPending && <Skeleton className="h-16 w-full" />}
         {gmail.isError && <p className="text-danger-fg">Couldn't load: {gmail.error.message}</p>}
         {gmail.data && <Body status={gmail.data} onCheck={startPolling} />}
@@ -103,23 +103,33 @@ function Body({ status, onCheck }: { status: GmailStatus; onCheck: () => void })
   const s = status.last30Days;
   return (
     <div className="space-y-3">
-      <p className="text-muted">
-        <span className="font-medium text-fg">{c.emailAddress}</span> · label “{c.labelName}” · checked every two hours
-      </p>
+      <div className="flex items-center gap-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-surface-2 text-muted">
+          <Mail className="size-5" strokeWidth={1.75} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[15px] font-semibold text-fg">Connected as {c.emailAddress}</p>
+          <p className="text-xs text-muted">
+            Reads only the label <b className="font-semibold text-fg">{c.labelName}</b> · checked{' '}
+            {c.lastCheckedAt ? timeAgo(c.lastCheckedAt) : 'not yet'}
+          </p>
+        </div>
+        {c.status === 'ACTIVE' ? <Badge tone="accent">On</Badge> : <Badge tone="danger">Reconnect</Badge>}
+      </div>
       {c.lastError && (
         <p className="flex gap-2 rounded-lg bg-danger-bg px-3 py-2 text-danger-fg">
           <AlertTriangle className="mt-0.5 size-4 shrink-0" /> {c.lastError}
         </p>
       )}
-      <p className="text-muted">
+      <p className="text-xs text-muted">
         {c.lastCheckedAt
-          ? `Last check ${timeAgo(c.lastCheckedAt)}: ${c.lastCheckStatus === 'FAILED' ? 'failed' : `${c.lastCheckFound ?? 0} new message${c.lastCheckFound === 1 ? '' : 's'}`}.`
-          : 'Not checked yet.'}{' '}
-        Last 30 days: {s.alerts} alert email{s.alerts === 1 ? '' : 's'} read
+          ? `Last check: ${c.lastCheckStatus === 'FAILED' ? 'failed' : `${c.lastCheckFound ?? 0} new message${c.lastCheckFound === 1 ? '' : 's'}`}. `
+          : ''}
+        Checked every two hours. Last 30 days: {s.alerts} alert email{s.alerts === 1 ? '' : 's'} read
         {s.notAlerts > 0 && `, ${s.notAlerts} skipped as not alerts`}.
       </p>
       {s.portals.length > 0 && (
-        <ul className="divide-y divide-border rounded-lg bg-surface-2 text-xs">
+        <ul className="divide-y divide-border rounded-xl bg-surface-2 text-xs">
           {s.portals.map((p) => (
             <li key={p.portal} className="px-3 py-2">
               <div className="flex items-baseline justify-between gap-3">
@@ -162,32 +172,34 @@ function Body({ status, onCheck }: { status: GmailStatus; onCheck: () => void })
           {s.failed > 0 && `${s.failed} couldn't be read.`}
         </p>
       )}
-      <div className="flex flex-wrap items-center gap-2">
-        {c.status === 'ACTIVE' ? (
-          <Button variant="secondary" onClick={() => check.mutate(undefined, { onSuccess: onCheck })} disabled={check.isPending}>
-            <RefreshCw className="size-4" /> {check.isPending ? 'Queuing…' : 'Check now'}
-          </Button>
-        ) : (
-          <Button onClick={goToGoogle} disabled={connect.isPending}>
-            <Mail className="size-4" /> Reconnect Gmail
-          </Button>
-        )}
-        {confirmDisconnect ? (
-          <span className="flex flex-wrap items-center gap-2 text-muted">
-            Disconnect and revoke access?
-            <Button size="sm" variant="danger" onClick={() => disconnect.mutate()} disabled={disconnect.isPending}>
-              Disconnect
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => setConfirmDisconnect(false)}>
+      {confirmDisconnect ? (
+        <div className="space-y-2 rounded-xl bg-danger-bg p-3">
+          <p className="text-fg">Disconnect and revoke Shortlist's access at Google?</p>
+          <div className="grid grid-cols-2 gap-2">
+            <Button variant="secondary" onClick={() => setConfirmDisconnect(false)}>
               Cancel
             </Button>
-          </span>
-        ) : (
-          <Button variant="ghost" onClick={() => setConfirmDisconnect(true)}>
+            <Button variant="danger" className="bg-surface" onClick={() => disconnect.mutate()} disabled={disconnect.isPending}>
+              Disconnect
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-2">
+          {c.status === 'ACTIVE' ? (
+            <Button variant="secondary" onClick={() => check.mutate(undefined, { onSuccess: onCheck })} disabled={check.isPending}>
+              <RefreshCw className="size-4" /> {check.isPending ? 'Queuing…' : 'Check now'}
+            </Button>
+          ) : (
+            <Button onClick={goToGoogle} disabled={connect.isPending}>
+              <Mail className="size-4" /> Reconnect Gmail
+            </Button>
+          )}
+          <Button variant="danger" onClick={() => setConfirmDisconnect(true)}>
             Disconnect
           </Button>
-        )}
-      </div>
+        </div>
+      )}
       <FilterHelp />
       {(check.isError || disconnect.isError || connect.isError) && (
         <p className="text-danger-fg">{(check.error ?? disconnect.error ?? connect.error)?.message}</p>

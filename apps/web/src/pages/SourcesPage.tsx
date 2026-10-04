@@ -1,100 +1,59 @@
-import { AlertTriangle, ChevronDown, Sparkles } from 'lucide-react';
+import { ChevronDown, RotateCw } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router';
-import { FindNewJobs } from '../components/FindNewJobs';
+import { PageHeader } from '../components/AppShell';
 import { GmailCard } from '../components/GmailCard';
-import { Badge, Button, Card, Skeleton, Switch, type Tone } from '../components/ui';
+import { Badge, Button, Card, SectionLabel, Skeleton, Switch } from '../components/ui';
 import { providerLabel, timeAgo } from '../lib/format';
-import { useAiUsage, useSetSourceEnabled, useSources, useUpdateAiSettings } from '../lib/queries';
-import type { DiscoverySource, RunStatus } from '../lib/types';
+import { useAiUsage, useDiscoveryStatus, useRunSource, useSetSourceEnabled, useSources } from '../lib/queries';
+import type { DiscoverySource } from '../lib/types';
 
-const STATUS_TONE: Record<RunStatus, Tone> = { SUCCESS: 'apply', RUNNING: 'neutral', EMPTY: 'stretch', FAILED: 'danger' };
 const needsAttention = (s: DiscoverySource) => s.isEnabled && (s.lastRun?.status === 'FAILED' || s.lastRun?.status === 'EMPTY');
+const money = (n: number) => `$${n.toFixed(2)}`;
 
-function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
-  return (
-    <div className="rounded-lg bg-surface-2 px-3 py-2.5">
-      <p className="text-xs text-muted">{label}</p>
-      <p className="mt-0.5 text-lg font-semibold tabular-nums text-fg">{value}</p>
-      {sub && <p className="text-xs text-subtle">{sub}</p>}
-    </div>
-  );
-}
-
-// Budget guard visibility (Agents.md §12.3): what AI scoring has cost, and the caps.
-function AiSpendCard() {
+// What AI costs (Agents.md §12.3) — the budget itself is changed on Profile.
+function SpendTiles() {
   const usage = useAiUsage();
-  const update = useUpdateAiSettings();
-  const [editing, setEditing] = useState(false);
-  const [budget, setBudget] = useState('');
-  if (usage.isPending) return <Skeleton className="h-36 w-full" />;
+  const status = useDiscoveryStatus();
+  // The month name, read once (calling Date during render isn't pure).
+  const [month] = useState(() => new Date().toLocaleString(undefined, { month: 'long' }));
+  if (usage.isPending) return <Skeleton className="h-40 w-full rounded-2xl" />;
   if (!usage.isSuccess) return null;
   const u = usage.data;
-  const pct = Math.min(100, (u.monthToDateUsd / Math.max(u.settings.monthlyBudgetUsd, 0.01)) * 100);
   return (
-    <Card className="p-4">
-      <div className="flex items-center justify-between">
-        <h2 id="ai-spend" className="flex items-center gap-2 font-semibold text-fg">
-          <Sparkles className="size-4 text-accent" /> AI scoring
-        </h2>
-        {!editing && (
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => {
-              setBudget(String(u.settings.monthlyBudgetUsd));
-              setEditing(true);
-            }}
-          >
-            Change budget
-          </Button>
-        )}
+    <div className="space-y-2.5">
+      <Card className="space-y-1 px-4 py-3.5">
+        <div className="flex items-baseline justify-between">
+          <p className="text-[13px] text-muted">AI spend · {month}</p>
+          <Link to="/profile" className="-my-3 py-3 text-[13px] font-medium text-accent-fg">
+            Budget
+          </Link>
+        </div>
+        <p className="text-[26px] leading-8 font-bold tracking-[-0.03em] text-fg tabular-nums">
+          {money(u.monthToDateUsd)} <span className="text-[13px] font-medium tracking-normal text-muted">of {money(u.settings.monthlyBudgetUsd)}</span>
+        </p>
+        <progress
+          aria-label="Monthly budget used"
+          max={Math.max(u.settings.monthlyBudgetUsd, 0.01)}
+          value={Math.min(u.monthToDateUsd, u.settings.monthlyBudgetUsd)}
+          className={`mt-1.5 block h-1.5 w-full appearance-none overflow-hidden rounded-full bg-surface-2 [&::-moz-progress-bar]:rounded-full [&::-webkit-progress-bar]:bg-surface-2 [&::-webkit-progress-value]:rounded-full ${
+            u.monthToDateUsd >= u.settings.monthlyBudgetUsd * 0.9
+              ? '[&::-moz-progress-bar]:bg-danger [&::-webkit-progress-value]:bg-danger'
+              : '[&::-moz-progress-bar]:bg-accent [&::-webkit-progress-value]:bg-accent'
+          }`}
+        />
+      </Card>
+      <div className="grid grid-cols-2 gap-2.5">
+        <Card className="space-y-1 px-4 py-3.5">
+          <p className="text-[13px] text-muted">Today</p>
+          <p className="text-[26px] leading-8 font-bold tracking-[-0.03em] text-fg tabular-nums">{money(u.last24hUsd)}</p>
+        </Card>
+        <Card className="space-y-1 px-4 py-3.5">
+          <p className="text-[13px] text-muted">Jobs this week</p>
+          <p className="text-[26px] leading-8 font-bold tracking-[-0.03em] text-fg tabular-nums">{status.data?.jobsThisWeek ?? '–'}</p>
+        </Card>
       </div>
-      <p className="mt-2 text-sm text-fg">
-        ${u.monthToDateUsd.toFixed(2)} of ${u.settings.monthlyBudgetUsd.toFixed(2)} this month
-      </p>
-      <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-ring-track" aria-hidden="true">
-        <div className={`h-full rounded-full ${pct >= 90 ? 'bg-danger' : 'bg-accent'}`} style={{ width: `${pct}%` }} />
-      </div>
-      <div className="mt-3 grid grid-cols-3 gap-2">
-        <Stat label="Scored" value={String(u.jobs.done)} />
-        <Stat label="Last 24h" value={`${u.analysesLast24h}`} sub={`cap ${u.settings.maxAnalysesPerDay}`} />
-        <Stat label="Waiting" value={String(u.jobs.pending + u.jobs.deferred)} sub={u.jobs.failed ? `${u.jobs.failed} failed` : undefined} />
-      </div>
-      {editing && (
-        <form
-          className="mt-3 flex flex-wrap items-center gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            // Number('') is 0 — an emptied field must not silently set a $0 budget.
-            const value = budget.trim() === '' ? Number.NaN : Number(budget);
-            if (Number.isFinite(value) && value >= 0) update.mutate({ monthlyBudgetUsd: value }, { onSuccess: () => setEditing(false) });
-          }}
-        >
-          <label className="text-sm text-muted" htmlFor="budget">
-            Monthly budget $
-          </label>
-          <input
-            id="budget"
-            type="number"
-            min="0"
-            step="0.5"
-            value={budget}
-            onChange={(e) => setBudget(e.target.value)}
-            className="h-9 w-20 rounded-lg border border-border bg-surface px-2 text-sm text-fg"
-          />
-          <div className="flex gap-1">
-            <Button type="submit" size="sm" disabled={update.isPending}>
-              Save
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
-              Cancel
-            </Button>
-          </div>
-        </form>
-      )}
-      {update.isError && <p className="mt-2 text-xs text-danger-fg">{update.error.message}</p>}
-    </Card>
+    </div>
   );
 }
 
@@ -103,37 +62,55 @@ export function JobsLink({ sourceId, count }: { sourceId: string; count: number 
   const label = `${count} ${count === 1 ? 'job' : 'jobs'}`;
   if (count === 0) return <>{label}</>;
   return (
-    <Link to={`/?source=${sourceId}&tab=all`} className="font-medium text-fg underline decoration-border underline-offset-2 hover:decoration-fg">
+    <Link to={`/?source=${sourceId}&tab=all`} className="font-medium text-accent-fg">
       {label}
     </Link>
   );
 }
 
+// A source that failed or came back empty — shown as such, never confused with "no jobs
+// today" (Agents.md §9.5), with a retry for that source alone.
+function AttentionRow({ source }: { source: DiscoverySource }) {
+  const retry = useRunSource();
+  const run = source.lastRun!;
+  const failed = run.status === 'FAILED';
+  return (
+    <li className="space-y-2.5 px-4 py-3.5">
+      <div className="flex items-center gap-2.5">
+        <div className="min-w-0 flex-1">
+          <p className="text-[15px] font-semibold text-fg">{source.name}</p>
+          <p className="text-xs text-muted">
+            {providerLabel(source.provider)} · ran {timeAgo(source.lastRunAt)}
+          </p>
+        </div>
+        <Badge tone={failed ? 'danger' : 'stretch'}>{failed ? 'Failed' : 'Empty'}</Badge>
+      </div>
+      {failed ? (
+        <p className="rounded-lg bg-surface-2 px-2.5 py-2 font-mono text-xs break-words text-fg">{run.errorMessage}</p>
+      ) : (
+        <p className="text-[13px] text-muted">The board returned no postings at all — check it still exists, or turn it off.</p>
+      )}
+      <div className="flex items-center gap-2">
+        <Button variant="secondary" size="sm" onClick={() => retry.mutate(source.id)} disabled={retry.isPending || retry.isSuccess}>
+          <RotateCw className="size-4" /> {retry.isSuccess ? 'Queued' : 'Retry'}
+        </Button>
+        {retry.isError && <p className="text-xs text-danger-fg">{retry.error.message}</p>}
+      </div>
+    </li>
+  );
+}
+
 function SourceRow({ source }: { source: DiscoverySource }) {
   const toggle = useSetSourceEnabled();
-  const run = source.lastRun;
   return (
-    <li className="flex items-start gap-3 px-3 py-3">
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="font-medium text-fg">{source.name}</p>
-          {/* Healthy is the normal state; only problems (and in-flight runs) get a badge. */}
-          {run && run.status !== 'SUCCESS' && <Badge tone={STATUS_TONE[run.status]}>{run.status.toLowerCase()}</Badge>}
-        </div>
-        <p className="mt-0.5 text-xs text-muted">
-          {providerLabel(source.provider)} · <JobsLink sourceId={source.id} count={source.jobCount} /> · ran{' '}
-          {timeAgo(source.lastRunAt)}
-          {run && run.status !== 'FAILED' && run.status !== 'RUNNING' && (
-            <>
-              {' '}
-              · {run.jobsFound} found, {run.jobsMatched} matched, {run.jobsNew} new
-            </>
-          )}
+    <li className="flex min-h-[68px] items-center gap-3 py-2.5 pr-3 pl-4">
+      <div className="min-w-0 flex-1 space-y-0.5">
+        <p className="text-[15px] font-semibold text-fg">{source.name}</p>
+        <p className="text-xs text-muted tabular-nums">
+          {providerLabel(source.provider)} · <JobsLink sourceId={source.id} count={source.jobCount} /> ·{' '}
+          {source.isEnabled ? (source.lastRunAt ? `ran ${timeAgo(source.lastRunAt)}` : 'not run yet') : 'paused'}
         </p>
-        {/* A failing or empty source is shown as such — never confused with "no jobs today". */}
-        {run?.status === 'FAILED' && <p className="mt-1 text-xs text-danger-fg">Failed: {run.errorMessage}</p>}
-        {run?.status === 'EMPTY' && <p className="mt-1 text-xs text-stretch-fg">Returned no postings at all.</p>}
-        {toggle.isError && <p className="mt-1 text-xs text-danger-fg">{toggle.error.message}</p>}
+        {toggle.isError && <p className="text-xs text-danger-fg">{toggle.error.message}</p>}
       </div>
       <Switch
         checked={source.isEnabled}
@@ -145,6 +122,8 @@ function SourceRow({ source }: { source: DiscoverySource }) {
   );
 }
 
+// Sources (design board 5): AI spend, sources that need attention, the healthy ones, and
+// Gmail. Finding new jobs now lives on the Jobs page.
 export function SourcesPage() {
   const sources = useSources();
   const [showPlanned, setShowPlanned] = useState(false);
@@ -154,16 +133,11 @@ export function SourcesPage() {
   const healthy = active.filter((s) => !needsAttention(s));
 
   return (
-    <main className="mx-auto max-w-2xl space-y-4">
-      <h1 className="text-lg font-semibold text-fg">Sources</h1>
-      <AiSpendCard />
-      <GmailCard />
+    <main className="mx-auto max-w-2xl space-y-3">
+      <PageHeader title="Sources" />
+      <SpendTiles />
 
-      {/* Same control as on the Jobs page. Sources checked in the last few hours are
-          skipped, to respect the job boards' request limits. */}
-      <FindNewJobs />
-
-      {sources.isPending && <Skeleton className="h-64 w-full" />}
+      {sources.isPending && <Skeleton className="h-64 w-full rounded-2xl" />}
       {sources.isError && <p className="text-danger-fg">Couldn't load sources: {sources.error.message}</p>}
       {sources.isSuccess && sources.data.length === 0 && (
         <p className="text-sm text-muted">
@@ -172,24 +146,26 @@ export function SourcesPage() {
       )}
 
       {attention.length > 0 && (
-        <section aria-labelledby="attention">
-          <h2 id="attention" className="mb-2 flex items-center gap-2 text-sm font-semibold text-danger-fg">
-            <AlertTriangle className="size-4" /> Needs attention ({attention.length})
-          </h2>
-          <ul className="divide-y divide-border rounded-xl border border-border bg-surface">
+        <section aria-labelledby="attention" className="space-y-2 pt-2">
+          <SectionLabel>
+            <span id="attention">
+              Needs attention · <span className="tabular-nums">{attention.length}</span>
+            </span>
+          </SectionLabel>
+          <ul className="divide-y divide-border rounded-2xl border border-border bg-surface">
             {attention.map((s) => (
-              <SourceRow key={s.id} source={s} />
+              <AttentionRow key={s.id} source={s} />
             ))}
           </ul>
         </section>
       )}
 
       {healthy.length > 0 && (
-        <section aria-labelledby="watching">
-          <h2 id="watching" className="mb-2 text-sm font-semibold text-fg">
-            Watching ({active.filter((s) => s.isEnabled).length} on)
-          </h2>
-          <ul className="divide-y divide-border rounded-xl border border-border bg-surface">
+        <section aria-labelledby="healthy" className="space-y-2 pt-2">
+          <SectionLabel>
+            <span id="healthy">Healthy</span>
+          </SectionLabel>
+          <ul className="divide-y divide-border rounded-2xl border border-border bg-surface">
             {healthy.map((s) => (
               <SourceRow key={s.id} source={s} />
             ))}
@@ -199,27 +175,29 @@ export function SourcesPage() {
 
       {planned.length > 0 && (
         <section>
-          <button
-            type="button"
-            aria-expanded={showPlanned}
-            onClick={() => setShowPlanned((v) => !v)}
-            className="flex w-full items-center justify-between rounded-lg px-1 py-2 text-sm font-medium text-muted hover:text-fg"
-          >
+          <Button variant="ghost" aria-expanded={showPlanned} onClick={() => setShowPlanned((v) => !v)} className="w-full font-medium">
             {showPlanned ? 'Hide' : 'Show'} {planned.length} recorded for later
             <ChevronDown className={`size-4 transition ${showPlanned ? 'rotate-180' : ''}`} />
-          </button>
+          </Button>
           {showPlanned && (
-            <ul className="mt-1 divide-y divide-border rounded-xl border border-border bg-surface text-sm">
+            <ul className="mt-1 divide-y divide-border rounded-2xl border border-border bg-surface text-sm">
               {planned.map((s) => (
-                <li key={s.id} className="flex justify-between gap-3 px-3 py-2.5">
+                <li key={s.id} className="flex justify-between gap-3 px-4 py-3">
                   <span className="text-fg">{s.name}</span>
-                  <span className="text-subtle">{s.provider.replace('_', ' ')} · coming later</span>
+                  <span className="text-muted">{s.provider.replace('_', ' ')} · coming later</span>
                 </li>
               ))}
             </ul>
           )}
         </section>
       )}
+
+      <section aria-labelledby="gmail" className="space-y-2 pt-2">
+        <SectionLabel>
+          <span id="gmail">Gmail</span>
+        </SectionLabel>
+        <GmailCard />
+      </section>
     </main>
   );
 }

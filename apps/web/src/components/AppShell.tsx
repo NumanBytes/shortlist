@@ -1,16 +1,19 @@
-import { Briefcase, ChevronRight, Loader2, LogOut, Radar, ShieldCheck, UserRound } from 'lucide-react';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Briefcase, ChevronRight, LogOut, Mail, Radar, ShieldCheck, UserRound } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router';
 import { useAuth } from '../auth/AuthProvider';
 import { elapsed } from '../lib/format';
-import { useActiveTailoring, useSkills } from '../lib/queries';
+import { useActiveTailoring, useGmail, useSkills } from '../lib/queries';
 import { useNow } from '../lib/useNow';
+import { InstallPrompt } from './InstallPrompt';
 import { Logo } from './Logo';
+import { setTheme, useTheme, type ThemeChoice } from '../lib/theme';
+import { Segmented, Sheet } from './ui';
 
 const LINKS: { to: string; label: string; icon: ReactNode; end: boolean }[] = [
-  { to: '/', label: 'Jobs', icon: <Briefcase className="size-5" />, end: false },
-  { to: '/evidence', label: 'Evidence', icon: <ShieldCheck className="size-5" />, end: false },
-  { to: '/sources', label: 'Sources', icon: <Radar className="size-5" />, end: false },
+  { to: '/', label: 'Jobs', icon: <Briefcase className="size-6 sm:size-5" strokeWidth={1.75} />, end: false },
+  { to: '/evidence', label: 'Evidence', icon: <ShieldCheck className="size-6 sm:size-5" strokeWidth={1.75} />, end: false },
+  { to: '/sources', label: 'Sources', icon: <Radar className="size-6 sm:size-5" strokeWidth={1.75} />, end: false },
 ];
 
 // "/" owns the jobs list and "/jobs/:id"; both count as the Jobs tab.
@@ -42,86 +45,129 @@ function NavItem({ link, mobile, badge, to }: { link: (typeof LINKS)[number]; mo
       className={({ isActive }) => {
         const active = link.to === '/' ? isJobsPath(pathname) : isActive;
         return mobile
-          ? `relative flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-medium ${active ? 'text-fg' : 'text-subtle'}`
-          : `relative inline-flex h-9 items-center gap-2 rounded-lg px-3 text-sm font-medium ${active ? 'bg-surface-2 text-fg' : 'text-muted hover:text-fg'}`;
+          ? `flex h-[49px] flex-col items-center justify-center gap-[3px] text-[11px] font-medium ${active ? 'text-accent-fg' : 'text-muted'}`
+          : `relative inline-flex h-9 items-center gap-2 rounded-xl px-3 text-sm font-medium ${active ? 'bg-accent-soft text-accent-fg' : 'text-muted hover:text-fg'}`;
       }}
     >
-      {link.icon}
-      {link.label}
-      {badge ? (
-        <span
-          className={`${mobile ? 'absolute top-1 left-1/2 ml-2' : ''} rounded-full bg-stretch px-1.5 text-[10px] leading-4 font-semibold text-white`}
-          aria-label={`${badge} to review`}
-        >
-          {badge}
-        </span>
-      ) : null}
+      <span className="relative flex">
+        {link.icon}
+        {badge ? (
+          <span
+            className={`${mobile ? 'absolute -top-[5px] left-[15px]' : 'absolute -top-2 -right-3'} h-[18px] min-w-[18px] rounded-full bg-danger px-[5px] text-center text-[11px] leading-[18px] font-semibold text-white tabular-nums`}
+            aria-label={`${badge} to review`}
+          >
+            {badge}
+          </span>
+        ) : null}
+      </span>
+      <span className={mobile ? '' : badge ? 'ml-2' : ''}>{link.label}</span>
     </NavLink>
   );
 }
 
-function AccountMenu() {
-  const { state, logout } = useAuth();
+// Initials in an accent circle; opens the account sheet.
+export function AccountButton() {
+  const { state } = useAuth();
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: PointerEvent) => {
-      if (!ref.current?.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
-    document.addEventListener('pointerdown', onDown);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('pointerdown', onDown);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
   if (state.status !== 'signedIn') return null;
-  const initial = state.user.name.trim().charAt(0).toUpperCase() || '?';
+  const initials =
+    state.user.name
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((w) => w.charAt(0).toUpperCase())
+      .join('') || '?';
   return (
-    <div className="relative" ref={ref}>
+    <>
       <button
         type="button"
-        aria-haspopup="menu"
-        aria-expanded={open}
+        aria-haspopup="dialog"
         aria-label="Account"
-        onClick={() => setOpen((o) => !o)}
-        className="flex size-10 items-center justify-center rounded-full bg-surface-2 text-sm font-semibold text-fg focus-visible:outline-2 focus-visible:outline-accent"
+        onClick={() => setOpen(true)}
+        className="grid size-11 shrink-0 place-items-center rounded-full focus-visible:outline-2 focus-visible:outline-accent"
       >
-        {initial}
+        <span className="grid size-8 place-items-center rounded-full bg-accent-soft text-[13px] font-semibold text-accent-fg">{initials}</span>
       </button>
-      {open && (
-        <div role="menu" className="absolute right-0 z-30 mt-2 w-56 rounded-xl border border-border bg-surface p-1 shadow-lg">
-          <div className="px-3 py-2">
-            <p className="truncate text-sm font-medium text-fg">{state.user.name}</p>
-            <p className="truncate text-xs text-muted">{state.user.email}</p>
-          </div>
-          <Link
-            to="/profile"
-            role="menuitem"
-            onClick={() => setOpen(false)}
-            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-fg hover:bg-surface-2"
-          >
-            <UserRound className="size-4" /> Profile & education
-          </Link>
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => void logout()}
-            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-fg hover:bg-surface-2"
-          >
-            <LogOut className="size-4" /> Sign out
-          </button>
-        </div>
-      )}
-    </div>
+      <AccountSheet open={open} onClose={() => setOpen(false)} initials={initials} />
+    </>
   );
 }
 
-// Tailoring runs in the worker, so leaving the job's page never stops it. This bar keeps
+function AccountSheet({ open, onClose, initials }: { open: boolean; onClose: () => void; initials: string }) {
+  const { state, logout } = useAuth();
+  const gmail = useGmail();
+  const theme = useTheme();
+  if (state.status !== 'signedIn') return null;
+  const row = 'flex min-h-14 w-full items-center gap-3 px-1 text-left text-base font-medium';
+  const icon = 'grid size-9 shrink-0 place-items-center rounded-[10px] bg-surface-2 text-muted';
+  return (
+    <Sheet open={open} onClose={onClose} title="Account">
+      <div className="flex items-center gap-3 pb-4">
+        <span className="grid size-11 place-items-center rounded-full bg-accent-soft text-[15px] font-semibold text-accent-fg">{initials}</span>
+        <div className="min-w-0">
+          <p className="truncate font-semibold text-fg">{state.user.name}</p>
+          <p className="truncate text-[13px] text-muted">{state.user.email}</p>
+        </div>
+      </div>
+      <div className="mb-4 space-y-2">
+        <p className="px-1 text-xs font-semibold tracking-[0.06em] text-muted uppercase">Appearance</p>
+        <Segmented<ThemeChoice>
+          label="Appearance"
+          value={theme}
+          onChange={setTheme}
+          options={[
+            { value: 'system', label: 'System' },
+            { value: 'light', label: 'Light' },
+            { value: 'dark', label: 'Dark' },
+          ]}
+        />
+      </div>
+      <nav aria-label="Account" className="divide-y divide-border rounded-2xl border border-border px-3">
+        <Link to="/profile" onClick={onClose} className={row}>
+          <span className={icon}>
+            <UserRound className="size-[18px]" />
+          </span>
+          <span className="flex-1">Profile</span>
+          <ChevronRight className="size-4 text-muted" />
+        </Link>
+        <Link to="/sources" onClick={onClose} className={row}>
+          <span className={icon}>
+            <Mail className="size-[18px]" />
+          </span>
+          <span className="flex-1">Gmail</span>
+          <span className="text-[13px] font-normal text-muted">{gmail.data?.connection ? 'Connected' : 'Not connected'}</span>
+          <ChevronRight className="size-4 text-muted" />
+        </Link>
+        <button type="button" onClick={() => void logout()} className={`${row} text-danger-fg`}>
+          <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-danger-bg">
+            <LogOut className="size-[18px]" />
+          </span>
+          Sign out
+        </button>
+      </nav>
+    </Sheet>
+  );
+}
+
+// A page's large title (30px, as in the design), with the account button beside it on
+// phones — on wider screens the account button lives in the top bar instead.
+export function PageHeader({ title, children }: { title: string; children?: ReactNode }) {
+  return (
+    <header className="flex items-center justify-between gap-3">
+      <h1 className="text-[30px] leading-9 font-bold tracking-[-0.025em] text-fg">{title}</h1>
+      <div className="flex items-center gap-1">
+        {children}
+        <div className="sm:hidden">
+          <AccountButton />
+        </div>
+      </div>
+    </header>
+  );
+}
+
+// Tailoring runs in the worker, so leaving the job's page never stops it. This pill keeps
 // it visible on every other page and leads back to the job (Agents.md §13.1).
-function TailoringBar() {
+function TailoringPill() {
   const active = useActiveTailoring();
   const { pathname } = useLocation();
   const now = useNow();
@@ -131,56 +177,60 @@ function TailoringBar() {
   return (
     <Link
       to={`/jobs/${first.jobId}`}
-      className="flex items-center gap-2 border-t border-border bg-surface-2 px-4 py-1.5 text-xs text-muted hover:text-fg"
+      className="fixed bottom-[calc(72px+env(safe-area-inset-bottom))] left-1/2 z-30 flex h-11 max-w-[calc(100vw-32px)] -translate-x-1/2 animate-rise-in items-center gap-2.5 rounded-full bg-fg py-0 pr-2.5 pl-4 text-[13px] font-medium text-bg shadow-[0_8px_24px_rgb(15_23_42/0.25)] sm:bottom-6 print:hidden"
     >
-      <Loader2 className="size-3.5 shrink-0 animate-spin text-accent" />
-      <span className="min-w-0 flex-1 truncate">
-        Tailoring resume · <span className="font-medium text-fg">{first.title}</span> at {first.company}
-        {more > 0 && ` and ${more} more`}
+      <span aria-hidden="true" className="size-3.5 shrink-0 animate-spin rounded-full border-2 border-toast-accent border-r-transparent" />
+      <span className="min-w-0 truncate">
+        Tailoring resume · {first.company}
+        {more > 0 && ` +${more}`} · <span className="tabular-nums">{elapsed(first.queuedAt, now)}</span>
       </span>
-      <span className="tabular-nums">{elapsed(first.queuedAt, now)}</span>
-      <ChevronRight className="size-3.5 shrink-0" />
+      <ChevronRight className="size-4 shrink-0 opacity-60" />
     </Link>
   );
 }
 
+// A job (or its resume) is a pushed screen on phones: it has its own back link and bottom
+// action bar, so the tab bar steps aside (design board 2).
+const isPushedScreen = (path: string) => /^\/jobs\/[^/]+/.test(path);
+
 export function AppShell() {
+  const { pathname } = useLocation();
   const toReview = useToReview();
   const jobsHref = useJobsHref();
+  const badge = (l: (typeof LINKS)[number]) => (l.to === '/evidence' ? toReview : undefined);
   return (
     <div className="min-h-dvh">
-      <header className="sticky top-0 print:hidden z-20 border-b border-border bg-bg/85 pt-[env(safe-area-inset-top)] backdrop-blur">
+      {/* Wider screens: a top bar with the navigation and the account button. */}
+      <header className="sticky top-0 z-20 hidden border-b border-border bg-glass backdrop-blur-xl sm:block print:hidden">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4">
           <Logo />
-          <nav className="hidden items-center gap-1 sm:flex" aria-label="Main">
+          <nav className="flex items-center gap-1" aria-label="Main">
             {LINKS.map((l) => (
-              <NavItem
-                key={l.to}
-                link={l}
-                mobile={false}
-                to={l.to === '/' ? jobsHref : undefined}
-                badge={l.to === '/evidence' ? toReview : undefined}
-              />
+              <NavItem key={l.to} link={l} mobile={false} to={l.to === '/' ? jobsHref : undefined} badge={badge(l)} />
             ))}
           </nav>
-          <AccountMenu />
+          <AccountButton />
         </div>
-        <TailoringBar />
       </header>
 
-      <div className="mx-auto max-w-6xl px-4 pt-4 pb-28 sm:pb-12 print:max-w-none print:p-0">
+      <div className="mx-auto max-w-6xl px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-36 sm:pt-6 sm:pb-12 print:max-w-none print:p-0">
         <Outlet />
       </div>
 
-      {/* Phone: navigation at the bottom, within thumb reach. */}
+      <TailoringPill />
+      <InstallPrompt />
+
+      {/* Phones: a frosted tab bar at the bottom, within thumb reach. */}
+      {!isPushedScreen(pathname) && (
       <nav
         aria-label="Main"
-        className="fixed inset-x-0 bottom-0 z-20 flex print:hidden border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur sm:hidden"
+        className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-3 border-t border-border bg-glass px-3 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur-xl sm:hidden print:hidden"
       >
         {LINKS.map((l) => (
-          <NavItem key={l.to} link={l} mobile to={l.to === '/' ? jobsHref : undefined} badge={l.to === '/evidence' ? toReview : undefined} />
+          <NavItem key={l.to} link={l} mobile to={l.to === '/' ? jobsHref : undefined} badge={badge(l)} />
         ))}
       </nav>
+      )}
     </div>
   );
 }

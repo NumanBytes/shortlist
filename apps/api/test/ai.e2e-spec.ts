@@ -1,7 +1,7 @@
 import { ANALYSIS_QUEUE } from '@shortlist/shared';
 import { Queue } from 'bullmq';
 import { Redis } from 'ioredis';
-import { createTestApp, type TestApp, type TestUser } from './helpers.js';
+import { createTestApp, type TestApp, type TestUser, TEST_REDIS_URL } from './helpers.js';
 
 describe('AI analysis API (e2e)', () => {
   let t: TestApp;
@@ -14,7 +14,7 @@ describe('AI analysis API (e2e)', () => {
     t = await createTestApp();
     me = await t.register();
     other = await t.register();
-    redis = new Redis('redis://localhost:6379', { maxRetriesPerRequest: null });
+    redis = new Redis(TEST_REDIS_URL, { maxRetriesPerRequest: null });
     queue = new Queue(ANALYSIS_QUEUE, { connection: redis });
   });
 

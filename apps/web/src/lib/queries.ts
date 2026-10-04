@@ -112,6 +112,13 @@ export const useJobs = (status?: JobStatus, sort: JobSort = 'score', sourceId?: 
     },
   });
 
+// Jobs per status, for the tab counts. Under jobKeys.all, so every status change refreshes it.
+export const useJobCounts = (sourceId?: string) =>
+  useQuery({
+    queryKey: ['jobs', 'counts', sourceId ?? 'any'] as const,
+    queryFn: () => api<Partial<Record<JobStatus, number>>>(`/jobs/counts${sourceId ? `?sourceId=${sourceId}` : ''}`),
+  });
+
 export function useAnalyzeJob() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -169,6 +176,18 @@ export const useDiscoveryStatus = (watch = false) =>
     queryFn: () => api<DiscoveryStatus>('/discovery/status'),
     refetchInterval: (q) => (watch || (q.state.data?.running ?? 0) > 0 ? 5000 : 60_000),
   });
+
+// "Retry" on one failed or empty source (same cooldown as run-now; 409 says when).
+export function useRunSource() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api(`/discovery/sources/${id}/run`, { method: 'POST' }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: jobKeys.sources });
+      void queryClient.invalidateQueries({ queryKey: jobKeys.discoveryStatus });
+    },
+  });
+}
 
 export function useSetSourceEnabled() {
   const queryClient = useQueryClient();

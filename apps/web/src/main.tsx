@@ -7,6 +7,10 @@ import { AuthProvider } from './auth/AuthProvider';
 import { ToastProvider } from './components/Toast';
 import { ApiError } from './lib/api';
 import './index.css';
+import { applyTheme, getTheme } from './lib/theme';
+
+// index.html already set the theme attribute; this also syncs the status-bar colour.
+applyTheme(getTheme());
 
 const queryClient = new QueryClient({
   defaultOptions: {
