@@ -24,7 +24,13 @@ phone ──HTTPS──► Caddy ─┬─ the web app (static files)
 
 Any provider with Ubuntu works (Hetzner, DigitalOcean, Vultr…). Pick:
 
-- **Ubuntu 24.04**, the smallest plan with **2 GB RAM** (about $4–6/month).
+- **Ubuntu 26.04 LTS** (or 24.04 LTS if the provider doesn't offer 26.04 yet), the smallest
+  plan with **2 GB RAM** (about $4–6/month). The VPS is its own computer, so its system is
+  chosen here and has nothing to do with your laptop's. Pick an **LTS** release: it gets
+  security updates for about five years, which matters for a machine that's always online.
+  26.04 is the same as your laptop, so commands like `apt` and `ufw` behave identically.
+  Everything Shortlist runs is inside Docker, so either version works the same; if Docker's
+  installer (step 3) refuses 26.04, recreate the server with 24.04.
 - Add your **SSH key** when creating it (on your laptop: `cat ~/.ssh/id_ed25519.pub`;
   create one with `ssh-keygen -t ed25519` if that file doesn't exist).
 
