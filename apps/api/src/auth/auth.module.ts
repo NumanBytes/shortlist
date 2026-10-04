@@ -1,11 +1,13 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
+import { RateLimitModule } from '../rate-limit/rate-limit.module.js';
 import { AuthController } from './auth.controller.js';
 import { AuthGuard } from './auth.guard.js';
 import { AuthService } from './auth.service.js';
 import { TokensService } from './tokens.service.js';
 
 @Module({
+  imports: [RateLimitModule],
   controllers: [AuthController],
   providers: [
     AuthService,

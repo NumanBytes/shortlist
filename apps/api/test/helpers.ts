@@ -4,6 +4,9 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module.js';
 import { configureApp } from '../src/app.setup.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { AUTH_RATE_RULES, DEFAULT_AUTH_RATE_RULES } from '../src/rate-limit/rate-limiter.js';
+
+const LOTS = { limit: 1_000_000, windowSeconds: 60 };
 
 export const TEST_EMAIL_DOMAIN = '@e2e.shortlist.test';
 export const TEST_PASSWORD = 'correct horse battery';
@@ -33,7 +36,12 @@ export function refreshCookieFrom(res: { headers: Record<string, unknown> }): st
 // `configure` lets a test swap providers for fakes (e.g. Google) before the app compiles.
 export async function createTestApp(configure: (b: TestingModuleBuilder) => TestingModuleBuilder = (b) => b) {
   process.env.BCRYPT_ROUNDS = '4'; // hashing speed isn't under test
-  const moduleRef = await configure(Test.createTestingModule({ imports: [AppModule] })).compile();
+  // Every e2e file registers users from 127.0.0.1, so by default the auth rate limits are
+  // out of the way, in a namespace of this app's own. rate-limit.e2e-spec.ts sets real ones.
+  const base = Test.createTestingModule({ imports: [AppModule] })
+    .overrideProvider(AUTH_RATE_RULES)
+    .useValue({ ...DEFAULT_AUTH_RATE_RULES, loginPerIp: LOTS, loginFailuresPerAccount: LOTS, registerPerIp: LOTS, prefix: `test-rl:${crypto.randomUUID()}` });
+  const moduleRef = await configure(base).compile();
   const app: INestApplication = configureApp(moduleRef.createNestApplication());
   await app.init();
   const prisma = app.get(PrismaService);

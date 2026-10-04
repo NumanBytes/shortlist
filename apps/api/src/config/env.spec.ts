@@ -16,6 +16,7 @@ describe('loadEnv', () => {
       BCRYPT_ROUNDS: 12,
       WEB_ORIGINS: ['http://localhost:5173'],
       REDIS_URL: 'redis://localhost:6379',
+      TRUST_PROXY_HOPS: 0,
       WEB_APP_URL: 'http://localhost:5173',
     });
   });

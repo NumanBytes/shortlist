@@ -15,6 +15,7 @@ import type { Request, Response } from 'express';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
 import { ENV } from '../config/config.module.js';
 import type { Env } from '../config/env.js';
+import { AuthRateLimits, TooManyRequestsException } from '../rate-limit/auth-rate-limits.js';
 import { AuthService, type AuthResult } from './auth.service.js';
 import { CurrentUser, type AuthUser } from './current-user.decorator.js';
 import { Public } from './public.decorator.js';
@@ -26,6 +27,7 @@ import { clearRefreshCookie, readRefreshCookie, setRefreshCookie } from './refre
 export class AuthController {
   constructor(
     private readonly auth: AuthService,
+    private readonly limits: AuthRateLimits,
     @Inject(ENV) private readonly env: Env,
   ) {}
 
@@ -33,8 +35,10 @@ export class AuthController {
   @Post('register')
   async register(
     @Body(new ZodValidationPipe(RegisterSchema)) body: RegisterInput,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
+    await this.limited(res, this.limits.beforeRegister(clientIp(req)));
     return this.respond(res, await this.auth.register(body));
   }
 
@@ -43,9 +47,21 @@ export class AuthController {
   @HttpCode(HttpStatus.OK) // nothing is created, so 200 rather than Nest's POST default of 201
   async login(
     @Body(new ZodValidationPipe(LoginSchema)) body: LoginInput,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    return this.respond(res, await this.auth.login(body));
+    // Rate limits live here, not in a guard: only the handler knows whether the attempt
+    // FAILED, and failures are what count against an account (Agents.md §8.1).
+    await this.limited(res, this.limits.beforeLogin(clientIp(req), body.email));
+    let result: AuthResult;
+    try {
+      result = await this.auth.login(body);
+    } catch (err) {
+      if (err instanceof UnauthorizedException) await this.limits.loginFailed(body.email);
+      throw err;
+    }
+    await this.limits.loginSucceeded(body.email);
+    return this.respond(res, result);
   }
 
   // Public: the access token has usually expired by the time a client calls this.
@@ -79,9 +95,24 @@ export class AuthController {
     return this.auth.findPublicUser(user.id);
   }
 
+  // A refused attempt is a 429 with Retry-After, so clients know when to come back.
+  private async limited(res: Response, check: Promise<void>) {
+    try {
+      await check;
+    } catch (err) {
+      if (err instanceof TooManyRequestsException) res.setHeader('Retry-After', String(err.retryAfterSeconds));
+      throw err;
+    }
+  }
+
   // The refresh token goes into the cookie and is stripped from the body.
   private respond(res: Response, { refreshToken, ...body }: AuthResult) {
     setRefreshCookie(res, refreshToken, this.env);
     return body;
   }
 }
+
+// The caller's address as Express resolved it. Behind a proxy that's only the real client
+// when `trust proxy` is set to the number of proxies in front (TRUST_PROXY_HOPS);
+// otherwise every request would share the proxy's IP — one limit for everyone.
+const clientIp = (req: Request) => req.ip ?? req.socket.remoteAddress ?? 'unknown';
