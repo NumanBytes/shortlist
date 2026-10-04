@@ -18,7 +18,8 @@ import {
   useUpdateProfile,
   useWorkExperiences,
 } from '../lib/queries';
-import type { Education, PublicUser } from '../lib/types';
+import { ProjectForm, RoleForm } from '../components/CareerForms';
+import type { Education, Project, PublicUser, WorkExperience } from '../lib/types';
 
 const year = (iso: string | null) => (iso ? new Date(iso).getUTCFullYear() : null);
 const initialsOf = (name: string) =>
@@ -106,34 +107,51 @@ function Group({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-// Roles and projects are listed here; editing them in the app is planned work
-// (Agents.md §17.3), so the rows don't open anything yet.
+// Roles and projects: tap one to edit it, or add one. Changing what one claims (or
+// deleting it) un-verifies its linked evidence — the sheets say so (Agents.md §6.3).
 function Roles() {
   const roles = useWorkExperiences();
-  if (!roles.data?.length) return null;
+  const [editing, setEditing] = useState<WorkExperience | 'new' | null>(null);
   return (
     <Group label="Experience">
-      {roles.data.map((r) => (
+      {(roles.data ?? []).map((r) => (
         <Row
           key={r.id}
           icon={<Briefcase className="size-[18px]" />}
           title={r.title}
           sub={`${r.company} · ${year(r.startDate)} – ${r.isCurrent || !r.endDate ? 'Present' : year(r.endDate)}`}
+          onClick={() => setEditing(r)}
         />
       ))}
+      <AddRow onClick={() => setEditing('new')}>Add role</AddRow>
+      <Sheet open={editing !== null} onClose={() => setEditing(null)} title={editing === 'new' ? 'Add role' : 'Edit role'}>
+        {editing && <RoleForm role={editing === 'new' ? undefined : editing} onDone={() => setEditing(null)} />}
+      </Sheet>
     </Group>
   );
 }
 
 function Projects() {
   const projects = useProjects();
-  if (!projects.data?.length) return null;
+  const [editing, setEditing] = useState<Project | 'new' | null>(null);
   return (
     <Group label="Projects">
-      {projects.data.map((p) => (
-        <Row key={p.id} icon={<FolderKanban className="size-[18px]" />} title={p.name} sub={p.description ?? undefined} />
+      {(projects.data ?? []).map((p) => (
+        <Row key={p.id} icon={<FolderKanban className="size-[18px]" />} title={p.name} sub={p.description ?? undefined} onClick={() => setEditing(p)} />
       ))}
+      <AddRow onClick={() => setEditing('new')}>Add project</AddRow>
+      <Sheet open={editing !== null} onClose={() => setEditing(null)} title={editing === 'new' ? 'Add project' : 'Edit project'}>
+        {editing && <ProjectForm project={editing === 'new' ? undefined : editing} onDone={() => setEditing(null)} />}
+      </Sheet>
     </Group>
+  );
+}
+
+function AddRow({ onClick, children }: { onClick: () => void; children: ReactNode }) {
+  return (
+    <button type="button" onClick={onClick} className="flex min-h-12 w-full items-center gap-2 px-4 text-[15px] font-semibold text-accent-fg">
+      <Plus className="size-4" /> {children}
+    </button>
   );
 }
 
@@ -152,9 +170,7 @@ function EducationList() {
           onClick={() => setEditing(e)}
         />
       ))}
-      <button type="button" onClick={() => setEditing('new')} className="flex min-h-12 w-full items-center gap-2 px-4 text-[15px] font-semibold text-accent-fg">
-        <Plus className="size-4" /> Add education
-      </button>
+      <AddRow onClick={() => setEditing('new')}>Add education</AddRow>
       <Sheet open={editing !== null} onClose={() => setEditing(null)} title={editing === 'new' ? 'Add education' : 'Edit education'}>
         {editing && <EducationForm initial={editing === 'new' ? undefined : editing} onDone={() => setEditing(null)} />}
       </Sheet>

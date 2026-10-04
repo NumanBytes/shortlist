@@ -4,11 +4,32 @@ const STROKE: Record<Verdict, string> = { APPLY: 'stroke-apply', STRETCH: 'strok
 
 // The match score as a ring — the single most important number on a job, so it leads.
 // `outOf`: the large hero ring adds "of 100" under the number (design board 2).
-export function ScoreRing({ score, verdict, size = 44, outOf = false }: { score: number; verdict: Verdict; size?: number; outOf?: boolean }) {
+// `sharedId`: the detail page's ring carries the view-transition name the tapped card's ring
+// gets (lib/navigation nameSharedRing), so opening a job grows the ring 44 → 88 px (design
+// motion spec). Phones only (index.css): on wide screens both rings are on screen at once.
+export function ScoreRing({
+  score,
+  verdict,
+  size = 44,
+  outOf = false,
+  sharedId,
+  ringRef,
+}: {
+  score: number;
+  verdict: Verdict;
+  size?: number;
+  outOf?: boolean;
+  sharedId?: string;
+  ringRef?: React.Ref<HTMLDivElement>;
+}) {
   const r = 20;
   const circumference = 2 * Math.PI * r;
   return (
-    <div className="relative shrink-0" style={{ width: size, height: size }}>
+    <div
+      ref={ringRef}
+      className={`vt-ring relative shrink-0`}
+      style={{ width: size, height: size, ...(sharedId ? { ['--vt-name' as string]: `ring-${sharedId}` } : {}) }}
+    >
       <svg viewBox="0 0 48 48" className="size-full -rotate-90" aria-hidden="true">
         <circle cx="24" cy="24" r={r} fill="none" strokeWidth="4" className="stroke-surface-2" />
         <circle

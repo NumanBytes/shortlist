@@ -212,6 +212,19 @@ describe('Jobs & discovery (e2e)', () => {
       await Promise.all(queued.map((j) => j.remove()));
     });
 
+    it('edits a failing board\'s address from its link, and clears the cooldown so it can be retried', async () => {
+      const user = await t.register();
+      const s = await source(user, { lastRunAt: new Date(), lastRunStatus: 'FAILED' });
+      const res = await t.http().patch(`/api/v1/discovery/sources/${s.id}/address`).set(user.auth).send({ address: 'https://job-boards.greenhouse.io/motive2' }).expect(200);
+      expect(res.body.config).toEqual({ provider: 'greenhouse', board: 'motive2' });
+      await t.http().post(`/api/v1/discovery/sources/${s.id}/run`).set(user.auth).expect(202); // no cooldown now
+      const bad = await t.http().patch(`/api/v1/discovery/sources/${s.id}/address`).set(user.auth).send({ address: 'https://jobs.lever.co/x' }).expect(400);
+      expect(bad.body.message).toMatch(/isn't a greenhouse board link/);
+      await t.http().patch(`/api/v1/discovery/sources/${s.id}/address`).set(other.auth).send({ address: 'motive' }).expect(404);
+      const queued = (await queue.getJobs(['waiting', 'delayed', 'active'])).filter((j) => j.data.sourceId === s.id);
+      await Promise.all(queued.map((j) => j.remove()));
+    });
+
     it('counts the jobs found this week', async () => {
       const user = await t.register();
       await job(user);

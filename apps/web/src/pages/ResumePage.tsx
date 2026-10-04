@@ -1,6 +1,11 @@
-import { AlertTriangle, Check, ChevronLeft, Download, ShieldX, ZoomIn } from 'lucide-react';
+import { AlertTriangle, Briefcase, Check, ChevronLeft, Copy, Download, RotateCw, ShieldX, ZoomIn } from 'lucide-react';
+import { MoreMenu } from '../components/MoreMenu';
+import { resumeText } from '../lib/format';
+import { useEdgeSwipeBack } from '../lib/useEdgeSwipeBack';
+import { PushLink } from '../components/PushLink';
+import { setNavDirection } from '../lib/navigation';
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, useNavigate, useParams } from 'react-router';
 import { ResumeDocument } from '../components/ResumeDocument';
 import { useToast } from '../components/Toast';
 import { Badge, Button, EmptyState, Sheet, Skeleton, buttonStyles } from '../components/ui';
@@ -23,6 +28,11 @@ export function ResumePage() {
   const approve = useApproveResume();
   const toast = useToast();
   const [bullet, setBullet] = useState<ResumeBullet | null>(null);
+  const navigate = useNavigate();
+  const edge = useEdgeSwipeBack(() => {
+    setNavDirection('back');
+    navigate(`/jobs/${jobId}`);
+  });
 
   // The browser names the saved PDF after the page title.
   const name = profile.data?.name;
@@ -36,14 +46,35 @@ export function ResumePage() {
     };
   }, [name, company]);
 
+  // "···" (design board 3): copy the resume as text, tailor again, open the job.
+  const variant = resume.data?.variant;
+  const menu = variant && profile.data && (
+    <MoreMenu
+      title="Resume"
+      actions={[
+        {
+          label: 'Copy as plain text',
+          icon: <Copy className="size-[18px]" />,
+          onSelect: () =>
+            void navigator.clipboard?.writeText(resumeText(variant.content, profile.data!, education.data ?? [])).then(
+              () => toast({ text: 'Resume copied as text' }),
+              () => toast({ text: "Couldn't copy" }),
+            ),
+        },
+        { label: 'Tailor again', icon: <RotateCw className="size-[18px]" />, onSelect: () => navigate(`/jobs/${jobId}`) },
+        { label: 'Open the job', icon: <Briefcase className="size-[18px]" />, onSelect: () => navigate(`/jobs/${jobId}`) },
+      ]}
+    />
+  );
+
   const nav = (
     <nav className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 print:hidden">
-      <Link to={`/jobs/${jobId}`} className="-ml-1 flex min-h-11 min-w-0 items-center gap-0.5 text-[17px] font-medium text-accent-fg">
+      <PushLink to={`/jobs/${jobId}`} dir="back" className="-ml-1 flex min-h-11 min-w-0 items-center gap-0.5 text-[17px] font-medium text-accent-fg">
         <ChevronLeft className="size-6 shrink-0" />
         <span className="truncate">{company ?? 'Job'}</span>
-      </Link>
+      </PushLink>
       <h1 className="text-[15px] font-semibold whitespace-nowrap text-fg">Review resume</h1>
-      <span />
+      <span className="justify-self-end">{menu}</span>
     </nav>
   );
 
@@ -72,7 +103,7 @@ export function ResumePage() {
   const { dropped } = v.content;
 
   return (
-    <div className="mx-auto max-w-[8.5in] space-y-3 pb-28 sm:pb-6 print:space-y-0 print:p-0">
+    <div {...edge.handlers} style={edge.style} className="mx-auto max-w-[8.5in] space-y-3 pb-28 sm:pb-6 print:space-y-0 print:p-0">
       {nav}
       <div className="flex items-center gap-2 print:hidden">
         <Badge className="font-semibold tracking-[0.04em]" tone={stale ? 'danger' : approved ? 'accent' : 'neutral'}>

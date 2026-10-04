@@ -3,6 +3,7 @@ import { useState, type ReactNode } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router';
 import { useAuth } from '../auth/AuthProvider';
 import { elapsed } from '../lib/format';
+import { RouteCommitted } from '../lib/navigation';
 import { useActiveTailoring, useGmail, useSkills } from '../lib/queries';
 import { useNow } from '../lib/useNow';
 import { InstallPrompt } from './InstallPrompt';
@@ -177,7 +178,7 @@ function TailoringPill() {
   return (
     <Link
       to={`/jobs/${first.jobId}`}
-      className="fixed bottom-[calc(72px+env(safe-area-inset-bottom))] left-1/2 z-30 flex h-11 max-w-[calc(100vw-32px)] -translate-x-1/2 animate-rise-in items-center gap-2.5 rounded-full bg-fg py-0 pr-2.5 pl-4 text-[13px] font-medium text-bg shadow-[0_8px_24px_rgb(15_23_42/0.25)] sm:bottom-6 print:hidden"
+      className="fixed bottom-[calc(72px+env(safe-area-inset-bottom))] left-1/2 z-30 flex h-11 max-w-[calc(100vw-32px)] -translate-x-1/2 animate-rise-in-sm items-center gap-2.5 rounded-full bg-fg py-0 pr-2.5 pl-4 text-[13px] font-medium text-bg shadow-[0_8px_24px_rgb(15_23_42/0.25)] sm:bottom-6 print:hidden"
     >
       <span aria-hidden="true" className="size-3.5 shrink-0 animate-spin rounded-full border-2 border-toast-accent border-r-transparent" />
       <span className="min-w-0 truncate">
@@ -217,6 +218,7 @@ export function AppShell() {
         <Outlet />
       </div>
 
+      <RouteCommitted />
       <TailoringPill />
       <InstallPrompt />
 

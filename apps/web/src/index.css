@@ -185,10 +185,116 @@ body {
 @utility animate-rise-in {
   animation: rise-in 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
+@keyframes rise-in-sm {
+  from { opacity: 0; transform: translateY(8px); }
+}
+@keyframes fade-out {
+  to { opacity: 0; }
+}
+@keyframes sheet-down {
+  to { transform: translateY(100%); }
+}
+@keyframes drop-out {
+  to { opacity: 0; transform: translateY(12px); }
+}
+/* A row brought back with Undo slides in from the side it left (200 ms). */
+@keyframes row-return-right {
+  from { transform: translateX(110%); }
+}
+@keyframes row-return-left {
+  from { transform: translateX(-110%); }
+}
+@utility animate-rise-in-sm {
+  animation: rise-in-sm 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@utility animate-drop-out {
+  animation: drop-out 200ms ease-in forwards;
+}
+
+/* Bottom sheet (motion spec): in 240 ms, out 180 ms ease-in; the scrim fades 200 ms linear. */
+dialog[open]::backdrop {
+  animation: fade-in 200ms linear;
+}
+dialog.sheet-closing {
+  animation: sheet-down 180ms ease-in forwards;
+}
+dialog.sheet-closing::backdrop {
+  animation: fade-out 180ms linear forwards;
+}
+
+/* Row → detail "push" (motion spec), phones only — on wide screens the detail opens beside
+   the list. Forward: the new screen slides in from the right (240 ms) while the list moves
+   30% left and dims to 70%; back reverses it (200 ms). The score ring is a shared element
+   and grows 44 → 88 px. Uses the View Transitions API via react-router's `viewTransition`;
+   browsers without it simply navigate. */
+@media (max-width: 1023px) {
+  .vt-ring {
+    view-transition-name: var(--vt-name, none);
+  }
+  ::view-transition-group(*) {
+    animation-duration: 240ms;
+    animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  ::view-transition-old(root) {
+    animation: 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both push-under;
+  }
+  ::view-transition-new(root) {
+    animation: 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both push-in;
+    box-shadow: -8px 0 24px rgb(15 23 42 / 0.12);
+  }
+  html[data-nav='back']::view-transition-group(*) {
+    animation-duration: 200ms;
+  }
+  html[data-nav='back']::view-transition-old(root) {
+    animation: 200ms ease-in both push-out;
+    z-index: 1;
+    box-shadow: -8px 0 24px rgb(15 23 42 / 0.12);
+  }
+  html[data-nav='back']::view-transition-new(root) {
+    animation: 200ms cubic-bezier(0.2, 0.8, 0.2, 1) both push-from-under;
+  }
+}
+@media (min-width: 1024px) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+}
+@keyframes push-in {
+  from { transform: translateX(100%); }
+}
+@keyframes push-under {
+  to { transform: translateX(-30%); opacity: 0.7; }
+}
+@keyframes push-out {
+  to { transform: translateX(100%); }
+}
+@keyframes push-from-under {
+  from { transform: translateX(-30%); opacity: 0.7; }
+}
+
+/* Reduced motion (motion spec): transforms become 150 ms opacity fades; spinners stay;
+   skeleton pulses stop (motion-reduce:animate-none on Skeleton). */
 @media (prefers-reduced-motion: reduce) {
   .animate-sheet-up,
-  .animate-rise-in {
+  .animate-rise-in,
+  .animate-rise-in-sm {
     animation: fade-in 150ms linear;
+  }
+  .animate-drop-out,
+  dialog.sheet-closing {
+    animation: fade-out 150ms linear forwards;
+  }
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+  ::view-transition-old(root) {
+    animation: 150ms linear both fade-out !important;
+  }
+  ::view-transition-new(root) {
+    animation: 150ms linear both fade-in !important;
   }
 }
 

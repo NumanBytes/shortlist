@@ -29,6 +29,13 @@ export class ResumesController {
     return this.resumes.prepare(user.id, id, body);
   }
 
+  // Stops a run that hasn't started; 409 if the worker is already writing it.
+  @Post('jobs/:id/resume/cancel')
+  @HttpCode(HttpStatus.OK)
+  cancel(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.resumes.cancel(user.id, id);
+  }
+
   @Post('resumes/:id/approve')
   @HttpCode(HttpStatus.OK)
   approve(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {

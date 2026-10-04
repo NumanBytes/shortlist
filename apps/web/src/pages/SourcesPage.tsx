@@ -3,9 +3,9 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import { PageHeader } from '../components/AppShell';
 import { GmailCard } from '../components/GmailCard';
-import { Badge, Button, Card, SectionLabel, Skeleton, Switch } from '../components/ui';
+import { Badge, Button, Card, SectionLabel, Sheet, Skeleton, Switch, TextField } from '../components/ui';
 import { providerLabel, timeAgo } from '../lib/format';
-import { useAiUsage, useDiscoveryStatus, useRunSource, useSetSourceEnabled, useSources } from '../lib/queries';
+import { useAiUsage, useDiscoveryStatus, useRunSource, useSetSourceAddress, useSetSourceEnabled, useSources } from '../lib/queries';
 import type { DiscoverySource } from '../lib/types';
 
 const needsAttention = (s: DiscoverySource) => s.isEnabled && (s.lastRun?.status === 'FAILED' || s.lastRun?.status === 'EMPTY');
@@ -72,6 +72,7 @@ export function JobsLink({ sourceId, count }: { sourceId: string; count: number 
 // today" (Agents.md §9.5), with a retry for that source alone.
 function AttentionRow({ source }: { source: DiscoverySource }) {
   const retry = useRunSource();
+  const [editing, setEditing] = useState(false);
   const run = source.lastRun!;
   const failed = run.status === 'FAILED';
   return (
@@ -94,9 +95,54 @@ function AttentionRow({ source }: { source: DiscoverySource }) {
         <Button variant="secondary" size="sm" onClick={() => retry.mutate(source.id)} disabled={retry.isPending || retry.isSuccess}>
           <RotateCw className="size-4" /> {retry.isSuccess ? 'Queued' : 'Retry'}
         </Button>
-        {retry.isError && <p className="text-xs text-danger-fg">{retry.error.message}</p>}
+        {source.board !== null && (
+          <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
+            Edit URL
+          </Button>
+        )}
       </div>
+      {retry.isError && <p className="text-xs text-danger-fg">{retry.error.message}</p>}
+      {source.board !== null && (
+        <Sheet open={editing} onClose={() => setEditing(false)} title={`Edit ${source.name}'s address`}>
+          <AddressForm source={source} onDone={() => setEditing(false)} />
+        </Sheet>
+      )}
     </li>
+  );
+}
+
+// "Edit URL" (design board 5): a company board that moved gets its new link — or just its
+// name. The API keeps only the board's name and clears the cooldown so Retry works at once.
+function AddressForm({ source, onDone }: { source: DiscoverySource; onDone: () => void }) {
+  const save = useSetSourceAddress();
+  const [address, setAddress] = useState('');
+  return (
+    <form
+      noValidate
+      className="space-y-3"
+      onSubmit={(e) => {
+        e.preventDefault();
+        save.mutate({ id: source.id, address }, { onSuccess: onDone });
+      }}
+    >
+      <p className="text-[17px] font-semibold text-fg">Edit address</p>
+      <p className="text-[13px] text-muted">
+        {source.name} on {providerLabel(source.provider)} — now <span className="font-mono text-fg">{source.board}</span>. Paste the
+        board's new link, or just its name.
+      </p>
+      <TextField
+        id="board-address"
+        label="Board link or name"
+        inputMode="url"
+        placeholder={`e.g. ${source.board}`}
+        value={address}
+        onChange={(e) => setAddress(e.target.value)}
+        error={save.error?.message}
+      />
+      <Button type="submit" size="lg" className="w-full" disabled={save.isPending || address.trim() === ''}>
+        Save address
+      </Button>
+    </form>
   );
 }
 

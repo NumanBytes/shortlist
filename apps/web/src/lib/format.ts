@@ -56,3 +56,24 @@ export function timeUntil(iso: string, now = Date.now()): string {
   if (mins < 60) return `in ${mins}m`;
   return `in ${Math.round(mins / 60)}h`;
 }
+
+// The resume as plain text — for application forms that want it pasted, not uploaded.
+// Same content and order as the printed page (Agents.md §13.1).
+export function resumeText(
+  content: { experience: { title: string; company: string; startDate: string; endDate: string | null; isCurrent: boolean; bullets: { label: string | null; text: string }[] }[]; projects: { name: string; bullets: { label: string | null; text: string }[] }[]; skillGroups: { label: string; skills: { name: string }[] }[] },
+  profile: { name: string; email: string; phone: string | null; location: string | null; linkedinUrl: string | null; githubUrl: string | null },
+  education: { degree: string; institution: string; startYear: number | null; endYear: number | null }[],
+): string {
+  const my = (iso: string) => new Date(iso).toLocaleString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+  const bullet = (b: { label: string | null; text: string }) => `• ${b.label ? `${b.label}: ` : ''}${b.text}`;
+  const lines = [profile.name, [profile.email, profile.phone, profile.location].filter(Boolean).join(' | '), [profile.linkedinUrl, profile.githubUrl].filter(Boolean).join(' | ')];
+  lines.push('', 'EXPERIENCE');
+  for (const r of content.experience) lines.push(`${r.title} | ${r.company} — ${my(r.startDate)} - ${r.isCurrent || !r.endDate ? 'Present' : my(r.endDate)}`, ...r.bullets.map(bullet), '');
+  if (content.skillGroups.length) lines.push('SKILLS', ...content.skillGroups.map((g) => `${g.label}: ${g.skills.map((s) => s.name).join(', ')}`), '');
+  if (content.projects.length) {
+    lines.push('PROJECTS');
+    for (const p of content.projects) lines.push(p.name, ...p.bullets.map(bullet), '');
+  }
+  if (education.length) lines.push('EDUCATION', ...education.map((e) => `${e.degree} | ${e.institution}${e.startYear || e.endYear ? ` — ${e.startYear ?? ''} - ${e.endYear ?? 'Present'}` : ''}`));
+  return lines.filter((l, i, all) => !(l === '' && all[i - 1] === '')).join('\n').trim();
+}

@@ -61,6 +61,16 @@ describe('JobDetailPage', () => {
     await waitFor(() => expect(fetchMock.mock.calls.some(([u]) => u === '/api/v1/jobs/j1/analyze')).toBe(true));
   });
 
+  it('the ··· menu can skip the job, with Undo', async () => {
+    const fetchMock = open(detail);
+    await userEvent.click(await screen.findByRole('button', { name: 'More actions' }));
+    await userEvent.click(screen.getByRole('button', { name: /Skip this job/ }));
+    await waitFor(() => expect(fetchMock.mock.calls.some(([, i]) => i?.method === 'PATCH')).toBe(true));
+    const patch = fetchMock.mock.calls.find(([, i]) => i?.method === 'PATCH')!;
+    expect(JSON.parse(patch[1]!.body as string)).toEqual({ status: 'SKIPPED' });
+    expect(await screen.findByRole('button', { name: 'Undo' })).toBeInTheDocument();
+  });
+
   it('warns about a possible scam before anything else', async () => {
     open({ ...detail, redFlags: ['asks for a registration fee'] });
     expect(await screen.findByRole('alert')).toHaveTextContent(/Possible scam.*registration fee/);

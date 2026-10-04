@@ -8,11 +8,18 @@ import {
   CornerDownRight,
   ExternalLink,
   Info,
+  Link2,
   RotateCw,
   Star,
+  Undo2,
+  X,
 } from 'lucide-react';
+import { MoreMenu, type MenuAction } from '../components/MoreMenu';
+import { PushLink } from '../components/PushLink';
+import { setNavDirection } from '../lib/navigation';
 import { useState, type ReactNode } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
+import { useEdgeSwipeBack } from '../lib/useEdgeSwipeBack';
 import { PartialJobNotice } from '../components/PartialJobNotice';
 import { ResumeSection } from '../components/ResumeSection';
 import { ScoreRing } from '../components/ScoreRing';
@@ -52,17 +59,65 @@ export function JobDetailPage() {
   const [params] = useSearchParams();
   const detail = useJobDetail(jobId, true);
   const back = `/${params.size ? `?${params}` : ''}`;
+  const navigate = useNavigate();
+  const edge = useEdgeSwipeBack(() => {
+    setNavDirection('back');
+    navigate(back);
+  });
 
   return (
-    <article className="space-y-3 pb-20 lg:pb-4" aria-label="Job details">
-      <Link to={back} className="-ml-1 inline-flex min-h-11 items-center gap-1 text-[17px] font-medium text-accent-fg lg:hidden">
-        <ChevronLeft className="size-5" /> Jobs
-      </Link>
+    <article {...edge.handlers} style={edge.style} className="space-y-3 pb-20 lg:pb-4" aria-label="Job details">
+      <div className="flex items-center justify-between">
+        <PushLink to={back} dir="back" className="-ml-1 inline-flex min-h-11 items-center gap-1 text-[17px] font-medium text-accent-fg lg:invisible">
+          <ChevronLeft className="size-5" /> Jobs
+        </PushLink>
+        {detail.data && <JobMenu job={detail.data} />}
+      </div>
       {detail.isPending && <DetailSkeleton />}
       {detail.isError && <EmptyState icon={<AlertTriangle className="size-6" />} title="Couldn't load this job">{detail.error.message}</EmptyState>}
       {detail.isSuccess && <Detail job={detail.data} />}
     </article>
   );
+}
+
+// "···" (design board 2): copy the posting's link, score it again, skip it.
+function JobMenu({ job }: { job: JobDetail }) {
+  const toast = useToast();
+  const analyze = useAnalyzeJob();
+  const setStatus = useSetJobStatus();
+  const skipped = job.status === 'SKIPPED';
+  const actions: MenuAction[] = [];
+  if (job.sourceUrl)
+    actions.push({
+      label: 'Copy posting link',
+      icon: <Link2 className="size-[18px]" />,
+      onSelect: () =>
+        void navigator.clipboard?.writeText(job.sourceUrl!).then(
+          () => toast({ text: 'Link copied' }),
+          () => toast({ text: "Couldn't copy the link" }),
+        ),
+    });
+  actions.push({
+    label: 'Score again',
+    icon: <RotateCw className="size-[18px]" />,
+    disabled: job.analysisStatus === 'PENDING',
+    onSelect: () =>
+      analyze.mutate(job.id, {
+        onSuccess: () => toast({ text: 'Scoring again with your verified skills' }),
+        onError: (err) => toast({ text: err.message }),
+      }),
+  });
+  actions.push({
+    label: skipped ? 'Move back to New' : 'Skip this job',
+    icon: skipped ? <Undo2 className="size-[18px]" /> : <X className="size-[18px]" />,
+    danger: !skipped,
+    onSelect: () =>
+      setStatus.mutate(
+        { id: job.id, status: skipped ? 'DISCOVERED' : 'SKIPPED' },
+        { onSuccess: () => toast({ text: skipped ? 'Moved back to New' : 'Skipped', action: { label: 'Undo', onClick: () => setStatus.mutate({ id: job.id, status: job.status }) } }) },
+      ),
+  });
+  return <MoreMenu title={`${job.title} · ${job.company}`} actions={actions} />;
 }
 
 const SEVERITY_LABEL: Record<GapSeverity, string> = { BLOCKING: 'Blocking', MODERATE: 'Moderate', MINOR: 'Minor' };
@@ -98,7 +153,7 @@ function Detail({ job }: { job: JobDetail }) {
       <header className="space-y-3 pt-1">
         {m ? (
           <div className="flex items-center gap-4">
-            <ScoreRing score={m.overallScore} verdict={m.verdict} size={88} outOf />
+            <ScoreRing score={m.overallScore} verdict={m.verdict} size={88} outOf sharedId={job.id} />
             <div className="min-w-0 space-y-1.5">
               <VerdictBadge verdict={m.verdict} />
               <p className="text-[13px] leading-[18px] text-muted">{fitSummary(job)}</p>
