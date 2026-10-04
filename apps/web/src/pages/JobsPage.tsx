@@ -1,12 +1,13 @@
-import { ChevronDown, Inbox, MousePointerClick } from 'lucide-react';
+import { ChevronDown, Filter, Inbox, MousePointerClick, X } from 'lucide-react';
 import { useState } from 'react';
-import { Link, Outlet, useParams, useSearchParams } from 'react-router';
+import { Outlet, useParams, useSearchParams } from 'react-router';
+import { FindNewJobs } from '../components/FindNewJobs';
 import { JobRow } from '../components/JobRow';
-import { EmptyState, Segmented, Skeleton } from '../components/ui';
+import { EmptyState, IconButton, Segmented, Skeleton } from '../components/ui';
 import { useJobs, type JobSort } from '../lib/queries';
 import type { JobListItem, JobStatus, Verdict } from '../lib/types';
 
-type Tab = 'new' | 'interested' | 'applied' | 'skipped';
+type Tab = 'new' | 'interested' | 'applied' | 'skipped' | 'all';
 type VerdictFilter = 'all' | Verdict;
 
 const TAB_STATUS: Record<Tab, JobStatus | undefined> = {
@@ -14,14 +15,17 @@ const TAB_STATUS: Record<Tab, JobStatus | undefined> = {
   interested: 'INTERESTED',
   applied: undefined, // several later stages — filtered client-side
   skipped: 'SKIPPED',
+  all: undefined, // offered when viewing one source's jobs (from the Sources page)
 };
 const PIPELINE: JobStatus[] = ['APPLIED', 'ASSESSMENT', 'INTERVIEWING', 'OFFER', 'REJECTED', 'WITHDRAWN'];
 
-// List state lives in the URL (?tab=&verdict=&sort=), so opening a job and coming back —
-// or the phone's back gesture — returns to exactly the same list.
+// List state lives in the URL (?tab=&verdict=&sort=&source=), so opening a job and coming
+// back — or the phone's back gesture — returns to exactly the same list.
 function useListState() {
   const [params, setParams] = useSearchParams();
-  const tab = (params.get('tab') as Tab | null) ?? 'new';
+  const source = params.get('source') ?? undefined;
+  const requested = (params.get('tab') as Tab | null) ?? 'new';
+  const tab = requested === 'all' && !source ? 'new' : requested;
   const verdict = (params.get('verdict') as VerdictFilter | null) ?? 'all';
   const sort = (params.get('sort') as JobSort | null) ?? 'score';
   const set = (key: string, value: string, fallback: string) =>
@@ -38,6 +42,17 @@ function useListState() {
     tab,
     verdict,
     sort,
+    source,
+    clearSource: () =>
+      setParams(
+        (p) => {
+          const next = new URLSearchParams(p);
+          next.delete('source');
+          if (next.get('tab') === 'all') next.delete('tab');
+          return next;
+        },
+        { replace: true },
+      ),
     setTab: (v: Tab) => set('tab', v, 'new'),
     setVerdict: (v: VerdictFilter) => set('verdict', v, 'all'),
     setSort: (v: JobSort) => set('sort', v, 'score'),
@@ -70,7 +85,7 @@ export function NoJobSelected() {
 
 function JobsList({ selectedId }: { selectedId?: string }) {
   const s = useListState();
-  const jobs = useJobs(TAB_STATUS[s.tab], s.sort);
+  const jobs = useJobs(TAB_STATUS[s.tab], s.sort, s.source);
   const [showWeaker, setShowWeaker] = useState(false);
 
   const all = (jobs.data ?? []).filter((j) => s.tab !== 'applied' || PIPELINE.includes(j.status));
@@ -100,17 +115,32 @@ function JobsList({ selectedId }: { selectedId?: string }) {
         </label>
       </div>
 
+      {s.source && (
+        <div className="flex items-center gap-2 rounded-lg bg-surface-2 py-1 pr-1 pl-3 text-sm text-muted">
+          <Filter className="size-4 shrink-0" />
+          <span className="min-w-0 flex-1 truncate">
+            Only jobs from <span className="font-medium text-fg">{all[0]?.jobSource?.name ?? 'one source'}</span>
+          </span>
+          <IconButton label="Show jobs from every source" onClick={s.clearSource}>
+            <X className="size-4" />
+          </IconButton>
+        </div>
+      )}
+
       <Segmented
         label="Pipeline"
         value={s.tab}
         onChange={s.setTab}
         options={[
+          ...(s.source ? [{ value: 'all' as const, label: 'All' }] : []),
           { value: 'new', label: 'New' },
           { value: 'interested', label: 'Interested' },
           { value: 'applied', label: 'Applied' },
           { value: 'skipped', label: 'Skipped' },
         ]}
       />
+
+      {s.tab === 'new' && !s.source && <FindNewJobs />}
 
       {jobs.isSuccess && all.length > 0 && (
         <fieldset className="mx-0 flex min-w-0 gap-1.5 overflow-x-auto border-0 p-0">
@@ -142,15 +172,7 @@ function JobsList({ selectedId }: { selectedId?: string }) {
       {jobs.isError && <p className="text-danger-fg">Couldn't load jobs: {jobs.error.message}</p>}
       {jobs.isSuccess && visible.length === 0 && (
         <EmptyState icon={<Inbox className="size-8" />} title={s.tab === 'new' ? 'No new jobs' : 'Nothing here yet'}>
-          {s.tab === 'new' ? (
-            <>
-              Discovery runs every night at 02:00. See each source's last run, or start one now, in{' '}
-              <Link className="font-medium text-fg underline" to="/sources">
-                Sources
-              </Link>
-              .
-            </>
-          ) : null}
+          {s.tab === 'new' && !s.source ? 'Tap “Find new jobs” above, or wait for tonight’s automatic check.' : null}
         </EmptyState>
       )}
 

@@ -73,6 +73,19 @@ describe('Resumes (e2e)', () => {
     });
   }
 
+  it('says since when a resume has waited, and lists every one being tailored — only the caller\'s', async () => {
+    const user = await t.register();
+    const j = await job(user, ['React']);
+    await t.prisma.jobResume.create({ data: { jobId: j.id, status: 'PENDING' } });
+    const res = await t.http().get(`/api/v1/jobs/${j.id}/resume`).set(user.auth).expect(200);
+    expect(res.body).toMatchObject({ status: 'PENDING', queuedAt: expect.any(String) });
+    expect(typeof res.body.workerOnline).toBe('boolean');
+
+    const active = await t.http().get('/api/v1/resumes/active').set(user.auth).expect(200);
+    expect(active.body).toEqual([{ jobId: j.id, title: 'Frontend Engineer', company: 'Kwanso', queuedAt: res.body.queuedAt }]);
+    expect((await t.http().get('/api/v1/resumes/active').set(other.auth).expect(200)).body).toEqual([]);
+  });
+
   it('reports NONE for a job without a resume, and 404 for someone else’s job', async () => {
     const j = await job(me, ['React']);
     const res = await t.http().get(`/api/v1/jobs/${j.id}/resume`).set(me.auth).expect(200);

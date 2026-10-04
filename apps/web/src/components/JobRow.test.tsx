@@ -31,9 +31,15 @@ describe('JobRow', () => {
     expect(screen.queryByText(/posted/)).not.toBeInTheDocument(); // company board: a listed job is open
   });
 
-  it('credits an aggregator by name and shows its posting age', () => {
+  it('says when Shortlist found the job', () => {
+    row({ ...job, discoveredAt: new Date(Date.now() - 2 * 86_400_000).toISOString() });
+    expect(screen.getByText('Found 2d ago')).toHaveAttribute('dateTime');
+  });
+
+  it('credits an aggregator by name, and shows only when the job was found — not its posting age', () => {
     row({ ...job, source: 'remoteok', postedAt: new Date(Date.now() - 3 * 86_400_000).toISOString() });
-    expect(screen.getByText(/via Remote OK · posted 3d ago/)).toBeInTheDocument();
+    expect(screen.getByText(/via Remote OK/)).toBeInTheDocument();
+    expect(screen.queryByText(/posted/)).not.toBeInTheDocument();
   });
 
   it('marks a job interested, and skips it', async () => {
@@ -61,7 +67,7 @@ describe('JobRow', () => {
 
   it("names a company board as 'company site' rather than repeating the company", () => {
     row();
-    expect(screen.getByText('company site')).toBeInTheDocument();
+    expect(screen.getByText(/· company site/)).toBeInTheDocument();
     expect(screen.getAllByText(/Septem Systems/)).toHaveLength(1);
   });
 

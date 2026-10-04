@@ -61,7 +61,11 @@ export class JobsService {
   ) {}
 
   async list(userId: string, query: ListJobsQuery) {
-    const where = { userId, ...(query.status ? { status: query.status } : {}) };
+    const where = {
+      userId,
+      ...(query.status ? { status: query.status } : {}),
+      ...(query.sourceId ? { jobSourceId: query.sourceId } : {}),
+    };
     if (query.sort === 'recent') {
       return this.prisma.job.findMany({ where, select: LIST_SELECT, orderBy: { discoveredAt: 'desc' }, take: LIST_LIMIT });
     }

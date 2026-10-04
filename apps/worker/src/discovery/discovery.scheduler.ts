@@ -1,11 +1,11 @@
 import { InjectQueue } from '@nestjs/bullmq';
 import { Inject, Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
-import { DISCOVERY_QUEUE, DiscoveryJob } from '@shortlist/shared';
+import { DISCOVERY_QUEUE, DiscoveryJob, NIGHTLY_DISCOVERY_SCHEDULER_ID } from '@shortlist/shared';
 import type { Queue } from 'bullmq';
 import { ENV } from '../config/config.module.js';
 import type { Env } from '../config/env.js';
 
-export const NIGHTLY_SCHEDULER_ID = 'nightly-discovery';
+export const NIGHTLY_SCHEDULER_ID = NIGHTLY_DISCOVERY_SCHEDULER_ID;
 
 // The schedule lives in Redis as a BullMQ job scheduler, not in this process's memory.
 // Upserting is idempotent, so any number of worker instances can start (or restart)

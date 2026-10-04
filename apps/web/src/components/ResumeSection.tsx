@@ -1,8 +1,11 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { AlertTriangle, FileText, Loader2, RotateCw, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router';
-import { useJobResume, usePrepareResume } from '../lib/queries';
+import { elapsed } from '../lib/format';
+import { TAILOR_POLL_LIMIT_MS, resumeKeys, useJobResume, usePrepareResume } from '../lib/queries';
 import type { JobDetail, JobResume } from '../lib/types';
+import { useNow } from '../lib/useNow';
 import { Badge, Button, Card } from './ui';
 
 // The job's resume (Agents.md §13): reuse an approved one, tailor a new one, or open the
@@ -37,6 +40,55 @@ export function ResumeSection({ job }: { job: JobDetail }) {
   );
 }
 
+const SLOW_MS = 2 * 60 * 1000;
+
+// Never an endless spinner (Agents.md §13.1): show how long it has waited, and say plainly
+// when nothing can be happening — no worker running — or when it has taken far too long.
+export function TailoringProgress({ jobId, resume }: { jobId: string; resume: JobResume }) {
+  const now = useNow();
+  const queryClient = useQueryClient();
+  const waited = resume.queuedAt ? now - new Date(resume.queuedAt).getTime() : 0;
+  const time = elapsed(resume.queuedAt, now);
+  const checkAgain = (
+    <Button size="sm" variant="secondary" onClick={() => void queryClient.invalidateQueries({ queryKey: resumeKeys.job(jobId) })}>
+      <RotateCw className="size-3.5" /> Check again
+    </Button>
+  );
+
+  if (resume.workerOnline === false) {
+    return (
+      <output className="flex gap-2 rounded-lg bg-stretch-bg px-3 py-2 text-stretch-fg">
+        <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+        <span>
+          Queued {time} ago, but the background worker isn't running, so tailoring hasn't started. Nothing has been
+          charged. It starts by itself once the worker is back.
+        </span>
+      </output>
+    );
+  }
+  if (waited > TAILOR_POLL_LIMIT_MS) {
+    return (
+      <div className="space-y-2">
+        <output className="block text-stretch-fg">Still waiting after {time} — far longer than tailoring takes. Something is stuck.</output>
+        {checkAgain}
+      </div>
+    );
+  }
+  return (
+    <output className="flex items-start gap-2 text-muted">
+      <Loader2 className="mt-0.5 size-4 shrink-0 animate-spin" />
+      <span>
+        Tailoring from your verified evidence · <span className="tabular-nums">{time}</span>
+        <span className="block text-xs text-subtle">
+          {waited > SLOW_MS
+            ? 'Taking longer than usual — Claude may be busy; it retries on its own.'
+            : 'Usually under a minute. You can leave this page — it keeps going.'}
+        </span>
+      </span>
+    </output>
+  );
+}
+
 function VariantBadge({ resume }: { resume: JobResume }) {
   const v = resume.variant!;
   if (v.stale.length) return <Badge tone="danger">Out of date</Badge>;
@@ -49,11 +101,7 @@ function Body({ job, resume }: { job: JobDetail; resume: JobResume }) {
   const busy = prepare.isPending;
   const error = prepare.isError && <p className="mt-2 text-danger-fg">{prepare.error.message}</p>;
 
-  const pending = resume.status === 'PENDING' && (
-    <output className="flex items-center gap-2 text-muted">
-      <Loader2 className="size-4 animate-spin" /> Tailoring from your verified evidence — usually under a minute.
-    </output>
-  );
+  const pending = resume.status === 'PENDING' && <TailoringProgress jobId={job.id} resume={resume} />;
   const problem = (resume.status === 'FAILED' || resume.status === 'DEFERRED') && (
     <p className={resume.status === 'FAILED' ? 'text-danger-fg' : 'text-stretch-fg'}>
       {resume.status === 'FAILED' ? 'Tailoring failed' : 'Tailoring deferred'}: {resume.error}

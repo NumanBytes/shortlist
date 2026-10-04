@@ -8,6 +8,9 @@ export const DiscoveryJob = {
   Source: 'discover-source',
 } as const;
 
+// The nightly BullMQ job scheduler's id. The API reads it to show the next automatic run.
+export const NIGHTLY_DISCOVERY_SCHEDULER_ID = 'nightly-discovery';
+
 export interface DiscoverSourceData {
   sourceId: string;
 }
@@ -54,3 +57,12 @@ export const EmailJob = {
 export interface CheckEmailData {
   userId: string;
 }
+
+// Worker liveness (Agents.md §4). The worker writes this key every
+// WORKER_HEARTBEAT_INTERVAL_MS with a TTL; if it's missing, no worker is consuming the
+// queues, and the API can say so instead of the UI spinning forever on queued work.
+// A key with a TTL, not BullMQ's getWorkers(): that uses CLIENT LIST, which hosted Redis
+// (Upstash) doesn't allow.
+export const WORKER_HEARTBEAT_KEY = 'shortlist:worker:heartbeat';
+export const WORKER_HEARTBEAT_INTERVAL_MS = 20_000;
+export const WORKER_HEARTBEAT_TTL_MS = 60_000;

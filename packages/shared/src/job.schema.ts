@@ -18,6 +18,8 @@ export const ListJobsQuerySchema = z
     status: JobStatus.optional(),
     // "score": best match first (unscored last); "recent": newest first.
     sort: z.enum(['score', 'recent']).default('score'),
+    // Only jobs from this JobSource ("24 jobs" on the Sources page links here).
+    sourceId: z.string().uuid().optional(),
   })
   .strict();
 export type ListJobsQuery = z.infer<typeof ListJobsQuerySchema>;

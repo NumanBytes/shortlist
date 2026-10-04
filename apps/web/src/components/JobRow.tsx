@@ -1,6 +1,6 @@
 import { CheckCircle2, ExternalLink, Star, Undo2, X } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router';
-import { isAggregator, postedLabel, prettyLocation, providerLabel } from '../lib/format';
+import { isAggregator, prettyLocation, providerLabel, timeAgo } from '../lib/format';
 import { useSetJobStatus } from '../lib/queries';
 import type { JobListItem, JobStatus } from '../lib/types';
 import { PendingRing, ScoreRing } from './ScoreRing';
@@ -17,7 +17,6 @@ export function JobRow({ job, selected }: { job: JobListItem; selected: boolean 
   const setStatus = useSetJobStatus();
   const toast = useToast();
   const location = prettyLocation(job.location);
-  const posted = postedLabel(job);
   const href = `/jobs/${job.id}${params.size ? `?${params}` : ''}`;
   const interested = job.status === 'INTERESTED';
   const applied = PIPELINE.includes(job.status);
@@ -69,8 +68,12 @@ export function JobRow({ job, selected }: { job: JobListItem; selected: boolean 
 
       <div className="flex items-center justify-between gap-2 py-1 pr-1.5 pl-3 sm:pl-[4.25rem]">
         <span className="min-w-0 truncate text-xs text-subtle">
-          {source}
-          {posted && ` · ${posted}`}
+          {/* The one time on the card: when Shortlist found it (user's choice, 2026-10-04).
+              The posting age is on the job's detail page. First, so it survives truncation. */}
+          <time dateTime={job.discoveredAt} title={new Date(job.discoveredAt).toLocaleString()}>
+            Found {timeAgo(job.discoveredAt)}
+          </time>
+          {` · ${source}`}
         </span>
         <div className="flex shrink-0 items-center">
           {job.sourceUrl && (

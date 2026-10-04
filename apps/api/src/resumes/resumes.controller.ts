@@ -8,6 +8,11 @@ import { ResumesService } from './resumes.service.js';
 export class ResumesController {
   constructor(private readonly resumes: ResumesService) {}
 
+  @Get('resumes/active')
+  active(@CurrentUser() user: AuthUser) {
+    return this.resumes.active(user.id);
+  }
+
   @Get('jobs/:id/resume')
   forJob(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.resumes.forJob(user.id, id);

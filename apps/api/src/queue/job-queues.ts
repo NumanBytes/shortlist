@@ -6,7 +6,9 @@ import {
   DiscoveryJob,
   EMAIL_QUEUE,
   EmailJob,
+  NIGHTLY_DISCOVERY_SCHEDULER_ID,
   RESUME_QUEUE,
+  WORKER_HEARTBEAT_KEY,
   ResumeJob,
   type AnalyzeJobData,
   type CheckEmailData,
@@ -59,7 +61,15 @@ export class JobQueues implements OnModuleDestroy {
             sourceIds.map((sourceId) => ({
               name: DiscoveryJob.Source,
               data: { sourceId } satisfies DiscoverSourceData,
-              opts: { ...RETRY, jobId: `${sourceId}__${batchId}`, backoff: { type: 'exponential', delay: 60_000 } },
+              opts: {
+                ...RETRY,
+                jobId: `${sourceId}__${batchId}`,
+                backoff: { type: 'exponential', delay: 60_000 },
+                // A source already queued or running (a second tap, or the worker not
+                // started yet) is joined, not queued again — its lastRunAt only moves on
+                // when a run finishes, so the cooldown alone can't stop a pile-up.
+                deduplication: { id: `discover-${sourceId}` },
+              },
             })),
           ),
     );
@@ -117,6 +127,36 @@ export class JobQueues implements OnModuleDestroy {
     } finally {
       clearTimeout(timer);
       add.catch(() => undefined); // if the timeout won, don't leave an unhandled rejection
+    }
+  }
+
+  // Is a worker consuming the queues? Its heartbeat key (written by apps/worker) exists
+  // only while one runs. Read-only and best effort: null when Redis can't answer, so a
+  // status view says "unknown" instead of failing the request.
+  async workerOnline(): Promise<boolean | null> {
+    const beat = await this.read(this.connection.get(WORKER_HEARTBEAT_KEY));
+    return beat === undefined ? null : beat !== null;
+  }
+
+  // When the nightly discovery fires next (the scheduler lives in Redis, Agents.md §9.8).
+  async nextNightlyDiscovery(): Promise<Date | null> {
+    const scheduler = await this.read(this.discovery.getJobScheduler(NIGHTLY_DISCOVERY_SCHEDULER_ID));
+    return scheduler?.next ? new Date(scheduler.next) : null;
+  }
+
+  // A read bounded like an enqueue; undefined (not a 503) when Redis doesn't answer.
+  private async read<T>(op: Promise<T>): Promise<T | undefined> {
+    let timer: NodeJS.Timeout | undefined;
+    const timeout = new Promise<undefined>((resolve) => {
+      timer = setTimeout(() => resolve(undefined), ENQUEUE_TIMEOUT_MS);
+    });
+    try {
+      return await Promise.race([op, timeout]);
+    } catch {
+      return undefined;
+    } finally {
+      clearTimeout(timer);
+      op.catch(() => undefined);
     }
   }
 

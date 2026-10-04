@@ -25,7 +25,7 @@ const connected = (over: Partial<NonNullable<GmailStatus['connection']>> = {}): 
     deferred: 0,
     failed: 0,
     portals: [
-      { portal: 'indeed', label: 'Indeed', emails: 3, jobsFound: 22, parserWarnings: 1, lastRun: { status: 'SUCCESS', jobsNew: 6, finishedAt: new Date().toISOString() } },
+      { portal: 'indeed', sourceId: 's-indeed', label: 'Indeed', emails: 3, jobsFound: 22, parserWarnings: 1, lastRun: { status: 'SUCCESS', jobsNew: 6, finishedAt: new Date().toISOString() } },
     ],
   },
 });

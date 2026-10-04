@@ -39,3 +39,20 @@ export function postedLabel(job: Pick<JobListItem, 'source' | 'postedAt' | 'jobS
 }
 
 export const VERDICT_LABEL: Record<Verdict, string> = { APPLY: 'Apply', STRETCH: 'Stretch', SKIP: 'Skip' };
+
+// "0:42", "12:05" — how long something has been waiting.
+export function elapsed(sinceIso: string | null, now = Date.now()): string {
+  if (!sinceIso) return '0:00';
+  const secs = Math.max(0, Math.floor((now - new Date(sinceIso).getTime()) / 1000));
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  const s = String(secs % 60).padStart(2, '0');
+  return h ? `${h}:${String(m).padStart(2, '0')}:${s}` : `${m}:${s}`;
+}
+
+// "in 3h", "in 25m" — for a time in the future.
+export function timeUntil(iso: string, now = Date.now()): string {
+  const mins = Math.max(1, Math.round((new Date(iso).getTime() - now) / 60_000));
+  if (mins < 60) return `in ${mins}m`;
+  return `in ${Math.round(mins / 60)}h`;
+}
