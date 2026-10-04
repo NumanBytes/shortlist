@@ -1,0 +1,121 @@
+# The whole of Shortlist on one server (Agents.md §4, "Deployment"; deploy/README.md).
+#   docker compose --env-file .env up -d --build
+# Only Caddy publishes ports. Postgres and Redis are reachable only by the other services
+# on this private network — never from the internet.
+name: shortlist
+
+x-server: &server
+  build: { context: .., target: server }
+  image: shortlist-server
+  restart: unless-stopped
+  environment: &server-env
+    NODE_ENV: production
+    DATABASE_URL: postgresql://shortlist:${POSTGRES_PASSWORD}@postgres:5432/shortlist
+    REDIS_URL: redis://redis:6379
+    TOKEN_ENCRYPTION_KEY: ${TOKEN_ENCRYPTION_KEY:-}
+    GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+    GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+
+services:
+  # Same major version as development (18), so a local dump restores cleanly (README §6).
+  # Postgres 18 images keep data in a versioned folder under /var/lib/postgresql.
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: shortlist
+      POSTGRES_USER: shortlist
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes: [postgres-data:/var/lib/postgresql]
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U shortlist -d shortlist']
+      interval: 5s
+      retries: 20
+
+  # Queue only (Agents.md §4): appendonly so queued work survives a restart, and no
+  # eviction — BullMQ needs every key it writes to stay.
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ['redis-server', '--appendonly', 'yes', '--maxmemory-policy', 'noeviction']
+    volumes: [redis-data:/data]
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      retries: 20
+
+  # Brings the schema up to date, then exits. The API and worker start only after it
+  # succeeds, so code never runs against an older schema.
+  migrate:
+    <<: *server
+    restart: 'no'
+    working_dir: /app/packages/db
+    command: ['./node_modules/.bin/prisma', 'migrate', 'deploy']
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  api:
+    <<: *server
+    command: ['node', 'apps/api/dist/main.js']
+    environment:
+      <<: *server-env
+      PORT: '3000'
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?set JWT_ACCESS_SECRET in .env}
+      WEB_ORIGINS: https://${SITE_ADDRESS}
+      WEB_APP_URL: https://${SITE_ADDRESS}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-}
+      # One proxy (Caddy) sits in front of the API: the client IP is one hop back in
+      # X-Forwarded-For. Wrong here = one login rate limit for everyone (Agents.md §8.1).
+      TRUST_PROXY_HOPS: '1'
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+
+  worker:
+    <<: *server
+    command: ['node', 'apps/worker/dist/main.js']
+    environment:
+      <<: *server-env
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      DISCOVERY_TZ: ${DISCOVERY_TZ:-Asia/Karachi}
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+
+  caddy:
+    build: { context: .., target: web }
+    image: shortlist-web
+    restart: unless-stopped
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:?set SITE_ADDRESS in .env}
+    ports:
+      - '${HTTP_PORT:-80}:80'
+      - '${HTTPS_PORT:-443}:443'
+    # Certificates live here: losing them means asking Let's Encrypt again (rate-limited).
+    volumes: [caddy-data:/data, caddy-config:/config]
+    depends_on: [api]
+
+  # Nightly database dump at 03:30 (DISCOVERY_TZ, default Asia/Karachi), 14 days kept (deploy/backup.sh).
+  backup:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      PGHOST: postgres
+      PGUSER: shortlist
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: shortlist
+      KEEP_DAYS: '14'
+      # So "03:30" means 03:30 where you are, and file names use local dates.
+      TZ: ${DISCOVERY_TZ:-Asia/Karachi}
+    volumes:
+      - ./backup.sh:/backup.sh:ro
+      - ./backups:/backups
+    entrypoint: ['/bin/sh', '-c', 'echo "30 3 * * * /bin/sh /backup.sh" | crontab - && crond -f -l 8']
+    depends_on:
+      postgres: { condition: service_healthy }
+
+volumes:
+  postgres-data:
+  redis-data:
+  caddy-data:
+  caddy-config:
