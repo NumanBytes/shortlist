@@ -305,7 +305,9 @@ Neon (Postgres) + Upstash (Redis, `rediss://`). The worker needs an always-on ho
 because the scheduler can't run on a host that sleeps. **Web and API must share a site**
 — e.g. `app.getshortlist.com` + `api.getshortlist.com`, or a Vercel rewrite of `/api` to
 the API — because the refresh cookie is `SameSite=Strict` (§8.2). `*.vercel.app` →
-`*.onrender.com` is cross-site and would break sign-in.
+`*.onrender.com` is cross-site and would break sign-in. Set **`TRUST_PROXY_HOPS`** to the
+number of proxies in front of the API, or the login rate limits see one IP for everyone
+(§8.1).
 
 ---
 
@@ -622,7 +624,34 @@ Deliberately hand-rolled so every mechanism is visible and explainable (§14).
   routes opt out with `@Public()`. Forgetting the decorator leaves a route locked, not
   open.
 - **Never return `passwordHash`:** responses use `PUBLIC_USER_SELECT`.
-- **Planned:** rate-limit `/auth/login` and `/auth/register` with Redis counters.
+- **Rate limits on login and register (built 2026-10-04).** Hand-rolled
+  (`apps/api/src/rate-limit/`), with Redis counters (§4):
+  - **Per account:** 10 *failed* logins per 15 minutes, counted against the email from any
+    IP, which stops guessing one account from many machines. Once exhausted, the attempt
+    is refused **before the password is checked**. The key is a hash of the email as typed,
+    so an unknown email behaves exactly like a real one and the limit reveals nothing about
+    which accounts exist. Redis never holds the addresses themselves. A successful login
+    resets the count, so earlier typos don't punish the real user.
+  - **Per IP:** 30 login attempts per 15 minutes (one machine trying many accounts), and 5
+    registrations per hour.
+  - The limits are enforced in the controller, not a guard, because only the handler knows
+    whether an attempt *failed*.
+  - Refusals are **429** with a `Retry-After` header and "try again in N minutes".
+  - **Algorithm:** a fixed-window counter: `INCR` plus `PEXPIRE` in one Lua script, which
+    is one round trip and atomic. As two separate commands, a crash in between could leave
+    a counter with no expiry, a permanent lockout. A fixed window allows up to twice the
+    limit across a window boundary, which is fine for slowing guessing and far simpler
+    than a sliding log.
+  - **Fails open:** if Redis doesn't answer within 1s, the request is allowed and a warning
+    logged. Redis isn't the store of record, an outage shouldn't lock everyone out, and
+    bcrypt's ~250ms per attempt still slows guessing meanwhile.
+  - **Client IP behind proxies:** `TRUST_PROXY_HOPS` (default 0) sets Express's `trust
+    proxy`. It **must** match the number of proxies in production. Too low and every user
+    shares the proxy's IP, so one limit applies to everyone. Too high and a client can
+    spoof its IP with its own `X-Forwarded-For`.
+  - The limits are code constants (`DEFAULT_AUTH_RATE_RULES`), changed by review. Tests
+    inject their own via `AUTH_RATE_RULES`: the e2e helper lifts them, and
+    `rate-limit.e2e-spec.ts` checks real behaviour with low limits.
 
 ### 8.2 The refresh cookie
 
@@ -1605,6 +1634,7 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
 | 2026-10-02 | Tailoring only on the user's request, from an Interested, scored job | §13.1 |
 | 2026-10-02 | Exposure-only skills go in a code-labelled "Learning" group | §13.1 |
 | 2026-10-02 | PDF via the browser's print to PDF on an A4 stylesheet, in the user's CV layout; no PDF library | §13.1 |
+| 2026-10-04 | Login/register rate limits: Redis fixed-window counters (Lua), failed logins per account + attempts per IP + sign-ups per IP; 429 + Retry-After; fail open; `TRUST_PROXY_HOPS` | §8.1 — roadmap step 8 |
 | 2026-10-04 | Resume review opens clean (as printed); per-bullet sources are an opt-in, clearly labelled review note | §13.1 — read as duplicated bullets |
 | 2026-10-04 | Resume page matched to the user's CV by measurement: Letter, 1in margins, 11pt Arial, "●" bullets (Experience/Projects) and "•" (Skills) with hanging indents; markers in a flex row to keep PDF text order | §13.1, user request |
 | 2026-10-02 | "Save as PDF" only after approval; approve is its own endpoint and refused when stale | §13.1 |
@@ -1683,7 +1713,7 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
    probing + monthly ATS-scoped search), then **Milestone 3** (custom sites via change
    watcher).
 7. **Deploy** (§4): Neon, Upstash, Vercel + Render/Railway on a shared site.
-8. Rate-limit `/auth/login` and `/auth/register`.
+8. ~~Rate-limit `/auth/login` and `/auth/register`~~ — built 2026-10-04 (§8.1).
 
 ### 17.3 Open decisions
 

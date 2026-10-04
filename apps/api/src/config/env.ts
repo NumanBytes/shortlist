@@ -17,6 +17,12 @@ const EnvSchema = z.object({
   // Each +1 doubles hashing time. 12 is ~250ms; tests lower it to keep suites fast.
   BCRYPT_ROUNDS: z.coerce.number().int().min(4).max(15).default(12),
 
+  // How many proxies sit in front of the API (a host's load balancer, a Vercel rewrite).
+  // Express then takes the client IP from X-Forwarded-For that many hops back. 0 = use the
+  // socket address (no proxy). Too low and every user shares the proxy's IP for rate
+  // limits; too high and a client can spoof its IP with its own X-Forwarded-For header.
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(0),
+
   // Browser origins allowed to call the API with credentials (the refresh cookie).
   // Comma-separated, exact origins — e.g. "https://app.getshortlist.com".
   // The API only enqueues jobs (e.g. "run discovery now"); the worker consumes them.
