@@ -36,17 +36,19 @@ describe('JobDetailPage', () => {
     open(detail);
     expect(await screen.findByText('A strong fit for your verified experience.')).toBeInTheDocument();
     expect(screen.getByText('React.js')).toBeInTheDocument();
-    expect(screen.getByText('— your React')).toBeInTheDocument();
+    expect(screen.getByText('React')).toBeInTheDocument(); // the verified skill it maps to
     expect(screen.getByText('commercial production, CloudCard Inc.')).toBeInTheDocument();
     expect(screen.getByText('GraphQL')).toBeInTheDocument();
     expect(screen.getByText('related experience: REST APIs')).toBeInTheDocument();
     expect(screen.getByText(/Asks for 3\+ years/)).toBeInTheDocument();
-    expect(screen.getByText('Build MERN apps.').closest('details')).not.toHaveAttribute('open');
+    expect(screen.getAllByText('Build MERN apps.')[0]!.closest('details')).not.toHaveAttribute('open');
   });
 
   it('records "I applied" for an interested job — the user applies themselves', async () => {
     const fetchMock = open({ ...detail, status: 'INTERESTED' });
-    await userEvent.click(await screen.findByRole('button', { name: /I applied/ }));
+    await userEvent.click(await screen.findByRole('button', { name: /Change status/ }));
+    expect(screen.getByRole('dialog', { name: 'Set status' })).toHaveTextContent("Logs today's date");
+    await userEvent.click(screen.getByRole('button', { name: /I applied/ }));
     await waitFor(() => expect(fetchMock.mock.calls.some(([, i]) => i?.method === 'PATCH')).toBe(true));
     const patch = fetchMock.mock.calls.find(([, i]) => i?.method === 'PATCH')!;
     expect(JSON.parse(patch[1]!.body as string)).toEqual({ status: 'APPLIED' });

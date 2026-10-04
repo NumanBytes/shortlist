@@ -3,6 +3,9 @@ import userEvent from '@testing-library/user-event';
 import { mockFetch, renderWithProviders } from '../test/render';
 import { ProfilePage } from './ProfilePage';
 
+// The page header shows the account button, which needs a signed-in user.
+vi.mock('../auth/AuthProvider', () => import('../test/signed-in'));
+
 const profile = {
   id: 'u1',
   email: 'numan@example.com',

@@ -1,6 +1,8 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
 import {
+  JobCountsQuerySchema,
   ListJobsQuerySchema,
+  type JobCountsQuery,
   PasteDescriptionSchema,
   type PasteDescriptionInput,
   UpdateJobSchema,
@@ -18,6 +20,12 @@ export class JobsController {
   @Get()
   list(@CurrentUser() user: AuthUser, @Query(new ZodValidationPipe(ListJobsQuerySchema)) query: ListJobsQuery) {
     return this.jobs.list(user.id, query);
+  }
+
+  // Before ':id', or Nest would read "counts" as a job id.
+  @Get('counts')
+  counts(@CurrentUser() user: AuthUser, @Query(new ZodValidationPipe(JobCountsQuerySchema)) query: JobCountsQuery) {
+    return this.jobs.counts(user.id, query.sourceId);
   }
 
   @Get(':id')

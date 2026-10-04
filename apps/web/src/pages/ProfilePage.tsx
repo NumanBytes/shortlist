@@ -5,6 +5,7 @@ import { Button, Card, IconButton, Skeleton, TextField } from '../components/ui'
 import { useToast } from '../components/Toast';
 import { ApiError } from '../lib/api';
 import { useDeleteEducation, useEducation, useProfile, useSaveEducation, useUpdateProfile } from '../lib/queries';
+import { PageHeader } from '../components/AppShell';
 import type { Education, PublicUser } from '../lib/types';
 
 // The resume header (contact line) and education. Personal details live only in the
@@ -13,7 +14,7 @@ export function ProfilePage() {
   return (
     <main className="mx-auto max-w-2xl space-y-4">
       <div>
-        <h1 className="text-lg font-semibold text-fg">Profile</h1>
+        <PageHeader title="Profile" />
         <p className="text-sm text-muted">Your resume's header and education. Claims about your work live in Evidence.</p>
       </div>
       <ContactCard />

@@ -1,3 +1,4 @@
+import { Check } from 'lucide-react';
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 
 interface ToastMessage {
@@ -24,14 +25,21 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={show}>
       {children}
-      <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-20 z-40 flex justify-center px-4 sm:bottom-6 print:hidden">
+      <div
+        aria-live="polite"
+        className="pointer-events-none fixed inset-x-3 bottom-[calc(72px+env(safe-area-inset-bottom))] z-40 flex justify-center sm:bottom-6 print:hidden"
+      >
         {toast && (
-          <output className="pointer-events-auto flex items-center gap-4 rounded-xl bg-fg px-4 py-3 text-sm text-bg shadow-lg">
-            {toast.text}
+          <output
+            key={toast.id}
+            className="pointer-events-auto flex min-h-13 w-full max-w-md animate-rise-in items-center gap-2.5 rounded-[14px] bg-fg py-1 pr-1.5 pl-4 text-[15px] font-medium text-bg shadow-[0_12px_32px_rgb(15_23_42/0.3)]"
+          >
+            <Check className="size-4 shrink-0 text-toast-accent" aria-hidden="true" />
+            <span className="min-w-0 flex-1">{toast.text}</span>
             {toast.action && (
               <button
                 type="button"
-                className="font-semibold text-accent underline-offset-2 hover:underline"
+                className="min-h-11 rounded-[10px] px-3 font-semibold text-toast-accent"
                 onClick={() => {
                   toast.action!.onClick();
                   setToast(null);

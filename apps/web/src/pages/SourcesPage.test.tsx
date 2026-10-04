@@ -4,6 +4,9 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { SourcesPage } from './SourcesPage';
 
+// The page header shows the account button, which needs a signed-in user.
+vi.mock('../auth/AuthProvider', () => import('../test/signed-in'));
+
 const usage = {
   settings: { maxAnalysesPerDay: 40, monthlyBudgetUsd: 4.5, resumeReuseMinOverlap: 0.85 },
   monthToDateUsd: 0.12,

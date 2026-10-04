@@ -5,6 +5,7 @@ import { AddEvidenceForm, AddSkillCard } from '../components/AddEvidence';
 import { EvidenceItem } from '../components/EvidenceItem';
 import { Badge, Button, Card, EmptyState, Segmented, Skeleton } from '../components/ui';
 import { useProjects, useSkills, useWorkExperiences } from '../lib/queries';
+import { PageHeader } from '../components/AppShell';
 import type { Evidence } from '../lib/types';
 
 type Filter = 'unverified' | 'verified' | 'all';
@@ -47,9 +48,8 @@ export function ReviewPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-4">
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-lg font-semibold text-fg">Career evidence</h1>
-          {state && <p className="truncate text-sm text-muted">{state}</p>}
+        <div className="min-w-0 flex-1">
+          <PageHeader title="Evidence" />
         </div>
         {!adding && (
           <Button size="sm" onClick={() => setAdding(true)}>

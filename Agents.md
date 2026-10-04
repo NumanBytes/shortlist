@@ -789,6 +789,67 @@ first job, inline details pushing the list down, no overview, no dark mode).
   content), tall rows from stacked icons, repeated company names, a menu that didn't
   close, and no feedback when a job left the list.
 
+### 8.4.1 Mobile design from Claude Design (2026-10-04)
+
+The user generated a mobile design in Claude Design from a prompt describing Shortlist's
+real screens, data and tokens, and asked for it to be implemented. That's 14 boards: jobs
+list and its states, job detail, status sheet, resume-card states, resume review, Evidence,
+Add skill, Sources, Profile, Sign in, patterns (sheets, toast, install prompt), a
+component sheet and a motion spec. It is implemented in the existing React + Tailwind PWA:
+**no native app and no rewrite**. Phones get the design; wider screens keep a top bar and
+the list/detail split.
+- **Tokens:**
+  - The existing names are kept (so every screen inherits the look), with the design's
+    values.
+  - Added: `accent-fg` / `accent-soft` / `on-accent` (the primary button is now the green
+    accent, not near-black), `scrim`, `glass` (frosted bars), `toast-accent` and
+    `shadow-card`.
+  - Font: **Geist**, bundled from `@fontsource-variable/geist`, not a CDN, so the installed
+    app works offline.
+  - Motion: 150–250ms with one easing curve; reduced motion turns movement into fades.
+- **Primitives** (`ui.tsx`): 44px touch targets; `Button` gains `tinted` and `lg`;
+  `buttonStyles()` styles a real link as a button; plus `Chip`, `SectionLabel`, and
+  **`Sheet`**. The sheet is built on the native `<dialog>`, whose `showModal()` gives focus
+  trapping, Escape to close and an inert background for free. It's a bottom sheet on phones
+  and a centred dialog on wider screens.
+- **Shell:**
+  - Large 30px page titles with the account avatar beside them on phones.
+  - The account menu became an account sheet.
+  - A frosted tab bar, which is **hidden on pushed screens** (a job and its resume), where
+    the screen has its own back link and bottom action bar.
+  - The tailoring indicator became the design's dark floating pill above the tab bar.
+- **Jobs list:** tab counts from a new `GET /jobs/counts` (per status, optional `sourceId`).
+  The freshness card reads "Check for new jobs", and shows "Available again in 3h" during
+  the cooldown when there's no Gmail to check. Verdict chips with dots; "N matches · Best
+  match" sort toggle; empty state with "See Interested"; an error state with Try again.
+- **Job detail:**
+  - Score hero; "Why it fits" maps each requirement to a verified-skill chip; Gaps end
+    with "Have experience here? Add evidence"; Risks; the description collapsed under
+    "Read more".
+  - A sticky bar with **status ▾ + Open posting**. Status changes moved into a **status
+    sheet** (Shortlist / Pipeline / Closed, plus "Move back to New"), which replaced the
+    separate Interested, I applied and Skip buttons and the stage dropdown.
+- **Resume card:** the design's states (reuse offer, tailor, tailoring, stalled, ready,
+  approved, out of date, failed, deferred with a link to the budget). Re-tailoring a
+  current resume asks in the design's confirm sheet.
+
+**Deliberately not copied from the design:**
+- The design's sample resume (a Summary section, different layout, and an "Azure AD B2C"
+  bullet, a known false claim, §7.2). The document stays matched to the user's CV
+  (§13.1).
+- **Step-by-step tailoring progress** ("Picked 9 items → Writing bullets → Checks"): the
+  worker reports no steps, so it would be fake. Instead there's an elapsed timer and an
+  indeterminate bar.
+- **"Forgot password?":** there's no email sending.
+- **Posting age on job rows:** the user's choice (only the found time).
+- **New features the design implies:** editing a failing source's URL, cancelling a
+  tailoring run, adding or editing roles and projects on Profile, and swipe gestures.
+  These are left for later, as separate work.
+
+Verified in a headless browser at 390×844 in light and dark, against a **copy** of the
+user's database on separate ports. Chrome is driven directly over the DevTools protocol;
+no Playwright is installed.
+
 ### 8.5 Other security decisions
 
 - **PWA service worker:** precaches the app shell only; `/api` is excluded from the
@@ -1695,6 +1756,7 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
 | 2026-10-02 | Tailoring only on the user's request, from an Interested, scored job | §13.1 |
 | 2026-10-02 | Exposure-only skills go in a code-labelled "Learning" group | §13.1 |
 | 2026-10-02 | PDF via the browser's print to PDF on an A4 stylesheet, in the user's CV layout; no PDF library | §13.1 |
+| 2026-10-04 | Mobile design implemented in the existing PWA (tokens, Geist, native-`<dialog>` sheets, pushed screens without tab bar, status sheet, `GET /jobs/counts`); fake progress steps, the sample resume and "Forgot password" not copied | §8.4.1 — user's Claude Design boards |
 | 2026-10-04 | Deploy on one VPS with Docker Compose (Caddy for HTTPS, Postgres 18, Redis, API, worker, migrate, nightly backup); DuckDNS hostname; empty env values = unset | §4 — user's choice over free tiers (Upstash quota vs BullMQ polling; sleeping hosts can't run the worker) |
 | 2026-10-04 | Tailoring prompt: ≤18 words, one topic, no company name, scope stated positively, no minimum (it caused padding); skill names resolved only to offered skills; `preview:resume` CLI | §13.1 — bullets averaged 20 words vs the CV's 12 |
 | 2026-10-04 | Login/register rate limits: Redis fixed-window counters (Lua), failed logins per account + attempts per IP + sign-ups per IP; 429 + Retry-After; fail open; `TRUST_PROXY_HOPS` | §8.1 — roadmap step 8 |

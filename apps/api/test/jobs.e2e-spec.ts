@@ -85,6 +85,16 @@ describe('Jobs & discovery (e2e)', () => {
       await t.http().get('/api/v1/jobs?sourceId=not-a-uuid').set(me.auth).expect(400);
     });
 
+    it('counts jobs per status for the tabs — only the caller\'s', async () => {
+      const user = await t.register();
+      await job(user, { status: 'DISCOVERED' });
+      await job(user, { status: 'DISCOVERED' });
+      await job(user, { status: 'INTERESTED' });
+      await job(other, { status: 'INTERESTED' });
+      const res = await t.http().get('/api/v1/jobs/counts').set(user.auth).expect(200);
+      expect(res.body).toEqual({ DISCOVERED: 2, INTERESTED: 1 });
+    });
+
     it('returns the full description on GET /jobs/:id, 404 for others', async () => {
       const j = await job(me);
       const res = await t.http().get(`/api/v1/jobs/${j.id}`).set(me.auth).expect(200);

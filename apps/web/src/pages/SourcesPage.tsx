@@ -6,6 +6,7 @@ import { GmailCard } from '../components/GmailCard';
 import { Badge, Button, Card, Skeleton, Switch, type Tone } from '../components/ui';
 import { providerLabel, timeAgo } from '../lib/format';
 import { useAiUsage, useSetSourceEnabled, useSources, useUpdateAiSettings } from '../lib/queries';
+import { PageHeader } from '../components/AppShell';
 import type { DiscoverySource, RunStatus } from '../lib/types';
 
 const STATUS_TONE: Record<RunStatus, Tone> = { SUCCESS: 'apply', RUNNING: 'neutral', EMPTY: 'stretch', FAILED: 'danger' };
@@ -155,7 +156,7 @@ export function SourcesPage() {
 
   return (
     <main className="mx-auto max-w-2xl space-y-4">
-      <h1 className="text-lg font-semibold text-fg">Sources</h1>
+      <PageHeader title="Sources" />
       <AiSpendCard />
       <GmailCard />
 

@@ -1,8 +1,8 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
+import { AlertTriangle, Clock, RefreshCw } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { timeAgo, timeUntil } from '../lib/format';
-import { jobKeys, useDiscoveryStatus, useRunDiscovery } from '../lib/queries';
+import { jobKeys, useDiscoveryStatus, useGmail, useRunDiscovery } from '../lib/queries';
 import type { RunNowResult } from '../lib/types';
 import { useNow } from '../lib/useNow';
 import { useToast } from './Toast';
@@ -24,6 +24,7 @@ export function FindNewJobs() {
   const watching = now < watchUntil;
   const status = useDiscoveryStatus(watching);
   const run = useRunDiscovery();
+  const gmail = useGmail();
   const toast = useToast();
   const queryClient = useQueryClient();
 
@@ -62,34 +63,53 @@ export function FindNewJobs() {
 
   const s = status.data;
   const next = nightly(s?.nextNightlyAt ?? null);
+  // In the cooldown every board was checked recently, so tapping would only check Gmail —
+  // still worth it when Gmail is connected; otherwise the button says when it's back.
+  const gmailOn = gmail.data?.connection?.status === 'ACTIVE';
+  const cooling = !busy && !!s?.availableAt && !gmailOn;
+  const justChecked = s?.lastCheckedAt && now - new Date(s.lastCheckedAt).getTime() < 60_000;
   return (
-    <div className="rounded-xl border border-border bg-surface px-3 py-2.5">
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0 text-xs text-muted">
+    <div className="rounded-[14px] border border-border bg-surface">
+      <div className="flex items-center gap-2 py-1 pr-1 pl-3.5">
+        {busy ? (
+          <span aria-hidden="true" className="size-3.5 shrink-0 animate-spin rounded-full border-2 border-accent border-r-transparent" />
+        ) : (
+          <Clock className="size-4 shrink-0 text-muted" aria-hidden="true" />
+        )}
+        <p className={`min-w-0 flex-1 truncate text-[13px] ${busy ? 'font-medium text-fg' : 'text-muted'}`}>
+          {busy
+            ? running
+              ? `Checking ${s!.running} ${s!.running === 1 ? 'source' : 'sources'}…`
+              : 'Queued — starting…'
+            : justChecked
+              ? 'Checked just now'
+              : `Last checked ${timeAgo(s?.lastCheckedAt ?? null)}`}
+        </p>
+        <Button
+          size="sm"
+          variant="tinted"
+          onClick={start}
+          disabled={busy || cooling || s?.enabledSources === 0}
+          title={next ? `Also checks automatically every night at ${next}` : undefined}
+        >
           {busy ? (
-            <p className="flex items-center gap-1.5 font-medium text-fg">
-              <Loader2 className="size-3.5 animate-spin text-accent" />
-              {running ? `Checking ${s!.running} ${s!.running === 1 ? 'source' : 'sources'}…` : 'Queued — starting…'}
-            </p>
+            <>
+              <span aria-hidden="true" className="size-3.5 animate-spin rounded-full border-2 border-current border-r-transparent" /> Checking
+            </>
+          ) : cooling ? (
+            `Available again ${timeUntil(s!.availableAt!, now)}`
           ) : (
-            <p className="font-medium text-fg">Last checked {timeAgo(s?.lastCheckedAt ?? null)}</p>
+            <>
+              <RefreshCw className="size-4" /> Check for new jobs
+            </>
           )}
-          {next && <p className="truncate">Checks automatically every night at {next}</p>}
-        </div>
-        <Button size="sm" variant="secondary" onClick={start} disabled={busy || s?.enabledSources === 0}>
-          <RefreshCw className={`size-3.5 ${busy ? 'animate-spin' : ''}`} /> Find new jobs
         </Button>
       </div>
       {s?.workerOnline === false && (
-        <output className="mt-2 flex gap-1.5 text-xs text-stretch-fg">
+        <output className="flex gap-1.5 border-t border-border px-3.5 py-2 text-xs text-stretch-fg">
           <AlertTriangle className="mt-px size-3.5 shrink-0" />
           The background worker isn't running, so checks wait in the queue until it starts.
         </output>
-      )}
-      {!busy && s?.availableAt && (
-        <p className="mt-1 text-xs text-subtle">
-          Every source was checked in the last {s.cooldownHours}h — they can be checked again {timeUntil(s.availableAt, now)}.
-        </p>
       )}
     </div>
   );

@@ -1,4 +1,4 @@
-import { CheckCircle2, ExternalLink, Star, Undo2, X } from 'lucide-react';
+import { CheckCircle2, ExternalLink, Mail, Star, Undo2, X } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router';
 import { isAggregator, prettyLocation, providerLabel, timeAgo } from '../lib/format';
 import { useSetJobStatus } from '../lib/queries';
@@ -6,6 +6,7 @@ import type { JobListItem, JobStatus } from '../lib/types';
 import { PendingRing, ScoreRing } from './ScoreRing';
 import { useToast } from './Toast';
 import { Badge, IconButton } from './ui';
+import { VerdictBadge } from './VerdictBadge';
 
 const PIPELINE: JobStatus[] = ['APPLIED', 'ASSESSMENT', 'INTERVIEWING', 'OFFER', 'REJECTED', 'WITHDRAWN'];
 const MOVED: Partial<Record<JobStatus, string>> = { INTERESTED: 'Moved to Interested', SKIPPED: 'Skipped', DISCOVERED: 'Moved back to New' };
@@ -37,44 +38,45 @@ export function JobRow({ job, selected }: { job: JobListItem; selected: boolean 
       },
     );
 
+  const meta = [job.company, location, job.salary].filter(Boolean).join(' · ');
   return (
-    <li className={`rounded-xl border bg-surface transition ${selected ? 'border-fg/40 ring-1 ring-fg/20' : 'border-border hover:border-fg/25'}`}>
+    <li
+      className={`rounded-2xl border bg-surface shadow-card transition ${selected ? 'border-accent ring-1 ring-accent' : 'border-border hover:border-fg/25'}`}
+    >
       <Link
         to={href}
         aria-current={selected ? 'page' : undefined}
-        className="flex gap-3 rounded-t-xl px-3 pt-3 focus-visible:outline-2 focus-visible:outline-accent"
+        className="flex gap-3 rounded-t-2xl px-3.5 pt-3.5 focus-visible:outline-2 focus-visible:outline-accent"
       >
         {job.match ? <ScoreRing score={job.match.overallScore} verdict={job.match.verdict} /> : <PendingRing />}
-        <div className="min-w-0 flex-1">
-          <h3 className="line-clamp-2 text-[15px] leading-snug font-semibold text-fg">{job.title}</h3>
-          <p className="mt-0.5 truncate text-sm text-muted">
-            {job.company}
-            {location && <> · {location}</>}
-          </p>
-          {job.salary && <p className="mt-0.5 truncate text-xs font-medium text-fg">{job.salary}</p>}
-          {(showMode || job.isPartial || job.redFlags.length > 0 || job.analysisStatus !== 'DONE') && (
-            <div className="mt-1.5 flex flex-wrap gap-1.5">
-              {showMode && <Badge>{job.workMode === 'ONSITE' ? 'On-site' : job.workMode!.charAt(0) + job.workMode!.slice(1).toLowerCase()}</Badge>}
-              {/* From an alert email: scored from a summary only (Agents.md §10.5). */}
-              {job.isPartial && <Badge>From alert</Badge>}
-              {job.redFlags.length > 0 && <Badge tone="danger">Possible scam</Badge>}
-              {job.analysisStatus === 'DEFERRED' && <Badge tone="stretch">Scoring deferred</Badge>}
-              {job.analysisStatus === 'FAILED' && <Badge tone="danger">Scoring failed</Badge>}
-              {job.analysisStatus === 'PENDING' && <Badge>{job.match ? 'Re-scoring…' : 'Scoring…'}</Badge>}
-            </div>
-          )}
+        <div className="flex min-w-0 flex-1 flex-col gap-[3px]">
+          <h3 className="line-clamp-2 text-base leading-[21px] font-semibold tracking-[-0.01em] text-fg">{job.title}</h3>
+          <p className="truncate text-[13px] text-muted">{meta}</p>
+          <div className="flex flex-wrap gap-1.5 pt-1.5">
+            {job.match && <VerdictBadge verdict={job.match.verdict} />}
+            {showMode && <Badge>{job.workMode === 'ONSITE' ? 'On-site' : job.workMode!.charAt(0) + job.workMode!.slice(1).toLowerCase()}</Badge>}
+            {/* From an alert email: scored from a summary only (Agents.md §10.5). */}
+            {job.isPartial && (
+              <Badge>
+                <Mail className="size-3" aria-hidden="true" /> From alert
+              </Badge>
+            )}
+            {job.redFlags.length > 0 && <Badge tone="danger">Possible scam</Badge>}
+            {job.analysisStatus === 'DEFERRED' && <Badge tone="stretch">Scoring deferred</Badge>}
+            {job.analysisStatus === 'FAILED' && <Badge tone="danger">Scoring failed</Badge>}
+            {job.analysisStatus === 'PENDING' && <Badge>{job.match ? 'Re-scoring…' : 'Scoring…'}</Badge>}
+          </div>
         </div>
       </Link>
 
-      <div className="flex items-center justify-between gap-2 py-1 pr-1.5 pl-3 sm:pl-[4.25rem]">
-        <span className="min-w-0 truncate text-xs text-subtle">
-          {/* The one time on the card: when Shortlist found it (user's choice, 2026-10-04).
-              The posting age is on the job's detail page. First, so it survives truncation. */}
+      <div className="mt-2.5 flex items-center border-t border-border py-0.5 pr-0.5 pl-3.5">
+        <p className="min-w-0 flex-1 truncate text-xs text-muted">
+          {/* The one time on the card: when Shortlist found it (user's choice, 2026-10-04). */}
           <time dateTime={job.discoveredAt} title={new Date(job.discoveredAt).toLocaleString()}>
             Found {timeAgo(job.discoveredAt)}
           </time>
           {` · ${source}`}
-        </span>
+        </p>
         <div className="flex shrink-0 items-center">
           {job.sourceUrl && (
             // You apply on the original posting — Shortlist never submits for you.
@@ -85,18 +87,18 @@ export function JobRow({ job, selected }: { job: JobListItem; selected: boolean 
               rel="noopener"
               aria-label="Open posting"
               title="Open posting"
-              className="inline-flex size-10 items-center justify-center rounded-lg text-muted hover:bg-surface-2 hover:text-fg focus-visible:outline-2 focus-visible:outline-accent"
+              className="inline-flex size-11 items-center justify-center rounded-xl text-muted hover:bg-surface-2 hover:text-fg focus-visible:outline-2 focus-visible:outline-accent"
             >
-              <ExternalLink className="size-4.5" />
+              <ExternalLink className="size-5" strokeWidth={1.75} />
             </a>
           )}
           {applied ? (
-            <span className="inline-flex size-10 items-center justify-center text-apply" title="Applied" aria-label="Applied">
-              <CheckCircle2 className="size-4.5" />
+            <span className="inline-flex size-11 items-center justify-center text-apply" title="Applied" aria-label="Applied">
+              <CheckCircle2 className="size-5" />
             </span>
           ) : job.status === 'SKIPPED' ? (
-            <IconButton label="Undo skip" className="size-10" onClick={() => move('DISCOVERED')} disabled={setStatus.isPending}>
-              <Undo2 className="size-4.5" />
+            <IconButton label="Undo skip" onClick={() => move('DISCOVERED')} disabled={setStatus.isPending}>
+              <Undo2 className="size-5" strokeWidth={1.75} />
             </IconButton>
           ) : (
             <>
@@ -104,12 +106,12 @@ export function JobRow({ job, selected }: { job: JobListItem; selected: boolean 
                 label={interested ? 'Remove from interested' : 'Mark interested'}
                 onClick={() => move(interested ? 'DISCOVERED' : 'INTERESTED')}
                 disabled={setStatus.isPending}
-                className={`size-10 ${interested ? 'text-stretch' : ''}`}
+                className={interested ? 'text-stretch' : ''}
               >
-                <Star className={`size-4.5 ${interested ? 'fill-current' : ''}`} />
+                <Star className={`size-5 ${interested ? 'fill-current' : ''}`} strokeWidth={1.75} />
               </IconButton>
-              <IconButton label="Skip" className="size-10" onClick={() => move('SKIPPED')} disabled={setStatus.isPending}>
-                <X className="size-4.5" />
+              <IconButton label="Skip" onClick={() => move('SKIPPED')} disabled={setStatus.isPending}>
+                <X className="size-5" strokeWidth={1.75} />
               </IconButton>
             </>
           )}

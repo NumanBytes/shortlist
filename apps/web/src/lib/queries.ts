@@ -112,6 +112,13 @@ export const useJobs = (status?: JobStatus, sort: JobSort = 'score', sourceId?: 
     },
   });
 
+// Jobs per status, for the tab counts. Under jobKeys.all, so every status change refreshes it.
+export const useJobCounts = (sourceId?: string) =>
+  useQuery({
+    queryKey: ['jobs', 'counts', sourceId ?? 'any'] as const,
+    queryFn: () => api<Partial<Record<JobStatus, number>>>(`/jobs/counts${sourceId ? `?sourceId=${sourceId}` : ''}`),
+  });
+
 export function useAnalyzeJob() {
   const queryClient = useQueryClient();
   return useMutation({

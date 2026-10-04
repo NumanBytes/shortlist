@@ -91,6 +91,16 @@ export class JobsService {
     return [...scored, ...unscored];
   }
 
+  // How many jobs are at each status — the counts on the Jobs tabs ("New 41").
+  async counts(userId: string, sourceId?: string) {
+    const rows = await this.prisma.job.groupBy({
+      by: ['status'],
+      where: { userId, ...(sourceId ? { jobSourceId: sourceId } : {}) },
+      _count: true,
+    });
+    return Object.fromEntries(rows.map((r) => [r.status, r._count]));
+  }
+
   // Queue (or re-queue) one job for analysis — e.g. after a failure or a deferral. The
   // worker's budget guard still decides whether it actually runs.
   async analyze(userId: string, id: string) {
