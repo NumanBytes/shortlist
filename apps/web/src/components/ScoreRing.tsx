@@ -3,7 +3,8 @@ import type { Verdict } from '../lib/types';
 const STROKE: Record<Verdict, string> = { APPLY: 'stroke-apply', STRETCH: 'stroke-stretch', SKIP: 'stroke-skip' };
 
 // The match score as a ring — the single most important number on a job, so it leads.
-export function ScoreRing({ score, verdict, size = 44 }: { score: number; verdict: Verdict; size?: number }) {
+// `outOf`: the large hero ring adds "of 100" under the number (design board 2).
+export function ScoreRing({ score, verdict, size = 44, outOf = false }: { score: number; verdict: Verdict; size?: number; outOf?: boolean }) {
   const r = 20;
   const circumference = 2 * Math.PI * r;
   return (
@@ -22,9 +23,12 @@ export function ScoreRing({ score, verdict, size = 44 }: { score: number; verdic
           className={STROKE[verdict]}
         />
       </svg>
-      <span className="absolute inset-0 flex items-center justify-center text-sm font-semibold tracking-tight tabular-nums text-fg" style={{ fontSize: size > 60 ? size * 0.32 : undefined }}>
+      <span className="absolute inset-0 flex flex-col items-center justify-center leading-none">
         <span className="sr-only">Match score </span>
-        {score}
+        <span className="font-semibold tracking-tight text-fg tabular-nums" style={{ fontSize: size > 60 ? size * 0.32 : 14 }}>
+          {score}
+        </span>
+        {outOf && <span className="mt-1 text-xs text-muted">of 100</span>}
       </span>
     </div>
   );

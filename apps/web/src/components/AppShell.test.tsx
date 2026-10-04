@@ -17,6 +17,16 @@ describe('AppShell account sheet', () => {
     expect(screen.getByRole('button', { name: /Sign out/ })).toBeInTheDocument();
   });
 
+  it('switches between System, Light and Dark appearance', async () => {
+    renderWithProviders(<AppShell />);
+    await userEvent.click(screen.getByRole('button', { name: 'Account' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Dark' }));
+    expect(document.documentElement.dataset.theme).toBe('dark');
+    expect(screen.getByRole('button', { name: 'Dark' })).toHaveAttribute('aria-pressed', 'true');
+    await userEvent.click(screen.getByRole('button', { name: 'System' }));
+    expect(document.documentElement.hasAttribute('data-theme')).toBe(false);
+  });
+
   it('closes when the backdrop is tapped', async () => {
     renderWithProviders(<AppShell />);
     await userEvent.click(screen.getByRole('button', { name: 'Account' }));

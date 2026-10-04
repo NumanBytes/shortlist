@@ -18,7 +18,9 @@ const resume = (status: 'DRAFT' | 'APPROVED', stale: string[] = []): JobResume =
   canTailor: true,
   needsDescription: false,
   reuse: [],
-  sources: { e1: { skillName: 'React', whatIDid: 'Used React to build frontend features.', isVerified: true } },
+  sources: {
+    e1: { skillName: 'React', whatIDid: 'Used React to build frontend features.', isVerified: true, context: 'COMMERCIAL', depth: 'PRODUCTION', lastUsed: '2026-09-01T00:00:00Z' },
+  },
   variant: {
     id: 'v1',
     status,
@@ -55,18 +57,20 @@ describe('ResumePage', () => {
     expect(await screen.findByRole('heading', { name: 'Numan Razzaq' })).toBeInTheDocument();
     expect(screen.getByText(/numan@example.com \| \+92 300 0000000 \| Lahore, Pakistan/)).toBeInTheDocument();
     expect(screen.getByText('Built frontend features in React.')).toBeInTheDocument();
-    // Sources are a review aid, off until asked for — never shown as if part of the resume.
+    // Sources are a review aid, shown only on tapping a bullet — never as if part of the resume.
     expect(screen.queryByText(/Used React to build frontend features/)).not.toBeInTheDocument();
     expect(screen.getByText(/BS Information Technology \| University of the Punjab/)).toBeInTheDocument();
-    expect(screen.getByText(/1 bullet removed by the truthfulness checks/)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Removed by checks · 1/ })).toBeInTheDocument();
+    expect(screen.getByText('Led a team of 12.')).toBeInTheDocument();
   });
 
-  it('shows each bullet’s sources, labelled as your evidence, when switched on', async () => {
+  it('tapping a bullet shows the evidence it was built from, in your words', async () => {
     setup(resume('DRAFT'));
     render();
-    await userEvent.click(await screen.findByRole('switch', { name: 'Show sources' }));
-    expect(screen.getByText(/Used React to build frontend features/)).toBeInTheDocument();
-    expect(screen.getByText('From your evidence')).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole('button', { name: /Built frontend features in React/ }));
+    const sheet = screen.getByRole('dialog', { name: 'Bullet evidence' });
+    expect(sheet).toHaveTextContent('“Used React to build frontend features.”');
+    expect(sheet).toHaveTextContent(/Commercial.*Production.*Verified/);
   });
 
   it('asks for approval before offering the PDF — never optimistically', async () => {

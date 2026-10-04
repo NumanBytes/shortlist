@@ -24,7 +24,7 @@ export class AiService {
 
   async usage(userId: string, now = new Date()) {
     const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-    const [settings, month, analysesLast24h, byStatus] = await Promise.all([
+    const [settings, month, analysesLast24h, byStatus, day] = await Promise.all([
       this.settings(userId),
       this.prisma.aiUsage.aggregate({
         where: { userId, createdAt: { gte: monthStart } },
@@ -35,6 +35,8 @@ export class AiService {
         where: { userId, purpose: 'ANALYZE_JOB', createdAt: { gte: new Date(now.getTime() - DAY_MS) } },
       }),
       this.prisma.job.groupBy({ by: ['analysisStatus'], where: { userId }, _count: true }),
+      // Every purpose (scoring, tailoring, email reading): the "Today" tile on Sources.
+      this.prisma.aiUsage.aggregate({ where: { userId, createdAt: { gte: new Date(now.getTime() - DAY_MS) } }, _sum: { costUsd: true } }),
     ]);
     const jobs = Object.fromEntries(byStatus.map((g) => [g.analysisStatus, g._count]));
     return {
@@ -42,6 +44,7 @@ export class AiService {
       monthToDateUsd: Number(month._sum.costUsd ?? 0),
       callsThisMonth: month._count,
       analysesLast24h,
+      last24hUsd: Number(day._sum.costUsd ?? 0),
       jobs: { pending: jobs.PENDING ?? 0, done: jobs.DONE ?? 0, deferred: jobs.DEFERRED ?? 0, failed: jobs.FAILED ?? 0 },
     };
   }

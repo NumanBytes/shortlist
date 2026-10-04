@@ -22,7 +22,7 @@ export function JobRow({ job, selected }: { job: JobListItem; selected: boolean 
   const interested = job.status === 'INTERESTED';
   const applied = PIPELINE.includes(job.status);
   // Company boards: the company IS the source, so say where, not who, again.
-  const source = isAggregator(job) ? `via ${providerLabel(job.source)}` : 'company site';
+  const source = isAggregator(job) ? `via ${providerLabel(job.source)}` : 'via company site';
   const showMode = job.workMode && !(job.workMode === 'REMOTE' && /remote/i.test(location ?? ''));
 
   // A status change moves the job out of this list — confirm it, and offer Undo.
@@ -70,13 +70,13 @@ export function JobRow({ job, selected }: { job: JobListItem; selected: boolean 
       </Link>
 
       <div className="mt-2.5 flex items-center border-t border-border py-0.5 pr-0.5 pl-3.5">
-        <p className="min-w-0 flex-1 truncate text-xs text-muted">
+        <div className="flex min-w-0 flex-1 flex-col text-xs leading-4 text-muted">
+          <span className="truncate">{source}</span>
           {/* The one time on the card: when Shortlist found it (user's choice, 2026-10-04). */}
           <time dateTime={job.discoveredAt} title={new Date(job.discoveredAt).toLocaleString()}>
             Found {timeAgo(job.discoveredAt)}
           </time>
-          {` · ${source}`}
-        </p>
+        </div>
         <div className="flex shrink-0 items-center">
           {job.sourceUrl && (
             // You apply on the original posting — Shortlist never submits for you.

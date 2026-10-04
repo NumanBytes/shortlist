@@ -5,8 +5,10 @@ import { useAuth } from '../auth/AuthProvider';
 import { elapsed } from '../lib/format';
 import { useActiveTailoring, useGmail, useSkills } from '../lib/queries';
 import { useNow } from '../lib/useNow';
+import { InstallPrompt } from './InstallPrompt';
 import { Logo } from './Logo';
-import { Sheet } from './ui';
+import { setTheme, useTheme, type ThemeChoice } from '../lib/theme';
+import { Segmented, Sheet } from './ui';
 
 const LINKS: { to: string; label: string; icon: ReactNode; end: boolean }[] = [
   { to: '/', label: 'Jobs', icon: <Briefcase className="size-6 sm:size-5" strokeWidth={1.75} />, end: false },
@@ -94,6 +96,7 @@ export function AccountButton() {
 function AccountSheet({ open, onClose, initials }: { open: boolean; onClose: () => void; initials: string }) {
   const { state, logout } = useAuth();
   const gmail = useGmail();
+  const theme = useTheme();
   if (state.status !== 'signedIn') return null;
   const row = 'flex min-h-14 w-full items-center gap-3 px-1 text-left text-base font-medium';
   const icon = 'grid size-9 shrink-0 place-items-center rounded-[10px] bg-surface-2 text-muted';
@@ -105,6 +108,19 @@ function AccountSheet({ open, onClose, initials }: { open: boolean; onClose: () 
           <p className="truncate font-semibold text-fg">{state.user.name}</p>
           <p className="truncate text-[13px] text-muted">{state.user.email}</p>
         </div>
+      </div>
+      <div className="mb-4 space-y-2">
+        <p className="px-1 text-xs font-semibold tracking-[0.06em] text-muted uppercase">Appearance</p>
+        <Segmented<ThemeChoice>
+          label="Appearance"
+          value={theme}
+          onChange={setTheme}
+          options={[
+            { value: 'system', label: 'System' },
+            { value: 'light', label: 'Light' },
+            { value: 'dark', label: 'Dark' },
+          ]}
+        />
       </div>
       <nav aria-label="Account" className="divide-y divide-border rounded-2xl border border-border px-3">
         <Link to="/profile" onClick={onClose} className={row}>
@@ -202,6 +218,7 @@ export function AppShell() {
       </div>
 
       <TailoringPill />
+      <InstallPrompt />
 
       {/* Phones: a frosted tab bar at the bottom, within thumb reach. */}
       {!isPushedScreen(pathname) && (

@@ -24,6 +24,16 @@ import { useAnalyzeJob, useJobDetail, useSetJobStatus } from '../lib/queries';
 import type { GapSeverity, JobDetail, JobStatus } from '../lib/types';
 
 const SEVERITY_TONE: Record<GapSeverity, Tone> = { BLOCKING: 'danger', MODERATE: 'neutral', MINOR: 'neutral' };
+// "4 of 5 required skills backed by verified evidence" (design board 2): a fact from the
+// analysis, not an adjective. Falls back to the verdict's meaning when the posting names
+// no required skills.
+function fitSummary(job: JobDetail): string {
+  const required = job.requirements.filter((r) => r.importance === 'REQUIRED');
+  if (required.length === 0) return VERDICT_SENTENCE[job.match!.verdict];
+  const backed = required.filter((r) => r.matchedSkillIds.length > 0).length;
+  return `${backed} of ${required.length} required skills backed by verified evidence`;
+}
+
 const VERDICT_SENTENCE = {
   APPLY: 'A strong fit for your verified experience.',
   STRETCH: 'Within reach, with gaps worth knowing before you apply.',
@@ -88,14 +98,10 @@ function Detail({ job }: { job: JobDetail }) {
       <header className="space-y-3 pt-1">
         {m ? (
           <div className="flex items-center gap-4">
-            <ScoreRing score={m.overallScore} verdict={m.verdict} size={80} />
-            <div className="min-w-0 space-y-1">
+            <ScoreRing score={m.overallScore} verdict={m.verdict} size={88} outOf />
+            <div className="min-w-0 space-y-1.5">
               <VerdictBadge verdict={m.verdict} />
-              <p className="text-[13px] leading-[18px] text-muted">{VERDICT_SENTENCE[m.verdict]}</p>
-              <p className="text-xs text-muted">
-                {m.commercialScore}% from paid work
-                {job.yearsRequired !== null && ` · asks ${job.yearsRequired}+ yrs`}
-              </p>
+              <p className="text-[13px] leading-[18px] text-muted">{fitSummary(job)}</p>
             </div>
           </div>
         ) : (
@@ -235,15 +241,22 @@ function ActionBar({ job }: { job: JobDetail }) {
   const [open, setOpen] = useState(false);
   const starred = job.status !== 'DISCOVERED' && job.status !== 'SKIPPED';
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] gap-2">
-      <Button size="lg" variant="secondary" onClick={() => setOpen(true)} aria-haspopup="dialog" aria-label={`Status: ${STATUS_LABEL[job.status]}. Change status`}>
+    <div className="grid grid-cols-2 gap-2">
+      <Button
+        size="lg"
+        variant="secondary"
+        className="px-3"
+        onClick={() => setOpen(true)}
+        aria-haspopup="dialog"
+        aria-label={`Status: ${STATUS_LABEL[job.status]}. Change status`}
+      >
         <Star className={`size-5 ${starred ? 'fill-stretch text-stretch' : ''}`} />
         <span className="truncate">{STATUS_LABEL[job.status]}</span>
         <ChevronDown className="size-4 text-muted" />
       </Button>
       {job.sourceUrl ? (
         // rel="noopener" but not "noreferrer": aggregators ask for referral traffic.
-        <a href={job.sourceUrl} target="_blank" rel="noopener" className={buttonStyles('primary', 'lg')}>
+        <a href={job.sourceUrl} target="_blank" rel="noopener" className={`${buttonStyles('primary', 'lg')} px-3`}>
           Open posting <ExternalLink className="size-[18px]" />
         </a>
       ) : (
@@ -304,9 +317,9 @@ function StatusSheet({ job, open, onClose }: { job: JobDetail; open: boolean; on
             {job.company} · {job.title}
           </p>
         </div>
-        <Button variant="ghost" size="sm" className="text-accent-fg" onClick={onClose}>
+        <button type="button" onClick={onClose} className="min-h-11 rounded-xl px-2 text-[15px] font-semibold text-accent-fg">
           Done
-        </Button>
+        </button>
       </div>
       {GROUPS.map((g) => (
         <fieldset key={g.label} className="mt-3 border-0 p-0">
@@ -328,7 +341,7 @@ function StatusSheet({ job, open, onClose }: { job: JobDetail; open: boolean; on
                 >
                   {on && <Check className="size-3.5" strokeWidth={3} />}
                 </span>
-                <span className="flex-1">{st === 'APPLIED' ? 'I applied' : STATUS_LABEL[st]}</span>
+                <span className="flex-1">{STATUS_LABEL[st]}</span>
                 {hint(st) && <span className="text-xs text-muted">{hint(st)}</span>}
               </button>
             );

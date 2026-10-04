@@ -3,7 +3,8 @@
 
 /* Semantic color tokens. Components use these names (bg-surface, text-muted, …) — never
    raw palette colors — so light/dark and any future rebrand are one edit here. */
-:root {
+:root,
+:root[data-theme='light'] {
   --bg: #f5f6f8;
   --surface: #ffffff;
   --surface-2: #f0f2f5;
@@ -38,8 +39,12 @@
   color-scheme: light;
 }
 
+/* Dark theme. Applied when the system is dark (unless the user chose Light), or when the
+   user chose Dark — the choice lives on <html data-theme>, set before first paint by the
+   script in index.html (lib/theme.ts). The token list is repeated because CSS can't share
+   one block between a media query and an attribute selector. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme='light']) {
     --bg: #0a0e16;
     --surface: #121825;
     --surface-2: #1a2233;
@@ -73,6 +78,39 @@
     color-scheme: dark;
   }
 }
+:root[data-theme='dark'] {
+    --bg: #0a0e16;
+    --surface: #121825;
+    --surface-2: #1a2233;
+    --border: #253047;
+    --fg: #e8edf4;
+    --muted: #a1abbb;
+    --subtle: #6f7a8d;
+    --primary: #e8edf4;
+    --primary-fg: #0a0e16;
+    --accent: #34d399;
+    --accent-fg: #34d399;
+    --accent-soft: rgb(52 211 153 / 0.14);
+    --on-accent: #04221a;
+    --apply: #10b981;
+    --apply-bg: rgb(16 185 129 / 0.14);
+    --apply-fg: #34d399;
+    --stretch: #f59e0b;
+    --stretch-bg: rgb(245 158 11 / 0.14);
+    --stretch-fg: #fbbf24;
+    --skip: #a3acba;
+    --skip-bg: rgb(163 172 186 / 0.14);
+    --skip-fg: #a3acba;
+    --danger: #f87171;
+    --danger-bg: rgb(248 113 113 / 0.14);
+    --danger-fg: #fca5a5;
+    --ring-track: #253047;
+    --scrim: rgb(0 0 0 / 0.6);
+    --glass: rgb(18 24 37 / 0.88);
+    --toast-accent: #047857;
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3);
+    color-scheme: dark;
+  }
 
 @theme inline {
   --color-bg: var(--bg);

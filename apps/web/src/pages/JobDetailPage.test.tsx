@@ -44,11 +44,11 @@ describe('JobDetailPage', () => {
     expect(screen.getAllByText('Build MERN apps.')[0]!.closest('details')).not.toHaveAttribute('open');
   });
 
-  it('records "I applied" for an interested job — the user applies themselves', async () => {
+  it('records Applied for an interested job — the user applies themselves', async () => {
     const fetchMock = open({ ...detail, status: 'INTERESTED' });
     await userEvent.click(await screen.findByRole('button', { name: /Change status/ }));
     expect(screen.getByRole('dialog', { name: 'Set status' })).toHaveTextContent("Logs today's date");
-    await userEvent.click(screen.getByRole('button', { name: /I applied/ }));
+    await userEvent.click(screen.getByRole('button', { name: /^Applied/ }));
     await waitFor(() => expect(fetchMock.mock.calls.some(([, i]) => i?.method === 'PATCH')).toBe(true));
     const patch = fetchMock.mock.calls.find(([, i]) => i?.method === 'PATCH')!;
     expect(JSON.parse(patch[1]!.body as string)).toEqual({ status: 'APPLIED' });

@@ -1,6 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { SourcesPage } from './SourcesPage';
 
@@ -12,6 +11,7 @@ const usage = {
   monthToDateUsd: 0.12,
   callsThisMonth: 20,
   analysesLast24h: 20,
+  last24hUsd: 0.05,
   jobs: { pending: 1, done: 20, deferred: 0, failed: 0 },
 };
 
@@ -38,28 +38,12 @@ function setup() {
   return fetchMock;
 }
 
-describe('SourcesPage AI spend card', () => {
-  it('shows month-to-date spend against the budget', async () => {
+describe('SourcesPage', () => {
+  it("shows this month's AI spend against the budget, today's spend, and links to the budget", async () => {
     setup();
-    expect(await screen.findByText(/\$0\.12 of \$4\.50 this month/)).toBeInTheDocument();
-  });
-
-  it('does not turn an emptied budget field into a $0 budget', async () => {
-    const fetchMock = setup();
-    await userEvent.click(await screen.findByRole('button', { name: 'Change budget' }));
-    await userEvent.clear(screen.getByLabelText(/Monthly budget/));
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
-    expect(fetchMock.mock.calls.some(([, init]) => (init as RequestInit | undefined)?.method === 'PATCH')).toBe(false);
-  });
-
-  it('saves a real value', async () => {
-    const fetchMock = setup();
-    await userEvent.click(await screen.findByRole('button', { name: 'Change budget' }));
-    const input = screen.getByLabelText(/Monthly budget/);
-    await userEvent.clear(input);
-    await userEvent.type(input, '3');
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
-    const patch = fetchMock.mock.calls.find(([, init]) => (init as RequestInit | undefined)?.method === 'PATCH');
-    expect(JSON.parse((patch![1] as RequestInit).body as string)).toEqual({ monthlyBudgetUsd: 3 });
+    expect(await screen.findByText('$0.12')).toBeInTheDocument();
+    expect(screen.getByText('of $4.50')).toBeInTheDocument();
+    expect(screen.getByText('$0.05')).toBeInTheDocument(); // today
+    expect(screen.getByRole('link', { name: 'Budget' })).toHaveAttribute('href', '/profile');
   });
 });

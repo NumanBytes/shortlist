@@ -133,6 +133,8 @@ export function Segmented<T extends string>({
   onChange: (v: T) => void;
   label: string;
 }) {
+  // Long labels ("Maintenance" in four columns) get slightly smaller text instead of an ellipsis.
+  const compact = options.length >= 4 && options.some((o) => o.label.length >= 11);
   return (
     <fieldset
       className="mx-0 grid min-w-0 gap-0.5 rounded-xl border-0 bg-surface-2 p-[3px]"
@@ -147,7 +149,7 @@ export function Segmented<T extends string>({
             type="button"
             aria-pressed={active}
             onClick={() => onChange(o.value)}
-            className={`flex h-[38px] min-w-0 items-center justify-center gap-1 rounded-[9px] px-1 text-[13px] font-medium whitespace-nowrap transition ${FOCUS} ${
+            className={`flex h-[38px] min-w-0 items-center justify-center gap-1 rounded-[9px] px-1 ${compact ? 'text-xs tracking-tight' : 'text-[13px]'} font-medium whitespace-nowrap transition ${FOCUS} ${
               active ? 'bg-surface text-fg shadow-[0_1px_2px_rgb(15_23_42/0.08),0_0_0_1px_var(--border)]' : 'text-muted hover:text-fg'
             }`}
           >

@@ -8,6 +8,13 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <title>Shortlist</title>
+    <script>
+      // Apply the saved Light/Dark choice before the first paint (src/lib/theme.ts).
+      try {
+        var t = localStorage.getItem('shortlist-theme');
+        if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+      } catch (e) {}
+    </script>
   </head>
   <body class="antialiased">
     <div id="root"></div>

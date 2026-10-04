@@ -175,9 +175,15 @@ export class ResumesService {
   private async sources(userId: string, ids: string[]) {
     const rows = await this.prisma.skillEvidence.findMany({
       where: { id: { in: ids }, skill: { userId } },
-      select: { id: true, whatIDid: true, isVerified: true, skill: { select: { name: true } } },
+      select: { id: true, whatIDid: true, isVerified: true, context: true, depth: true, lastUsed: true, skill: { select: { name: true } } },
     });
-    return Object.fromEntries(rows.map((r) => [r.id, { skillName: r.skill.name, whatIDid: r.whatIDid, isVerified: r.isVerified }]));
+    // What the review sheet shows under a bullet: the user's own words and how they rated it.
+    return Object.fromEntries(
+      rows.map((r) => [
+        r.id,
+        { skillName: r.skill.name, whatIDid: r.whatIDid, isVerified: r.isVerified, context: r.context, depth: r.depth, lastUsed: r.lastUsed },
+      ]),
+    );
   }
 
   // Approved, up-to-date resumes built for nearly the same requirements (Agents.md §13.2).

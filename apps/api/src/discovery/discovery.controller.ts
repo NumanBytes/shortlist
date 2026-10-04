@@ -27,6 +27,13 @@ export class DiscoveryController {
     return this.discovery.setEnabled(user.id, id, body);
   }
 
+  // 202: queued for the worker.
+  @Post('sources/:id/run')
+  @HttpCode(HttpStatus.ACCEPTED)
+  runOne(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.discovery.runOne(user.id, id);
+  }
+
   // 202: the work happens later, in the worker.
   @Post('run')
   @HttpCode(HttpStatus.ACCEPTED)

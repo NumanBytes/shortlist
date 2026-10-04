@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import {
   ImplementedSourceConfigSchema,
   JobSourceConfigSchema,
@@ -84,7 +84,7 @@ export class DiscoveryService {
   // will next queue something, when the nightly run fires, and whether a worker is running
   // at all (without one, queued work just waits — Agents.md §4).
   async status(userId: string) {
-    const [sources, running, workerOnline, nextNightlyAt] = await Promise.all([
+    const [sources, running, workerOnline, nextNightlyAt, jobsThisWeek] = await Promise.all([
       this.prisma.jobSource.findMany({
         where: { userId, isEnabled: true, type: { not: 'EMAIL_INBOX' } },
         select: { lastRunAt: true },
@@ -95,6 +95,8 @@ export class DiscoveryService {
       }),
       this.queue.workerOnline(),
       this.queue.nextNightlyDiscovery(),
+      // Every job found in the last 7 days, from boards and alert emails alike.
+      this.prisma.job.count({ where: { userId, discoveredAt: { gte: new Date(Date.now() - 7 * 24 * 3600 * 1000) } } }),
     ]);
     const finished = sources.flatMap((s) => (s.lastRunAt ? [s.lastRunAt.getTime()] : []));
     // A source that never ran is due now; otherwise each is due once its cooldown passes.
@@ -108,6 +110,21 @@ export class DiscoveryService {
       nextNightlyAt,
       workerOnline,
       cooldownHours: MANUAL_RUN_COOLDOWN_HOURS,
+      jobsThisWeek,
     };
+  }
+
+  // "Retry" on one source that failed or came back empty. Same cooldown as "run now", so a
+  // tap can't hammer a board; 409 says when it can run again.
+  async runOne(userId: string, id: string) {
+    const source = await this.prisma.jobSource.findFirst({ where: { id, userId, type: { not: 'EMAIL_INBOX' } } });
+    if (!source) throw new NotFoundException('Source not found');
+    if (!source.isEnabled) throw new ConflictException('Turn the source on first');
+    if (source.lastRunAt && source.lastRunAt.getTime() > Date.now() - COOLDOWN_MS) {
+      const at = new Date(source.lastRunAt.getTime() + COOLDOWN_MS);
+      throw new ConflictException(`It ran recently — it can run again at ${at.toISOString().slice(11, 16)} UTC`);
+    }
+    await this.queue.enqueueSources([id], `retry-${Date.now()}`);
+    return { queued: true };
   }
 }

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { Education, JobResume, PublicUser, ResumeBullet, ResumeContent } from '../lib/types';
+import type { Education, PublicUser, ResumeBullet, ResumeContent } from '../lib/types';
 
 // The resume in the user's own CV layout (Agents.md §13.1): centred name and contact line,
 // then Experience, Skills, Projects, Education. Paper and ink colours stay the same in dark
@@ -12,7 +12,6 @@ import type { Education, JobResume, PublicUser, ResumeBullet, ResumeContent } fr
 // Experience and Projects use a large "●"; Skills a small "•". A blank line separates
 // sections and projects.
 
-type Sources = JobResume['sources'];
 
 const monthYear = (iso: string) => new Date(iso).toLocaleString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
 const bare = (url: string) => url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
@@ -48,40 +47,39 @@ export function BulletItem({ kind, children }: { kind: keyof typeof MARKER; chil
 
 const LIST = 'ml-[18pt] list-none';
 
-function Bullets({ bullets, sources, showSources }: { bullets: ResumeBullet[]; sources: Sources; showSources: boolean }) {
+// On screen, each bullet is a button: tapping it shows the evidence it was built from
+// (the review sheet). A <button> prints as plain text, so the PDF is unchanged. It must be
+// `block`: an inline-block button's baseline is its LAST line, which dropped the "●" marker
+// to the bullet's last line in the PDF (caught by printing the real review page).
+function Bullets({ bullets, onTap, selected }: { bullets: ResumeBullet[]; onTap?: (b: ResumeBullet) => void; selected?: ResumeBullet | null }) {
   return (
     <ul className={LIST}>
-      {bullets.map((b, i) => (
-        <BulletItem key={i} kind="dot">
-          {b.label && <strong>{b.label}: </strong>}
-          {b.text}
-          {showSources && (
-            // Review aid only, never part of the resume: what the user wrote that this
-            // bullet was made from. Styled as app UI (accent edge, UI font, a label) so it
-            // can't be mistaken for a duplicate bullet, and hidden when printing.
-            <div className="mt-1 mb-2 border-l-2 border-accent bg-apply-bg/40 py-1 pr-2 pl-2.5 font-sans text-xs leading-snug text-ink-muted not-italic print:hidden">
-              <p className="mb-0.5 text-[10px] font-semibold tracking-wide text-accent uppercase">From your evidence</p>
-              <ul className="space-y-0.5" aria-label="Sources">
-              {b.evidenceIds.map((id) => {
-                const s = sources[id];
-                return (
-                  <li key={id}>
-                    {s ? (
-                      <>
-                        <span className="font-medium text-ink">{s.skillName}:</span> “{s.whatIDid}”
-                        {!s.isVerified && <span className="text-ink-danger"> (no longer verified)</span>}
-                      </>
-                    ) : (
-                      <span className="text-ink-danger">An item this bullet used was deleted</span>
-                    )}
-                  </li>
-                );
-              })}
-              </ul>
-            </div>
-          )}
-        </BulletItem>
-      ))}
+      {bullets.map((b, i) => {
+        const text = (
+          <>
+            {b.label && <strong>{b.label}: </strong>}
+            {b.text}
+          </>
+        );
+        return (
+          <BulletItem key={i} kind="dot">
+            {onTap ? (
+              <button
+                type="button"
+                aria-pressed={selected === b}
+                onClick={() => onTap(b)}
+                className={`-mx-1 block w-[calc(100%+0.5rem)] rounded px-1 text-left font-[inherit] leading-[inherit] text-ink transition hover:bg-accent/10 focus-visible:outline-2 focus-visible:outline-accent print:m-0 print:p-0 ${
+                  selected === b ? 'bg-accent/15 ring-1 ring-accent print:bg-transparent print:ring-0' : ''
+                }`}
+              >
+                {text}
+              </button>
+            ) : (
+              text
+            )}
+          </BulletItem>
+        );
+      })}
     </ul>
   );
 }
@@ -90,26 +88,35 @@ export function ResumeDocument({
   content,
   profile,
   education,
-  sources,
-  showSources,
   draft,
+  onBulletTap,
+  selectedBullet,
 }: {
   content: ResumeContent;
   profile: PublicUser;
   education: Education[];
-  sources: Sources;
-  showSources: boolean;
   draft: boolean;
+  onBulletTap?: (b: ResumeBullet) => void;
+  selectedBullet?: ResumeBullet | null;
 }) {
   const contact = [profile.email, profile.phone, profile.location].filter((x): x is string => !!x);
   const links = [profile.linkedinUrl, profile.githubUrl].filter((x): x is string => !!x);
 
   return (
-    <div className="mx-auto w-full max-w-[8.5in] bg-paper px-5 py-8 font-[Arial,Helvetica,sans-serif] text-[11pt] leading-[15.5pt] text-ink shadow-sm ring-1 ring-border sm:px-[1in] sm:py-[1in] print:max-w-none print:p-0 print:shadow-none print:ring-0">
+    <div className="relative mx-auto w-full max-w-[8.5in] bg-paper px-[1in] py-[1in] font-[Arial,Helvetica,sans-serif] text-[11pt] leading-[15.5pt] text-ink shadow-sm ring-1 ring-border print:max-w-none print:p-0 print:shadow-none print:ring-0">
       {draft && (
-        <p className="mb-3 hidden border border-ink py-1 text-center text-xs font-bold tracking-widest print:block">
-          DRAFT — NOT YET APPROVED
-        </p>
+        <>
+          <p className="mb-3 hidden border border-ink py-1 text-center text-xs font-bold tracking-widest print:block">
+            DRAFT — NOT YET APPROVED
+          </p>
+          {/* On screen, a faint diagonal watermark until it's approved (design board 3). */}
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 grid place-items-center overflow-hidden select-none print:hidden"
+          >
+            <span className="-rotate-[30deg] text-[96pt] font-bold tracking-[0.1em] text-ink/[0.05]">DRAFT</span>
+          </span>
+        </>
       )}
       <header className="text-center">
         <h1 className="text-[18pt] leading-[22pt] font-bold">{profile.name}</h1>
@@ -140,7 +147,7 @@ export function ResumeDocument({
                   {monthYear(r.startDate)} - {r.isCurrent || !r.endDate ? 'Present' : monthYear(r.endDate)}
                 </p>
               </div>
-              <Bullets bullets={r.bullets} sources={sources} showSources={showSources} />
+              <Bullets bullets={r.bullets} onTap={onBulletTap} selected={selectedBullet} />
             </div>
           ))}
         </Section>
@@ -163,7 +170,7 @@ export function ResumeDocument({
           {content.projects.map((p, i) => (
             <div key={p.projectId} className={`break-inside-avoid ${i > 0 ? LINE : ''}`}>
               <p className="font-bold">{p.name}</p>
-              <Bullets bullets={p.bullets} sources={sources} showSources={showSources} />
+              <Bullets bullets={p.bullets} onTap={onBulletTap} selected={selectedBullet} />
             </div>
           ))}
         </Section>

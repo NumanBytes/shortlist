@@ -12,6 +12,7 @@ const status = (over: Partial<DiscoveryStatus> = {}): DiscoveryStatus => ({
   nextNightlyAt: '2026-10-05T21:00:00Z',
   workerOnline: true,
   cooldownHours: 6,
+  jobsThisWeek: 12,
   ...over,
 });
 const ran: RunNowResult = { queued: ['Remotive', 'Kwanso'], skipped: [], cooldownHours: 6, emailQueued: true };

@@ -58,7 +58,7 @@ describe('GmailCard', () => {
   it('shows the connection, the last check, results per portal, and a parser warning', async () => {
     const fetch = mockFetch(connected());
     renderWithProviders(<GmailCard />);
-    expect(await screen.findByText('numan@gmail.com')).toBeInTheDocument();
+    expect(await screen.findByText('Connected as numan@gmail.com')).toBeInTheDocument();
     expect(screen.getByText(/3 new messages/)).toBeInTheDocument();
     expect(screen.getByText(/1 skipped as not alerts/)).toBeInTheDocument();
     expect(screen.getByText('Indeed')).toBeInTheDocument();
@@ -81,7 +81,7 @@ describe('GmailCard', () => {
     renderWithProviders(<GmailCard />);
     await userEvent.click(await screen.findByRole('button', { name: 'Disconnect' }));
     expect(posts(fetch, 'DELETE')).toEqual([]);
-    expect(screen.getByText(/Disconnect and revoke access\?/)).toBeInTheDocument();
+    expect(screen.getByText(/Disconnect and revoke Shortlist's access/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Disconnect' }));
     await waitFor(() => expect(posts(fetch, 'DELETE')).toEqual([expect.stringMatching(/\/gmail$/)]));
   });
