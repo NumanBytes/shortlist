@@ -230,6 +230,15 @@ describe('assembleResume — skills', () => {
     expect(prompt.user).not.toMatch(/S\d+: Python/);
   });
 
+  // A real run returned names instead of S-refs and failed a paid resume (2026-10-04).
+  it("accepts a skill by its exact name — but only one it was offered", () => {
+    const r = assemble({ skillGroups: [{ label: 'Frontend', skills: ['react', S('TypeScript'), 'Python', 'Kubernetes'] }], learning: ['NestJS'] });
+    expect(r.content.skillGroups).toEqual([
+      { label: 'Frontend', skills: [{ id: 's-React', name: 'React' }, { id: 's-TypeScript', name: 'TypeScript' }] },
+      { label: 'Learning', skills: [{ id: 's-NestJS', name: 'NestJS' }] },
+    ]); // Python (stale coursework, not offered) and Kubernetes (not a skill) are dropped
+  });
+
   it("can't relabel strong skills as Learning, or a learning skill as strong", () => {
     const r = assemble({ skillGroups: [{ label: 'learning', skills: [S('React')] }], learning: [S('TypeScript')] });
     expect(r.content.skillGroups).toEqual([{ label: 'Other', skills: [{ id: 's-React', name: 'React' }, { id: 's-TypeScript', name: 'TypeScript' }] }]);
@@ -269,6 +278,19 @@ describe('buildResumePrompt', () => {
     expect(prompt.user).toMatch(/E\d+ \[P2\] pnpm — personal, working/);
     expect(prompt.user).toContain('P1: Bank Portal — a project of R1');
     expect(prompt.user).toMatch(/S\d+: NestJS — learning/);
+  });
+
+  // Matched to the user's CV (Agents.md §13.1): its Experience bullets average 12 words; the
+  // first real run averaged 20 (up to 35), repeated the company name and said what the
+  // candidate didn't do ("without owning the services").
+  it('asks for short, single-topic bullets that state what was done', () => {
+    expect(prompt.system).toMatch(/at most 18 words \(never more than 22\)/);
+    // A minimum made the model pad a short fact with work the evidence didn't describe.
+    expect(prompt.system).toMatch(/never pad/);
+    expect(prompt.system).toMatch(/One topic per bullet/);
+    expect(prompt.system).toMatch(/Don't name the company or the role/);
+    expect(prompt.system).toMatch(/not what they didn't do/);
+    expect(prompt.system).not.toMatch(/Keep qualifiers/);
   });
 
   it('wraps the posting as untrusted data', () => {

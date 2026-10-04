@@ -36,7 +36,9 @@ export function placementFor(e: { context: Context; depth: Depth; lastUsed: Date
 }
 
 // ── What the model returns (shape only; meaning is checked by assembleResume) ──
-const refList = z.array(z.string().max(10)).max(30);
+// Skill lists hold S-refs; a model sometimes writes the skill's name instead, which
+// assembleResume() resolves only against the skills it was offered — so allow names here.
+const refList = z.array(z.string().max(60)).max(30);
 const OutputBulletSchema = z.object({
   label: z.string().max(60).nullable(),
   text: z.string().min(1).max(400),
@@ -371,8 +373,16 @@ export function assembleResume(input: AssembleInput): AssembleResult {
   }
   const learningOnly = (id: string) => eligible.get(id)!.items.every((e) => e.depth === 'EXPOSURE');
   const listed = new Set<string>();
+  // A skill may come back as its S-ref or, when the model slips, as its exact name — but
+  // only a skill that was offered (it has an S-ref). An unknown name is dropped like an
+  // unknown ref, so this can't list anything new (2026-10-04: one slip failed a paid run).
+  const offeredByName = new Map<string, string>();
+  for (const id of input.refs.skills.values()) {
+    const name = eligible.get(id)?.name;
+    if (name) offeredByName.set(name.trim().toLowerCase(), id);
+  }
   const take = (ref: string) => {
-    const id = input.refs.skills.get(ref.trim());
+    const id = input.refs.skills.get(ref.trim()) ?? offeredByName.get(ref.trim().toLowerCase());
     if (!id || !eligible.has(id) || listed.has(id)) return null;
     listed.add(id);
     for (const e of eligible.get(id)!.items) used.add(e.id);

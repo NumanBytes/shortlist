@@ -5,6 +5,7 @@ import {
   costUsd,
   requirementProfile,
   type ResumeEvidence,
+  type ResumeContent,
   type ResumeOutput,
 } from '@shortlist/shared';
 import { BudgetGuard } from '../analysis/budget-guard.js';
@@ -17,7 +18,17 @@ export type TailorOutcome =
   | { status: 'READY'; variantId: string; bullets: number; dropped: number; costUsd: number }
   | { status: 'DEFERRED' | 'FAILED' | 'SKIPPED'; reason: string };
 
-export class PermanentTailorError extends Error {}
+export class PermanentTailorError extends Error {
+  // The model's raw answer when it failed validation — printed by preview:resume to
+  // diagnose it; never stored (it's a whole resume's worth of text).
+  constructor(message: string, readonly rawOutput?: string) {
+    super(message);
+  }
+}
+
+type Draft =
+  | { status: 'READY'; content: ResumeContent; evidenceIds: string[]; model: string; readAt: Date; cost: number; bullets: number }
+  | { status: 'DEFERRED' | 'FAILED'; reason: string };
 
 @Injectable()
 export class ResumeService {
@@ -32,57 +43,19 @@ export class ResumeService {
   async tailor(jobId: string): Promise<TailorOutcome> {
     const record = await this.prisma.jobResume.findUnique({ where: { jobId } });
     if (!record || record.status !== 'PENDING') return { status: 'SKIPPED', reason: 'not waiting to be tailored' };
-    const job = await this.prisma.job.findUnique({
-      where: { id: jobId },
-      include: { requirements: { orderBy: [{ isCore: 'desc' }, { importance: 'asc' }] } },
-    });
+    const job = await this.loadJob(jobId);
     if (!job) return { status: 'SKIPPED', reason: 'job no longer exists' };
 
-    if (!this.writer.configured) return this.defer(jobId, 'ANTHROPIC_API_KEY is not set in the worker');
-    const guard = await this.budget.checkMonthly(job.userId);
-    if (!guard.allowed) return this.defer(jobId, guard.reason);
-
-    // The resume reflects the evidence as read NOW, so that's its generation time. Stamping
-    // it when saved (after a ~30s model call) would hide an edit + re-verify made meanwhile:
-    // that item's updatedAt would predate the resume, which would look current (code review).
-    const readAt = new Date();
-    const material = await this.material(job.userId);
-    if (material.evidence.length === 0) return this.fail(jobId, 'No verified evidence yet — verify your skills first');
-
-    const prompt = buildResumePrompt({ job, requirements: job.requirements, ...material });
-    let result;
+    let draft: Draft;
     try {
-      result = await this.writer.write(prompt);
+      draft = await this.draft(job);
     } catch (err) {
-      if (err instanceof OutOfCreditError) return this.defer(jobId, err.message);
-      if (err instanceof PermanentAnalyzerError) {
-        await this.fail(jobId, err.message);
-        throw new PermanentTailorError(err.message);
-      }
-      throw err; // transient: the queue retries
+      if (err instanceof PermanentTailorError) await this.fail(jobId, err.message);
+      throw err; // permanent: no retry (processor); transient: the queue retries
     }
+    if (draft.status !== 'READY') return draft.status === 'DEFERRED' ? this.defer(jobId, draft.reason) : this.fail(jobId, draft.reason);
 
-    // Log the spend before anything else: the call was billed whatever happens next.
-    const cost = costUsd(result.model, result.usage);
-    const parsed = this.parse(result.text, result.stopReason);
-    await this.prisma.aiUsage.create({
-      data: { userId: job.userId, jobId, purpose: 'TAILOR_RESUME', model: result.model, ...result.usage, costUsd: cost, succeeded: parsed.ok },
-    });
-    if (!parsed.ok) {
-      await this.fail(jobId, parsed.reason);
-      throw new PermanentTailorError(parsed.reason); // same input would fail again and cost again
-    }
-
-    const { content, evidenceIds } = assembleResume({
-      output: parsed.value,
-      refs: prompt.refs,
-      ...material,
-      policedNames: [...material.allSkillNames, ...job.requirements.map((r) => r.skillName)],
-      requirementAliases: job.requirements.map((r) => ({ name: r.skillName, skillIds: r.matchedSkillIds })),
-    });
-    const bullets = [...content.experience, ...content.projects].reduce((n, s) => n + s.bullets.length, 0);
-    if (bullets === 0) return this.fail(jobId, 'None of the generated bullets passed the truthfulness checks — try again');
-
+    const { content, evidenceIds, model, readAt, cost } = draft;
     const variant = await this.prisma.$transaction(async (tx) => {
       const v = await tx.resumeVariant.create({
         data: {
@@ -90,7 +63,7 @@ export class ResumeService {
           content,
           evidenceIds,
           requirementProfile: requirementProfile(job.requirements),
-          model: result.model,
+          model,
           generatedAt: readAt,
         },
       });
@@ -99,9 +72,70 @@ export class ResumeService {
     });
 
     this.logger.log(
-      `Resume for ${job.title} @ ${job.company}: ${bullets} bullets, ${content.dropped.length} dropped ($${cost.toFixed(4)})`,
+      `Resume for ${job.title} @ ${job.company}: ${draft.bullets} bullets, ${content.dropped.length} dropped ($${cost.toFixed(4)})`,
     );
-    return { status: 'READY', variantId: variant.id, bullets, dropped: content.dropped.length, costUsd: cost };
+    return { status: 'READY', variantId: variant.id, bullets: draft.bullets, dropped: content.dropped.length, costUsd: cost };
+  }
+
+  // Writes a resume for the job WITHOUT storing it or touching the job's resume status —
+  // for tuning the prompt against real output (`preview:resume`). The model call is real:
+  // it's budget-checked and logged to AiUsage like any other.
+  async preview(jobId: string): Promise<Draft> {
+    const job = await this.loadJob(jobId);
+    if (!job) return { status: 'FAILED', reason: 'job not found' };
+    return this.draft(job);
+  }
+
+  private loadJob(jobId: string) {
+    return this.prisma.job.findUnique({
+      where: { id: jobId },
+      include: { requirements: { orderBy: [{ isCore: 'desc' }, { importance: 'asc' }] } },
+    });
+  }
+
+  // One model call, logged, then checked by code (Agents.md §13.1). Everything tailoring
+  // does except storing the result. Throws PermanentTailorError for output that would fail
+  // again; rethrows transient errors for the queue to retry.
+  private async draft(job: NonNullable<Awaited<ReturnType<ResumeService['loadJob']>>>): Promise<Draft> {
+    if (!this.writer.configured) return { status: 'DEFERRED', reason: 'ANTHROPIC_API_KEY is not set in the worker' };
+    const guard = await this.budget.checkMonthly(job.userId);
+    if (!guard.allowed) return { status: 'DEFERRED', reason: guard.reason };
+
+    // The resume reflects the evidence as read NOW, so that's its generation time. Stamping
+    // it when saved (after a ~30s model call) would hide an edit + re-verify made meanwhile:
+    // that item's updatedAt would predate the resume, which would look current (code review).
+    const readAt = new Date();
+    const material = await this.material(job.userId);
+    if (material.evidence.length === 0) return { status: 'FAILED', reason: 'No verified evidence yet — verify your skills first' };
+
+    const prompt = buildResumePrompt({ job, requirements: job.requirements, ...material });
+    let result;
+    try {
+      result = await this.writer.write(prompt);
+    } catch (err) {
+      if (err instanceof OutOfCreditError) return { status: 'DEFERRED', reason: err.message };
+      if (err instanceof PermanentAnalyzerError) throw new PermanentTailorError(err.message);
+      throw err; // transient: the queue retries
+    }
+
+    // Log the spend before anything else: the call was billed whatever happens next.
+    const cost = costUsd(result.model, result.usage);
+    const parsed = this.parse(result.text, result.stopReason);
+    await this.prisma.aiUsage.create({
+      data: { userId: job.userId, jobId: job.id, purpose: 'TAILOR_RESUME', model: result.model, ...result.usage, costUsd: cost, succeeded: parsed.ok },
+    });
+    if (!parsed.ok) throw new PermanentTailorError(parsed.reason, result.text); // same input would fail again and cost again
+
+    const { content, evidenceIds } = assembleResume({
+      output: parsed.value,
+      refs: prompt.refs,
+      ...material,
+      policedNames: [...material.allSkillNames, ...job.requirements.map((r) => r.skillName)],
+      requirementAliases: job.requirements.map((r) => ({ name: r.skillName, skillIds: r.matchedSkillIds })),
+    });
+    const bullets = [...content.experience, ...content.projects].reduce((n, sec) => n + sec.bullets.length, 0);
+    if (bullets === 0) return { status: 'FAILED', reason: 'None of the generated bullets passed the truthfulness checks — try again' };
+    return { status: 'READY', content, evidenceIds, model: result.model, readAt, cost, bullets };
   }
 
   // Everything the resume may draw on. Truthfulness boundary: VERIFIED evidence only.
@@ -141,7 +175,10 @@ export class ResumeService {
       return { ok: false, reason: 'Model output was not valid JSON' };
     }
     const r = ResumeOutputSchema.safeParse(json);
-    return r.success ? { ok: true, value: r.data } : { ok: false, reason: `Model output failed validation: ${r.error.issues[0]?.message ?? 'unknown'}` };
+    if (r.success) return { ok: true, value: r.data };
+    // Say WHERE it failed ("experience.0.bullets.2.evidence.1"): "too big" alone isn't actionable.
+    const issue = r.error.issues[0];
+    return { ok: false, reason: `Model output failed validation at ${issue?.path.join('.') || '(root)'}: ${issue?.message ?? 'unknown'}` };
   }
 
   private async defer(jobId: string, reason: string): Promise<TailorOutcome> {

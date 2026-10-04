@@ -1367,6 +1367,25 @@ automated runs on the API; anything the user does by hand can use Pro.
   bullet labels; grouped Skills; Projects; Education) — no summary, because their CV has
   none. Header and education come from the Profile (§5.2). Role-linked projects appear
   under Projects, as on the CV.
+- **Bullet wording matched to the CV (2026-10-04).** The first real runs' Experience
+  bullets averaged 20 words (up to 35), against 12 in the user's CV. They repeated the
+  company name already in the heading, merged unrelated items into run-on sentences, and
+  stated what the candidate *didn't* do ("without owning the services"). That last habit
+  came from the prompt's "keep qualifiers" rule. The prompt now asks for at most 18 words
+  (never more than 22), one topic per bullet, no company or role name, and the scope
+  stated positively with the candidate's own limiting words ("existing pipelines"). It
+  sets **no minimum length**: a "10 to 18 words" draft made the model pad a five-word
+  fact with work the evidence didn't describe. A short true bullet beats a padded one.
+  Result on the same job: an average of 12.9 words, longest 19, nothing padded.
+  - The same run once returned skill **names** instead of `S` refs, which failed the whole
+    paid resume at validation. `assembleResume()` now also accepts a skill's exact name
+    (case-insensitive), but only for a skill that was offered with an `S` ref. Any other
+    name is dropped like an unknown ref, so nothing new can be listed.
+  - Validation failures now name the field ("skillGroups.0.skills.4"), not just "too big".
+  - **`preview:resume <jobId>`** (worker CLI) runs a real tailoring and prints the bullets
+    with word counts *without saving* them (`ResumeService.preview()`, which shares
+    `draft()` with `tailor()`). Spend is logged to `AiUsage` as usual, and the model's raw
+    answer is printed when validation fails. It's for tuning the prompt on real output.
 - **Typography matched to the CV (2026-10-04).** The user found that the Experience and
   Projects bullets didn't look like their CV (`numan software engineer.pdf`, a Google Docs
   export). The page is rebuilt from measurements of that PDF: **US Letter, 1in margins**,
@@ -1605,6 +1624,7 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
 | 2026-10-02 | Tailoring only on the user's request, from an Interested, scored job | §13.1 |
 | 2026-10-02 | Exposure-only skills go in a code-labelled "Learning" group | §13.1 |
 | 2026-10-02 | PDF via the browser's print to PDF on an A4 stylesheet, in the user's CV layout; no PDF library | §13.1 |
+| 2026-10-04 | Tailoring prompt: ≤18 words, one topic, no company name, scope stated positively, no minimum (it caused padding); skill names resolved only to offered skills; `preview:resume` CLI | §13.1 — bullets averaged 20 words vs the CV's 12 |
 | 2026-10-04 | Resume review opens clean (as printed); per-bullet sources are an opt-in, clearly labelled review note | §13.1 — read as duplicated bullets |
 | 2026-10-04 | Resume page matched to the user's CV by measurement: Letter, 1in margins, 11pt Arial, "●" bullets (Experience/Projects) and "•" (Skills) with hanging indents; markers in a flex row to keep PDF text order | §13.1, user request |
 | 2026-10-02 | "Save as PDF" only after approval; approve is its own endpoint and refused when stale | §13.1 |
@@ -1669,8 +1689,8 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
 1. **User:** review the 44 unverified items from the CV reconciliation (§7.5) in the
    Evidence screen — fix the placeholder ones with Edit before verifying. Everything AI
    reads only verified evidence.
-2. **One real tailoring run** on a job the user picks (≈ $0.03), then tune the prompt or
-   checks on what it produces. (Tailoring, reuse, staleness and the PDF: built — §13.)
+2. ~~**One real tailoring run**, then tune~~ — done 2026-10-04: real runs on the user's
+   MERN job; layout matched to the CV and bullet wording tuned (§13.1).
 3. **Email job alerts** (§10): built 2026-10-03 — Gmail connected, Indeed parser, model
    fallback for every other portal, partial jobs and "paste full description". **Next:**
    a LinkedIn code parser once its alert volume and layout are confirmed; board discovery
