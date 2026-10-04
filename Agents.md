@@ -300,14 +300,56 @@ that the next nightly run redoes.
 worker's environment/database access path. The browser never sees them; the API never
 needs the Claude key. A compromised frontend cannot spend money or read mail.
 
-**Deployment target** (not yet done): Vercel (web) + Render/Railway (API and worker) +
-Neon (Postgres) + Upstash (Redis, `rediss://`). The worker needs an always-on host
-because the scheduler can't run on a host that sleeps. **Web and API must share a site**
-— e.g. `app.getshortlist.com` + `api.getshortlist.com`, or a Vercel rewrite of `/api` to
-the API — because the refresh cookie is `SameSite=Strict` (§8.2). `*.vercel.app` →
-`*.onrender.com` is cross-site and would break sign-in. Set **`TRUST_PROXY_HOPS`** to the
-number of proxies in front of the API, or the login rate limits see one IP for everyone
-(§8.1).
+**Deployment: one VPS running everything (decided 2026-10-04; prepared, not yet live).**
+The user chose a single small Linux server (a VPS, ~$4–6/month) over managed services:
+- **Free tiers didn't fit.** Upstash's free Redis caps commands per month, and BullMQ polls
+  Redis constantly, so an idle worker would exhaust it.
+- **The worker must never sleep.** Free hosts put programs to sleep until a web request
+  arrives. The worker receives none, so the 2 AM run, Gmail checks and tailoring would
+  stop.
+- **Vercel can only host the web app.** It runs server code as short request-bound
+  functions, so it can't host the long-running worker.
+- **One server and one bill,** with no quotas.
+
+The VPS runs **Docker Compose** (`deploy/`), using one multi-stage `Dockerfile` at the
+repo root that produces two images:
+- **`server`** runs the API, the worker *and* the migration step: the same code, started
+  with a different command. Development-only packages are removed after the build, so
+  the Prisma CLI is a runtime dependency of `@shortlist/db` to keep `migrate deploy`.
+  About 250 MB.
+- **`web`** is Caddy plus the built React app.
+
+The services:
+- **`caddy`** is the only one with open ports. It gets and renews a Let's Encrypt
+  certificate automatically for `SITE_ADDRESS`. That has to be a hostname, so the user,
+  who owns no domain, uses a free DuckDNS subdomain. HTTPS is required for a phone to
+  install the PWA. Caddy forwards `/api/*` and `/health` to the API and serves the app,
+  so web and API share **one origin** and the `SameSite=Strict` cookie works (§8.2), the
+  same arrangement as Vite's dev proxy. The page and the service worker are sent with
+  `no-cache` so phones pick up new versions; the hashed `/assets` are cached for a year.
+  It also sets HSTS, nosniff, `X-Frame-Options: DENY` and a referrer policy.
+- **`migrate`** runs `prisma migrate deploy` and exits. The API and worker start only
+  after it succeeds, so code never runs against an older schema.
+- **`postgres`** is version 18, the same as development, so a local dump restores cleanly.
+  **`redis`** uses `appendonly` and `noeviction`. Neither is reachable from outside.
+- **`backup`** runs `pg_dump` nightly at 03:30 local time and keeps 14 days in
+  `deploy/backups/`. Those dumps guard against mistakes, not against losing the server,
+  so the README says to copy them off the machine.
+- **`TRUST_PROXY_HOPS=1`:** Caddy is the one proxy (§8.1).
+
+Verified locally (2026-10-04) on test ports with the full stack:
+- health, register and refresh through Caddy;
+- a `Secure; HttpOnly; SameSite=Strict` cookie and an HTTP → HTTPS redirect;
+- `workerOnline: true` across containers;
+- the login limit holding against **faked `X-Forwarded-For`** (31st attempt: 429);
+- a nightly dump;
+- the README's step of **importing the user's real local database** (jobs, verified
+  evidence and resumes intact, then "No pending migrations");
+- seeding a fresh account.
+
+That test found a bug: Compose passes a blank optional setting (`${VAR:-}`) as `""`,
+which failed env validation. **Both apps now treat an empty env value as not set.**
+`deploy/README.md` is the step-by-step guide.
 
 ---
 
@@ -1653,6 +1695,7 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
 | 2026-10-02 | Tailoring only on the user's request, from an Interested, scored job | §13.1 |
 | 2026-10-02 | Exposure-only skills go in a code-labelled "Learning" group | §13.1 |
 | 2026-10-02 | PDF via the browser's print to PDF on an A4 stylesheet, in the user's CV layout; no PDF library | §13.1 |
+| 2026-10-04 | Deploy on one VPS with Docker Compose (Caddy for HTTPS, Postgres 18, Redis, API, worker, migrate, nightly backup); DuckDNS hostname; empty env values = unset | §4 — user's choice over free tiers (Upstash quota vs BullMQ polling; sleeping hosts can't run the worker) |
 | 2026-10-04 | Tailoring prompt: ≤18 words, one topic, no company name, scope stated positively, no minimum (it caused padding); skill names resolved only to offered skills; `preview:resume` CLI | §13.1 — bullets averaged 20 words vs the CV's 12 |
 | 2026-10-04 | Login/register rate limits: Redis fixed-window counters (Lua), failed logins per account + attempts per IP + sign-ups per IP; 429 + Retry-After; fail open; `TRUST_PROXY_HOPS` | §8.1 — roadmap step 8 |
 | 2026-10-04 | Resume review opens clean (as printed); per-bullet sources are an opt-in, clearly labelled review note | §13.1 — read as duplicated bullets |
@@ -1732,7 +1775,8 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
 6. **Discovery Milestone 2** (hosted ATS pages), **source discovery** (§9.11: board
    probing + monthly ATS-scoped search), then **Milestone 3** (custom sites via change
    watcher).
-7. **Deploy** (§4): Neon, Upstash, Vercel + Render/Railway on a shared site.
+7. **Deploy** (§4): one VPS with Docker Compose. **Prepared and tested locally
+   2026-10-04** (`deploy/`); going live needs the user's VPS and a DuckDNS hostname.
 8. ~~Rate-limit `/auth/login` and `/auth/register`~~ — built 2026-10-04 (§8.1).
 
 ### 17.3 Open decisions

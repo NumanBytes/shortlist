@@ -21,6 +21,12 @@ describe('loadEnv', () => {
     });
   });
 
+  it('treats empty values as not set (Docker Compose passes blank optional settings as "")', () => {
+    const env = loadEnv({ ...valid, GOOGLE_CLIENT_ID: '', GOOGLE_CLIENT_SECRET: '', GOOGLE_REDIRECT_URI: '', TOKEN_ENCRYPTION_KEY: '', PORT: '' });
+    expect(env.GOOGLE_CLIENT_ID).toBeUndefined();
+    expect(env.PORT).toBe(3000); // the default, not a failed parse of ""
+  });
+
   it('parses a comma-separated origin allowlist', () => {
     const env = loadEnv({ ...valid, WEB_ORIGINS: 'https://app.getshortlist.com, http://localhost:5173' });
     expect(env.WEB_ORIGINS).toEqual(['https://app.getshortlist.com', 'http://localhost:5173']);

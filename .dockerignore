@@ -1,0 +1,13 @@
+# Keep the build context small and free of secrets and machine-specific builds.
+**/node_modules
+**/dist
+**/*.tsbuildinfo
+**/coverage
+**/.env
+**/.env.*
+!**/.env.example
+.git
+.idea
+deploy/backups
+# Real job-alert emails (personal data) never go into an image.
+apps/worker/test/fixtures/email/.private

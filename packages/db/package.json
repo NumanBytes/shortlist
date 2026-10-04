@@ -25,11 +25,11 @@
   },
   "dependencies": {
     "@prisma/client": "^6.9.0",
-    "@shortlist/shared": "workspace:*"
+    "@shortlist/shared": "workspace:*",
+    "prisma": "^6.9.0"
   },
   "devDependencies": {
     "@types/node": "^24.13.6",
-    "prisma": "^6.9.0",
     "typescript": "^6.0.3"
   }
 }

@@ -58,7 +58,11 @@ export function loadEnv(source?: NodeJS.ProcessEnv): Env {
     loadDotEnvFile();
     source = process.env;
   }
-  const result = EnvSchema.safeParse(source);
+  // An empty value means "not set": Docker Compose passes `${VAR:-}` as "", and hosting
+  // dashboards often do the same. Without this, a blank optional setting (e.g. no Gmail)
+  // would fail validation instead of falling back to its default or being left off.
+  const set = Object.fromEntries(Object.entries(source).filter(([, v]) => v !== undefined && v !== ''));
+  const result = EnvSchema.safeParse(set);
   if (!result.success) {
     const problems = result.error.issues.map((i) => `  ${i.path.join('.')}: ${i.message}`).join('\n');
     throw new Error(`Invalid environment configuration:\n${problems}`);
