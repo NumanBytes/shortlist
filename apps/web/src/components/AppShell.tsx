@@ -1,8 +1,10 @@
-import { Briefcase, LogOut, Radar, ShieldCheck, UserRound } from 'lucide-react';
+import { Briefcase, ChevronRight, Loader2, LogOut, Radar, ShieldCheck, UserRound } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router';
 import { useAuth } from '../auth/AuthProvider';
-import { useSkills } from '../lib/queries';
+import { elapsed } from '../lib/format';
+import { useActiveTailoring, useSkills } from '../lib/queries';
+import { useNow } from '../lib/useNow';
 import { Logo } from './Logo';
 
 const LINKS: { to: string; label: string; icon: ReactNode; end: boolean }[] = [
@@ -19,11 +21,23 @@ function useToReview(): number {
   return (skills.data ?? []).flatMap((s) => s.evidence).filter((e) => !e.isVerified).length;
 }
 
-function NavItem({ link, mobile, badge }: { link: (typeof LINKS)[number]; mobile: boolean; badge?: number }) {
+// The Jobs tab returns to where you were: leave a job (say, while its resume is being
+// tailored) for Evidence, tap Jobs, and you're back on that job — not the top of the list.
+// Tapping Jobs while already in Jobs goes to the list, keeping its tab and filters.
+function useJobsHref(): string {
+  const { pathname, search } = useLocation();
+  const [last, setLast] = useState('/');
+  // Adjusting state while rendering (React's documented pattern for "remember the previous
+  // value"): no effect, so the link is right on the very first render after navigating.
+  if (isJobsPath(pathname) && last !== pathname + search) setLast(pathname + search);
+  return isJobsPath(pathname) ? `/${search}` : last;
+}
+
+function NavItem({ link, mobile, badge, to }: { link: (typeof LINKS)[number]; mobile: boolean; badge?: number; to?: string }) {
   const { pathname } = useLocation();
   return (
     <NavLink
-      to={link.to}
+      to={to ?? link.to}
       end={link.end}
       className={({ isActive }) => {
         const active = link.to === '/' ? isJobsPath(pathname) : isActive;
@@ -105,8 +119,34 @@ function AccountMenu() {
   );
 }
 
+// Tailoring runs in the worker, so leaving the job's page never stops it. This bar keeps
+// it visible on every other page and leads back to the job (Agents.md §13.1).
+function TailoringBar() {
+  const active = useActiveTailoring();
+  const { pathname } = useLocation();
+  const now = useNow();
+  const first = active.data?.[0];
+  if (!first || pathname === `/jobs/${first.jobId}`) return null;
+  const more = active.data!.length - 1;
+  return (
+    <Link
+      to={`/jobs/${first.jobId}`}
+      className="flex items-center gap-2 border-t border-border bg-surface-2 px-4 py-1.5 text-xs text-muted hover:text-fg"
+    >
+      <Loader2 className="size-3.5 shrink-0 animate-spin text-accent" />
+      <span className="min-w-0 flex-1 truncate">
+        Tailoring resume · <span className="font-medium text-fg">{first.title}</span> at {first.company}
+        {more > 0 && ` and ${more} more`}
+      </span>
+      <span className="tabular-nums">{elapsed(first.queuedAt, now)}</span>
+      <ChevronRight className="size-3.5 shrink-0" />
+    </Link>
+  );
+}
+
 export function AppShell() {
   const toReview = useToReview();
+  const jobsHref = useJobsHref();
   return (
     <div className="min-h-dvh">
       <header className="sticky top-0 print:hidden z-20 border-b border-border bg-bg/85 pt-[env(safe-area-inset-top)] backdrop-blur">
@@ -114,11 +154,18 @@ export function AppShell() {
           <Logo />
           <nav className="hidden items-center gap-1 sm:flex" aria-label="Main">
             {LINKS.map((l) => (
-              <NavItem key={l.to} link={l} mobile={false} badge={l.to === '/evidence' ? toReview : undefined} />
+              <NavItem
+                key={l.to}
+                link={l}
+                mobile={false}
+                to={l.to === '/' ? jobsHref : undefined}
+                badge={l.to === '/evidence' ? toReview : undefined}
+              />
             ))}
           </nav>
           <AccountMenu />
         </div>
+        <TailoringBar />
       </header>
 
       <div className="mx-auto max-w-6xl px-4 pt-4 pb-28 sm:pb-12 print:max-w-none print:p-0">
@@ -131,7 +178,7 @@ export function AppShell() {
         className="fixed inset-x-0 bottom-0 z-20 flex print:hidden border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur sm:hidden"
       >
         {LINKS.map((l) => (
-          <NavItem key={l.to} link={l} mobile badge={l.to === '/evidence' ? toReview : undefined} />
+          <NavItem key={l.to} link={l} mobile to={l.to === '/' ? jobsHref : undefined} badge={l.to === '/evidence' ? toReview : undefined} />
         ))}
       </nav>
     </div>

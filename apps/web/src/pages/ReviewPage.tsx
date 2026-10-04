@@ -1,8 +1,9 @@
-import { PartyPopper, ShieldCheck } from 'lucide-react';
+import { PartyPopper, Plus, ShieldCheck } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useAuth } from '../auth/AuthProvider';
+import { AddEvidenceForm, AddSkillCard } from '../components/AddEvidence';
 import { EvidenceItem } from '../components/EvidenceItem';
-import { Badge, Card, EmptyState, Segmented, Skeleton } from '../components/ui';
+import { Badge, Button, Card, EmptyState, Segmented, Skeleton } from '../components/ui';
 import { useProjects, useSkills, useWorkExperiences } from '../lib/queries';
 import type { Evidence } from '../lib/types';
 
@@ -20,6 +21,14 @@ export function ReviewPage() {
   const toReview = all.length - verified;
   // Default to the review queue while there is one; otherwise show everything.
   const [filter, setFilter] = useState<Filter | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [addingTo, setAddingTo] = useState<string | null>(null); // skill id
+  // New evidence is unverified, so show the review queue where it just landed.
+  const added = () => {
+    setAdding(false);
+    setAddingTo(null);
+    setFilter('unverified');
+  };
   const active: Filter = filter ?? (toReview > 0 ? 'unverified' : 'all');
 
   // Evidence stores only IDs for its role/project; resolve them to display names.
@@ -37,10 +46,19 @@ export function ReviewPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
-      <div>
-        <h1 className="text-lg font-semibold text-fg">Career evidence</h1>
-        {state && <p className="text-sm text-muted">{state}</p>}
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-lg font-semibold text-fg">Career evidence</h1>
+          {state && <p className="truncate text-sm text-muted">{state}</p>}
+        </div>
+        {!adding && (
+          <Button size="sm" onClick={() => setAdding(true)}>
+            <Plus className="size-4" /> Add skill
+          </Button>
+        )}
       </div>
+
+      {adding && <AddSkillCard onDone={added} />}
 
       <Card className="p-4">
         <div className="flex items-start gap-3">
@@ -110,6 +128,15 @@ export function ReviewPage() {
                 <EvidenceItem key={e.id} evidence={e} source={sourceName(e)} />
               ))}
             </ul>
+            <div className="mt-2">
+              {addingTo === skill.id ? (
+                <AddEvidenceForm skill={skill} onDone={added} />
+              ) : (
+                <Button size="sm" variant="ghost" onClick={() => setAddingTo(skill.id)}>
+                  <Plus className="size-3.5" /> Add evidence for {skill.name}
+                </Button>
+              )}
+            </div>
           </section>
         ))}
       </main>

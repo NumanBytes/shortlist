@@ -8,6 +8,9 @@ import {
 import { PrismaService } from '../prisma/prisma.service.js';
 import { JobQueues } from '../queue/job-queues.js';
 
+const COOLDOWN_MS = MANUAL_RUN_COOLDOWN_HOURS * 3600 * 1000;
+const RUNNING_WINDOW_MS = 30 * 60 * 1000;
+
 @Injectable()
 export class DiscoveryService {
   constructor(
@@ -49,22 +52,61 @@ export class DiscoveryService {
     return this.prisma.jobSource.update({ where: { id }, data: { isEnabled: input.isEnabled } });
   }
 
-  // "Run now": queue the user's enabled sources — except any that ran recently, so a
-  // user tapping the button can't break an aggregator's request limits.
+  // "Find new jobs": queue the user's enabled sources — except any that ran recently, so a
+  // user tapping the button can't break an aggregator's request limits — and, if Gmail is
+  // connected, a check of the alert label too, so one button covers every source.
   async runNow(userId: string) {
-    const cutoff = new Date(Date.now() - MANUAL_RUN_COOLDOWN_HOURS * 3600 * 1000);
-    const sources = await this.prisma.jobSource.findMany({
-      where: { userId, isEnabled: true, type: { not: 'EMAIL_INBOX' } },
-      select: { id: true, name: true, lastRunAt: true },
-    });
+    const cutoff = new Date(Date.now() - COOLDOWN_MS);
+    const [sources, gmail] = await Promise.all([
+      this.prisma.jobSource.findMany({
+        where: { userId, isEnabled: true, type: { not: 'EMAIL_INBOX' } },
+        select: { id: true, name: true, lastRunAt: true },
+      }),
+      this.prisma.gmailConnection.findUnique({ where: { userId }, select: { status: true } }),
+    ]);
     const due = sources.filter((s) => !s.lastRunAt || s.lastRunAt < cutoff);
     await this.queue.enqueueSources(
       due.map((s) => s.id),
       `manual-${Date.now()}`,
     );
+    // Best effort: the inbox is also checked every two hours on its own schedule.
+    const emailQueued = gmail?.status === 'ACTIVE' && (await this.queue.enqueueEmailCheck(userId).then(() => true, () => false));
     return {
       queued: due.map((s) => s.name),
       skipped: sources.filter((s) => !due.includes(s)).map((s) => s.name),
+      cooldownHours: MANUAL_RUN_COOLDOWN_HOURS,
+      emailQueued,
+    };
+  }
+
+  // What the Jobs page needs to say how fresh the list is and whether "Find new jobs" can
+  // do anything: when sources last finished, whether a run is in progress, when the button
+  // will next queue something, when the nightly run fires, and whether a worker is running
+  // at all (without one, queued work just waits — Agents.md §4).
+  async status(userId: string) {
+    const [sources, running, workerOnline, nextNightlyAt] = await Promise.all([
+      this.prisma.jobSource.findMany({
+        where: { userId, isEnabled: true, type: { not: 'EMAIL_INBOX' } },
+        select: { lastRunAt: true },
+      }),
+      this.prisma.discoveryRun.count({
+        // A run row older than this is a crashed attempt, not one still going.
+        where: { status: 'RUNNING', startedAt: { gte: new Date(Date.now() - RUNNING_WINDOW_MS) }, jobSource: { userId } },
+      }),
+      this.queue.workerOnline(),
+      this.queue.nextNightlyDiscovery(),
+    ]);
+    const finished = sources.flatMap((s) => (s.lastRunAt ? [s.lastRunAt.getTime()] : []));
+    // A source that never ran is due now; otherwise each is due once its cooldown passes.
+    const dueTimes = sources.map((s) => (s.lastRunAt ? s.lastRunAt.getTime() + COOLDOWN_MS : 0));
+    const firstDue = dueTimes.length ? Math.min(...dueTimes) : null;
+    return {
+      enabledSources: sources.length,
+      lastCheckedAt: finished.length ? new Date(Math.max(...finished)) : null,
+      running,
+      availableAt: firstDue !== null && firstDue > Date.now() ? new Date(firstDue) : null,
+      nextNightlyAt,
+      workerOnline,
       cooldownHours: MANUAL_RUN_COOLDOWN_HOURS,
     };
   }

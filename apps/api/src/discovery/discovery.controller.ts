@@ -13,6 +13,11 @@ export class DiscoveryController {
     return this.discovery.listSources(user.id);
   }
 
+  @Get('status')
+  status(@CurrentUser() user: AuthUser) {
+    return this.discovery.status(user.id);
+  }
+
   @Patch('sources/:id')
   setEnabled(
     @CurrentUser() user: AuthUser,

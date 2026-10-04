@@ -63,7 +63,7 @@ export class GmailService {
       this.prisma.emailMessage.groupBy({ by: ['portal'], where: { ...recent, note: { contains: 'parser' } }, _count: true }),
       this.prisma.jobSource.findMany({
         where: { userId, type: 'EMAIL_INBOX', lastRunAt: { not: null } },
-        select: { key: true, name: true, discoveryRuns: { orderBy: { startedAt: 'desc' }, take: 1, select: { status: true, jobsNew: true, finishedAt: true } } },
+        select: { id: true, key: true, name: true, discoveryRuns: { orderBy: { startedAt: 'desc' }, take: 1, select: { status: true, jobsNew: true, finishedAt: true } } },
       }),
     ]);
     const counts = Object.fromEntries(byStatus.map((g) => [g.status, g._count]));
@@ -84,6 +84,7 @@ export class GmailService {
             const src = sourceBy.get(`email_alerts:${p.portal!.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`);
             return {
               portal: p.portal!,
+              sourceId: src?.id ?? null,
               label: src?.name ?? p.portal!,
               emails: p._count,
               jobsFound: p._sum.jobsFound ?? 0,

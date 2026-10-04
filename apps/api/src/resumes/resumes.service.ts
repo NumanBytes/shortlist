@@ -54,6 +54,10 @@ export class ResumesService {
     return {
       status: record?.status ?? 'NONE',
       error: record?.error ?? null,
+      // While waiting: since when, and whether a worker is running to pick it up — so the
+      // UI can say "the background worker isn't running" instead of spinning forever.
+      queuedAt: record?.status === 'PENDING' ? record.updatedAt : null,
+      workerOnline: record?.status === 'PENDING' ? await this.queues.workerOnline() : null,
       reused: record?.reused ?? false,
       overlap: record?.overlap ?? null,
       // Tailoring works from the analysis's requirement list, so the job must be scored.
@@ -73,6 +77,17 @@ export class ResumesService {
       sources,
       reuse,
     };
+  }
+
+  // Every resume being tailored for this user, for the "Tailoring…" indicator shown on
+  // every page — the work runs in the worker, so leaving the job's page never stops it.
+  async active(userId: string) {
+    const rows = await this.prisma.jobResume.findMany({
+      where: { status: 'PENDING', job: { userId } },
+      select: { jobId: true, updatedAt: true, job: { select: { title: true, company: true } } },
+      orderBy: { updatedAt: 'asc' },
+    });
+    return rows.map((r) => ({ jobId: r.jobId, title: r.job.title, company: r.job.company, queuedAt: r.updatedAt }));
   }
 
   async prepare(userId: string, jobId: string, input: PrepareResumeInput) {

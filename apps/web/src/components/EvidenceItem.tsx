@@ -6,12 +6,12 @@ import { useUnverifyEvidence, useUpdateEvidence, useVerifyEvidence } from '../li
 import type { Evidence } from '../lib/types';
 
 // Plain-language meaning of each level — these decide where a claim may appear (Agents.md §6.1).
-const CONTEXTS = [
+export const CONTEXTS = [
   { value: 'COMMERCIAL', label: 'Paid work' },
   { value: 'PERSONAL', label: 'Personal / self-taught' },
   { value: 'ACADEMIC', label: 'University' },
 ] as const;
-const DEPTHS = [
+export const DEPTHS = [
   { value: 'PRODUCTION', label: 'Production — built things that shipped' },
   { value: 'WORKING', label: "Working — can build with it, hasn't shipped" },
   { value: 'MAINTENANCE', label: 'Maintenance — upgraded or fixed, didn\'t build' },

@@ -17,7 +17,9 @@ export function ResumePage() {
   const education = useEducation();
   const approve = useApproveResume();
   const toast = useToast();
-  const [showSources, setShowSources] = useState(true);
+  // Off by default: the page shows the resume exactly as it will print. Sources are a
+  // review aid you turn on to check each bullet against your own words.
+  const [showSources, setShowSources] = useState(false);
 
   // The browser names the saved PDF after the page title.
   const name = profile.data?.name;
@@ -62,7 +64,7 @@ export function ResumePage() {
   const { dropped } = v.content;
 
   return (
-    <div className="mx-auto max-w-[210mm] space-y-4 print:space-y-0">
+    <div className="mx-auto max-w-[8.5in] space-y-4 print:space-y-0">
       <div className="space-y-3 print:hidden">
         {back}
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -76,7 +78,7 @@ export function ResumePage() {
             {/* The switch carries its own accessible name; the word is for sighted users. */}
             <span className="flex items-center gap-2 text-sm text-muted">
               <Switch checked={showSources} onChange={setShowSources} label="Show sources" />
-              <span aria-hidden="true">Sources</span>
+              <span aria-hidden="true">Show sources</span>
             </span>
             {approved && !stale ? (
               <Button onClick={() => window.print()}>
@@ -103,8 +105,8 @@ export function ResumePage() {
         ) : (
           !approved && (
             <p className="rounded-lg bg-stretch-bg px-3 py-2 text-sm text-stretch-fg">
-              Read every bullet against its sources. If one says more than you did, don't approve — edit that evidence and
-              tailor again. Approving lets you save the PDF and reuse this resume for similar jobs without another review.
+              Turn on “Show sources” and read every bullet against your own words. If one says more than you did,
+              don't approve — edit that evidence and tailor again. Approving lets you save the PDF and reuse this resume for similar jobs without another review.
             </p>
           )
         )}

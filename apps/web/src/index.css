@@ -95,10 +95,11 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Printing (the resume's "Save as PDF"): A4, no app chrome, white page. */
+/* Printing (the resume's "Save as PDF"): the user's CV page — US Letter, 1in margins
+   (measured from their Google Docs CV) — no app chrome, white page. */
 @page {
-  size: A4;
-  margin: 14mm 16mm;
+  size: letter;
+  margin: 1in;
 }
 
 @media print {

@@ -7,7 +7,7 @@ import { ResumeSection } from './ResumeSection';
 
 const job: JobDetail = { ...listJob, status: 'INTERESTED', rawJD: '', seniority: null, yearsRequired: null, analyzedAt: null, requirements: [], match: null };
 
-const none: JobResume = { status: 'NONE', error: null, reused: false, overlap: null, canTailor: true, needsDescription: false, variant: null, sources: {}, reuse: [] };
+const none: JobResume = { status: 'NONE', error: null, queuedAt: null, workerOnline: null, reused: false, overlap: null, canTailor: true, needsDescription: false, variant: null, sources: {}, reuse: [] };
 const ready = (over: Partial<NonNullable<JobResume['variant']>> = {}): JobResume => ({
   ...none,
   status: 'READY',
@@ -115,5 +115,35 @@ describe('ResumeSection', () => {
     renderWithProviders(<ResumeSection job={job} />);
     await userEvent.click(await screen.findByRole('button', { name: /Tailor again/ }));
     await waitFor(() => expect(bodyOf(fetch, 'POST')).toEqual({ mode: 'tailor' }));
+  });
+});
+
+describe('ResumeSection while tailoring — never an endless spinner', () => {
+  const pending = (over: Partial<JobResume> = {}): JobResume => ({
+    ...none,
+    status: 'PENDING',
+    queuedAt: new Date(Date.now() - 42_000).toISOString(),
+    workerOnline: true,
+    ...over,
+  });
+
+  it('shows how long it has been tailoring, and that leaving the page is fine', async () => {
+    mockFetch(pending());
+    renderWithProviders(<ResumeSection job={job} />);
+    expect(await screen.findByText(/Tailoring from your verified evidence/)).toHaveTextContent('0:42');
+    expect(screen.getByText(/You can leave this page/)).toBeInTheDocument();
+  });
+
+  it("says plainly when no worker is running, and that nothing was charged", async () => {
+    mockFetch(pending({ workerOnline: false }));
+    renderWithProviders(<ResumeSection job={job} />);
+    expect(await screen.findByText(/background worker isn't running/)).toHaveTextContent('Nothing has been charged');
+  });
+
+  it('gives up waiting after far too long and offers to check again', async () => {
+    mockFetch(pending({ queuedAt: new Date(Date.now() - 20 * 60_000).toISOString() }));
+    renderWithProviders(<ResumeSection job={job} />);
+    expect(await screen.findByText(/Something is stuck/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Check again/ })).toBeInTheDocument();
   });
 });

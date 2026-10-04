@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   CreateEducationInput,
+  CreateSkillEvidenceInput,
+  CreateSkillInput,
   UpdateEducationInput,
   UpdateProfileInput,
   UpdateSkillEvidenceInput,
@@ -8,7 +10,9 @@ import type {
 } from '@shortlist/shared';
 import { api } from './api';
 import type {
+  ActiveTailoring,
   AiUsage,
+  DiscoveryStatus,
   DiscoverySource,
   Education,
   PublicUser,
@@ -61,6 +65,24 @@ export const useVerifyEvidence = () =>
 export const useUnverifyEvidence = () =>
   useEvidenceMutation((id: string) => api<Evidence>(`/evidence/${id}/unverify`, { method: 'POST' }));
 
+// Adding a skill or evidence refetches the list: new items arrive unverified, and the
+// server decides everything else about them.
+export function useCreateSkill() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CreateSkillInput) => api<Skill>('/skills', { method: 'POST', body }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.skills }),
+  });
+}
+
+export function useCreateEvidence() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CreateSkillEvidenceInput) => api<Evidence>('/evidence', { method: 'POST', body }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.skills }),
+  });
+}
+
 export const useUpdateEvidence = () =>
   useEvidenceMutation(({ id, body }: { id: string; body: UpdateSkillEvidenceInput }) =>
     api<Evidence>(`/evidence/${id}`, { method: 'PATCH', body }),
@@ -69,18 +91,25 @@ export const useUpdateEvidence = () =>
 // ── Jobs & discovery ─────────────────────────────────────────────────────────
 export const jobKeys = {
   all: ['jobs'] as const,
-  list: (status?: JobStatus, sort: JobSort = 'score') => ['jobs', 'list', status ?? 'all', sort] as const,
+  list: (status?: JobStatus, sort: JobSort = 'score', sourceId?: string) =>
+    ['jobs', 'list', status ?? 'all', sort, sourceId ?? 'any'] as const,
   detail: (id: string) => ['jobs', 'detail', id] as const,
   sources: ['discovery', 'sources'] as const,
+  discoveryStatus: ['discovery', 'status'] as const,
   aiUsage: ['ai', 'usage'] as const,
 };
 
 export type JobSort = 'score' | 'recent';
 
-export const useJobs = (status?: JobStatus, sort: JobSort = 'score') =>
+export const useJobs = (status?: JobStatus, sort: JobSort = 'score', sourceId?: string) =>
   useQuery({
-    queryKey: jobKeys.list(status, sort),
-    queryFn: () => api<JobListItem[]>(`/jobs?sort=${sort}${status ? `&status=${status}` : ''}`),
+    queryKey: jobKeys.list(status, sort, sourceId),
+    queryFn: () => {
+      const q = new URLSearchParams({ sort });
+      if (status) q.set('status', status);
+      if (sourceId) q.set('sourceId', sourceId);
+      return api<JobListItem[]>(`/jobs?${q}`);
+    },
   });
 
 export function useAnalyzeJob() {
@@ -124,9 +153,22 @@ export function useRunDiscovery() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => api<RunNowResult>('/discovery/run', { method: 'POST' }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: jobKeys.sources }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: jobKeys.sources });
+      void queryClient.invalidateQueries({ queryKey: jobKeys.discoveryStatus });
+    },
   });
 }
+
+// `watch`: poll every 5s — just after "Find new jobs", before the worker has picked
+// anything up. While a run is in progress it polls too. Otherwise a slow 60s refresh
+// keeps "Last checked 2h ago" honest without hammering the API.
+export const useDiscoveryStatus = (watch = false) =>
+  useQuery({
+    queryKey: jobKeys.discoveryStatus,
+    queryFn: () => api<DiscoveryStatus>('/discovery/status'),
+    refetchInterval: (q) => (watch || (q.state.data?.running ?? 0) > 0 ? 5000 : 60_000),
+  });
 
 export function useSetSourceEnabled() {
   const queryClient = useQueryClient();
@@ -172,13 +214,36 @@ export function useDeleteEducation() {
 // ── Resumes ──────────────────────────────────────────────────────────────────
 export const resumeKeys = { job: (jobId: string) => ['jobs', 'resume', jobId] as const };
 
-// Polls while the worker is tailoring, then stops.
+// While the worker is tailoring, poll — but not forever (Agents.md §13.1). A real run takes
+// well under two minutes, so: every 3s at first, every 10s after a minute, every 15s
+// while no worker is running (to notice it starting), and not at all once it has waited
+// TAILOR_POLL_LIMIT_MS — the card then says so and offers "Check again".
+export const TAILOR_POLL_LIMIT_MS = 15 * 60 * 1000;
+
+export function tailorPollInterval(resume: JobResume | undefined, now = Date.now()): number | false {
+  if (resume?.status !== 'PENDING') return false;
+  const waited = resume.queuedAt ? now - new Date(resume.queuedAt).getTime() : 0;
+  if (waited > TAILOR_POLL_LIMIT_MS) return false;
+  if (resume.workerOnline === false) return 15_000;
+  return waited < 60_000 ? 3000 : 10_000;
+}
+
 export const useJobResume = (jobId: string, enabled: boolean) =>
   useQuery({
     queryKey: resumeKeys.job(jobId),
     queryFn: () => api<JobResume>(`/jobs/${jobId}/resume`),
     enabled,
-    refetchInterval: (q) => (q.state.data?.status === 'PENDING' ? 3000 : false),
+    refetchInterval: (q) => tailorPollInterval(q.state.data),
+  });
+
+// Resumes being tailored anywhere — the app-wide "Tailoring…" pill. Polled only while
+// there are some; starting one refreshes it (usePrepareResume).
+export const resumesActiveKey = ['resumes', 'active'] as const;
+export const useActiveTailoring = () =>
+  useQuery({
+    queryKey: resumesActiveKey,
+    queryFn: () => api<ActiveTailoring[]>('/resumes/active'),
+    refetchInterval: (q) => (q.state.data?.length ? 10_000 : false),
   });
 
 export function usePrepareResume() {
@@ -189,6 +254,7 @@ export function usePrepareResume() {
     onSuccess: (data, { jobId }) => {
       queryClient.setQueryData(resumeKeys.job(jobId), data);
       void queryClient.invalidateQueries({ queryKey: jobKeys.aiUsage });
+      void queryClient.invalidateQueries({ queryKey: resumesActiveKey });
     },
   });
 }

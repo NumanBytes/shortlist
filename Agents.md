@@ -280,6 +280,18 @@ queue (Redis + BullMQ) buys this isolation, plus retries with backoff.
 **Why the API only enqueues.** The API never runs discovery or AI work itself; it adds a
 job to the queue and returns `202 Accepted`. The worker does the work.
 
+**Is a worker running? — the heartbeat (2026-10-04).** The API can only add jobs, so a
+stopped worker used to look exactly like a slow one: a tailoring request sat in the queue
+for over ten minutes while the UI said "Tailoring…" and polled every 3 seconds, and
+nothing told the user that no worker was running. Now the worker writes
+`shortlist:worker:heartbeat` to Redis every 20s with a 60s TTL (`HeartbeatService`) and
+deletes it on a clean stop. The API reads it (`JobQueues.workerOnline()`) and reports it
+wherever work waits on the worker: a resume being tailored and the discovery status. A key
+with a TTL is a dead-man's switch: if the process dies without a clean stop, the key
+expires on its own. BullMQ's `getWorkers()` was rejected because it relies on Redis
+`CLIENT LIST`, which hosted Redis (Upstash) doesn't allow. The read is best effort: if Redis
+doesn't answer within 3s it returns `null` ("unknown"), not a 503.
+
 **Why Redis holds nothing important.** It is a queue (and later rate-limit counters)
 only. Everything that matters is in Postgres. Losing Redis loses, at worst, queued work
 that the next nightly run redoes.
@@ -462,6 +474,15 @@ PERSONAL + PRODUCTION / MAINTENANCE.
   saving says up front that it un-verifies the item. Context and depth are claims as much
   as the wording is — "PERSONAL" vs "COMMERCIAL" is the difference between a Projects
   line and an Experience bullet.
+- **Add a skill / add evidence (2026-10-04).** The Evidence screen has an **Add skill**
+  form: a skill name and kind plus its first piece of evidence (what you did, where, how
+  deeply, last used, optional role or project). A skill with no evidence can't be used for
+  anything, so the two are added together. The evidence is validated *before* the skill is
+  created, so a mistake doesn't leave an empty skill. Naming a skill you already have
+  (case-insensitive) adds the evidence to it rather than failing on the duplicate. Each
+  skill also has **Add evidence**. Both use the existing `POST /skills` and
+  `POST /evidence`. New evidence is unverified, and the screen switches to "To review",
+  where it appears.
 - Seed data must pass `findSeedProblems()` (`packages/db/prisma/seed/guards.ts`) and never
   sets `isVerified` (§7).
 - Resume variants are **stale** when any evidence they use is deleted, un-verified or
@@ -658,6 +679,33 @@ first job, inline details pushing the list down, no overview, no dark mode).
   beside the list on desktop**; score card → why it fits → gaps → risks → description
   (collapsed). **List state lives in the URL** (`?tab=&verdict=&sort=`), so back
   navigation restores it.
+- **The Jobs tab returns to where you were (2026-10-04).** Previously the tab always
+  linked to `/`, so if you left a job while its resume was tailoring, tapping Jobs dropped
+  you at the top of the list. Now, from another page, it links back to the last jobs URL
+  you were on (that job, with its list state); tapping it while already in Jobs goes to the
+  list and keeps its tab and filters, which is how a tab bar normally behaves.
+- **Leaving a page never stops work, so nothing blocks navigation (2026-10-04).** The user
+  asked to "protect routes" while tailoring. Tailoring runs in the worker, so leaving the
+  page can't break or cancel it, and blocking navigation would add friction without
+  protecting anything. Instead, a slim **"Tailoring resume · <job> · 0:42"** bar under the
+  header (`GET /resumes/active`) is shown on every page except that job's own page, and
+  links back to the job.
+- **Found time on every row (2026-10-04):** "Found 2d ago" (`discoveredAt`) leads the row
+  footer, so it survives truncation on a phone, and it's the **only** time on the card (the
+  user's choice). The aggregator posting age moved off the card. It is still shown on the
+  job's detail page, aggregators only (§9.6). The footer keeps the source name, which the
+  aggregators' terms require.
+- **"Find new jobs" (2026-10-04)** heads the New tab and the Sources page (one component,
+  `FindNewJobs`): "Last checked 2d ago" (latest `lastRunAt` among enabled board sources),
+  the nightly run's time (read from the BullMQ scheduler in Redis), a live "Checking 3
+  sources…" while runs are RUNNING, a warning when no worker is running, and when the
+  cooldown lets sources be checked again. The button calls the existing
+  `POST /discovery/run` (§9.9).
+- **Jobs by source (2026-10-04):** a source's "24 jobs" on the Sources page, and "View
+  jobs" for an alert portal on the Gmail card, open `/?source=<id>&tab=all`. The list is
+  filtered by `GET /jobs?sourceId=`, an **All** pipeline tab appears only in this view
+  (the count covers every stage), and a dismissible "Only jobs from Indeed alerts" bar
+  clears the filter.
 - **Honest display:** a company board's publish date is not shown (a listed job is open,
   §9.6) — only aggregator posting ages; locations are normalized ("pk" → "PK"); a work-
   mode badge is dropped when the location already says it.
@@ -832,6 +880,18 @@ and repeated email alerts into one.
 aggregator's request limits. With Redis down, BullMQ either errors immediately or waits
 indefinitely for a connection (both observed), so every enqueue from the API is bounded
 by a **3-second timeout** and both failures return **503**.
+
+**Updated 2026-10-04: one "Find new jobs" button.** At the user's request the button
+is on the Jobs page (New tab) as well as on Sources. It also queues a check of the Gmail
+alert label when Gmail is connected (best effort, since the inbox is checked every two
+hours anyway), so one tap covers every source. Each source job now carries a
+**deduplication id** (`discover-<sourceId>`), so tapping again, or tapping while the worker
+is stopped, joins the job already queued instead of piling up duplicates. The cooldown alone
+can't prevent that, because `lastRunAt` only moves when a run *finishes*.
+`GET /discovery/status` returns `{ enabledSources, lastCheckedAt, running, availableAt,
+nextNightlyAt, workerOnline, cooldownHours }`. A RUNNING run older than 30 minutes is
+treated as crashed, not still running. The button only queues work; the worker does the
+fetching. With no worker running, the UI says so instead of showing a spinner.
 
 ### 9.10 Source terms and etiquette
 
@@ -1264,6 +1324,16 @@ automated runs on the API; anything the user does by hand can use Pro.
   out-of-credit/over-budget → DEFERRED, invalid output → FAILED with no retry, a
   transient error that exhausts its retries → FAILED (never "Tailoring…" forever).
   Own queue (`resume`, concurrency 1), deduplicated per job so a double-click can't pay twice.
+- **Never an endless spinner (2026-10-04).** This was found when the user saw "Tailoring…"
+  for over ten minutes while the page kept polling, even across reloads. The cause was
+  that no worker was running. Nothing was charged, because the model was never called. Now:
+  `GET /jobs/:id/resume` returns `queuedAt` and `workerOnline` while PENDING. The card
+  shows the elapsed time ("0:42 · usually under a minute — you can leave this page").
+  With no worker it says so, and that nothing has been charged. After 2 minutes it says
+  it's taking longer than usual. After 15 minutes it stops polling, says something is stuck
+  and offers "Check again". Polling backs off: every 3s for the first minute, then 10s,
+  then 15s while no worker runs, then not at all (`tailorPollInterval()`). A real run is one
+  Sonnet call, typically 30–90s.
 - **What the model sees:** verified evidence only, each item as an `E`-ref listed under
   the role/project it may appear in (placement rules, `placementFor()` in
   `packages/shared/src/resume.ts`); skills as `S`-refs with their strongest level, those
@@ -1297,10 +1367,26 @@ automated runs on the API; anything the user does by hand can use Pro.
   bullet labels; grouped Skills; Projects; Education) — no summary, because their CV has
   none. Header and education come from the Profile (§5.2). Role-linked projects appear
   under Projects, as on the CV.
-- **PDF:** the browser's print → "Save as PDF" on an A4 print stylesheet (app chrome and
+- **Typography matched to the CV (2026-10-04).** The user found that the Experience and
+  Projects bullets didn't look like their CV (`numan software engineer.pdf`, a Google Docs
+  export). The page is rebuilt from measurements of that PDF: **US Letter, 1in margins**,
+  Arial 11pt on a 15.5pt line, name 18pt, contact lines 12pt. Experience and Projects use
+  a large **"●"** and Skills a small **"•"**, both 18pt from the margin with the text at
+  36pt, so wrapped lines align with the text. A blank line separates sections and
+  projects. The printed PDF was checked against the original with `pdftotext -bbox`
+  (positions within 1pt). The markers are a **fixed-width column in a flex row**, not
+  absolutely positioned: Chrome writes positioned content to the PDF out of reading order
+  (all headings first, then the bullet text), which would garble the text an applicant
+  tracking system reads.
+- **PDF:** the browser's print → "Save as PDF" on a Letter print stylesheet (app chrome and
   toasts hidden; the page title becomes the file name). No PDF library and no server-side
   rendering: the text stays selectable for applicant tracking systems, and the paper
   stays white in dark mode (`paper`/`ink` tokens).
+- **The review page shows the resume as it will print (2026-10-04).** The per-bullet
+  sources used to be on by default, in a light-grey box in the resume's own font. The user
+  read them as every bullet duplicated in smaller type, "a bugged resume". Now the page
+  opens clean, and **Show sources** turns them on as clearly marked review notes (an
+  accent edge, the app's UI font, a "From your evidence" label). They are never printed.
 - **Review and approval:** the review page shows, under every bullet, the evidence it was
   built from, plus the bullets the checks removed. **"Save as PDF" appears only after the
   user approves**, and approval is refused for an out-of-date resume (409). Approve is its
@@ -1519,6 +1605,8 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
 | 2026-10-02 | Tailoring only on the user's request, from an Interested, scored job | §13.1 |
 | 2026-10-02 | Exposure-only skills go in a code-labelled "Learning" group | §13.1 |
 | 2026-10-02 | PDF via the browser's print to PDF on an A4 stylesheet, in the user's CV layout; no PDF library | §13.1 |
+| 2026-10-04 | Resume review opens clean (as printed); per-bullet sources are an opt-in, clearly labelled review note | §13.1 — read as duplicated bullets |
+| 2026-10-04 | Resume page matched to the user's CV by measurement: Letter, 1in margins, 11pt Arial, "●" bullets (Experience/Projects) and "•" (Skills) with hanging indents; markers in a flex row to keep PDF text order | §13.1, user request |
 | 2026-10-02 | "Save as PDF" only after approval; approve is its own endpoint and refused when stale | §13.1 |
 | 2026-10-02 | Resume staleness derived at read time from cited evidence, never stored | §13.3 |
 | 2026-10-03 | Gmail connection: authorization code + PKCE; single-use hashed state bound to the browser by a SameSite=Lax nonce cookie (login-CSRF defense); read-only scope verified on return | §10.3 |
@@ -1534,6 +1622,12 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
 | 2026-10-03 | Alert jobs pass a summary stage: stack keyword in title/summary or a software-role title (`roleTitleTerms`) | §9.6 — first real check let 8 non-software roles through |
 | 2026-10-03 | Email sources excluded from the nightly fan-out, "Run now" and the board list; shown on the Gmail card | §10.4 |
 | 2026-10-03 | Code review fixes: whole-number check; `generatedAt` = evidence read time; existing resume stays reachable during/after a failed re-tailor; "Tailor again" on a current resume needs confirmation | §13.1, §13.3 |
+| 2026-10-04 | Worker heartbeat key with a TTL in Redis; API reports `workerOnline` wherever work waits on the worker (not BullMQ `getWorkers()`: needs `CLIENT LIST`) | §4 — tailoring sat queued 10+ min with no worker running |
+| 2026-10-04 | Tailoring shows elapsed time, says when no worker runs, and polling backs off then stops after 15 min with "Check again" | §13.1 |
+| 2026-10-04 | No navigation blocking while tailoring (work runs in the worker); app-wide "Tailoring resume" bar instead; the Jobs tab returns to the last jobs URL | §8.4, user request |
+| 2026-10-04 | "Find new jobs" on the Jobs page and Sources: queues boards + Gmail check; per-source dedup id; `GET /discovery/status` | §9.9, user request |
+| 2026-10-04 | "Found 2d ago" is the only time on a job row (posting age only on the detail page); jobs filterable by source (`?sourceId=`), linked from Sources and the Gmail card | §8.4, user request |
+| 2026-10-04 | Add skill (with its first evidence) and Add evidence in the Evidence screen; always unverified | §6.3, user request |
 | 2026-10-02 | `TailoredResume` replaced by `ResumeVariant` + `JobResume`; reuse threshold is a setting (0.85) | §5.2, §13.2, §13.4 |
 | 2026-10-02 | CV reconciled: title Software Engineer, Docker PRODUCTION + CI/CD WORKING, CV-only claims added unverified, context-less CV skills recorded PERSONAL/WORKING | User's answers (§7.5) |
 
@@ -1552,7 +1646,7 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
   seeded into the user's account. CV reconciliation (§7.5): 63 items, 44 to review.
 - **Resume tailoring** (§13): Sonnet bullets checked by code, Resume card on Interested
   jobs, review page with sources, approval, reuse of approved resumes, derived staleness,
-  A4 "Save as PDF" in the user's CV layout. Tested with a fake model; no real run yet.
+  "Save as PDF" (US Letter, matched to the user's CV) in the user's CV layout. Tested with a fake model; no real run yet.
 - **Profile & education** (§5.2): `/profile`, `/education`, web Profile page; projects
   linkable to a role; evidence context/depth editable.
 - **Discovery Milestone 1** (§9): worker, 10 adapters, two-stage filter, dedupe, run
@@ -1564,6 +1658,9 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
   Sources (health, counts, errors, on/off, "Run discovery now"). Installable PWA.
 - **API for jobs and discovery:** `/jobs`, `/jobs/:id`, `/discovery/sources`,
   `/discovery/run`.
+- **UX pass (2026-10-04):** worker heartbeat, honest tailoring progress, app-wide
+  tailoring bar, Jobs tab memory, "Find new jobs" with freshness, found time per job, jobs
+  by source, Add skill / Add evidence.
 - Tests: unit, e2e/integration and web tests across all packages; typecheck and lint
   clean. Migrations applied to a **local** Postgres (Neon not yet set up).
 
@@ -1601,7 +1698,7 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
   (§13.2) — both runtime settings; initial values to be set when built.
 - Skill aliases ("React" vs "React.js") — needs a canonical-name mapping (§5.2).
 - UI for renaming skills and editing roles/projects (API endpoints exist; Profile and
-  Education have UI since 2026-10-02).
+  Education have UI since 2026-10-02; adding skills and evidence has UI since 2026-10-04).
 
 ---
 

@@ -1,9 +1,11 @@
-import { AlertTriangle, ChevronDown, Play, Sparkles } from 'lucide-react';
+import { AlertTriangle, ChevronDown, Sparkles } from 'lucide-react';
 import { useState } from 'react';
+import { Link } from 'react-router';
+import { FindNewJobs } from '../components/FindNewJobs';
 import { GmailCard } from '../components/GmailCard';
 import { Badge, Button, Card, Skeleton, Switch, type Tone } from '../components/ui';
 import { providerLabel, timeAgo } from '../lib/format';
-import { useAiUsage, useRunDiscovery, useSetSourceEnabled, useSources, useUpdateAiSettings } from '../lib/queries';
+import { useAiUsage, useSetSourceEnabled, useSources, useUpdateAiSettings } from '../lib/queries';
 import type { DiscoverySource, RunStatus } from '../lib/types';
 
 const STATUS_TONE: Record<RunStatus, Tone> = { SUCCESS: 'apply', RUNNING: 'neutral', EMPTY: 'stretch', FAILED: 'danger' };
@@ -96,6 +98,17 @@ function AiSpendCard() {
   );
 }
 
+// "24 jobs" opens the jobs list filtered to that source, across every pipeline stage.
+export function JobsLink({ sourceId, count }: { sourceId: string; count: number }) {
+  const label = `${count} ${count === 1 ? 'job' : 'jobs'}`;
+  if (count === 0) return <>{label}</>;
+  return (
+    <Link to={`/?source=${sourceId}&tab=all`} className="font-medium text-fg underline decoration-border underline-offset-2 hover:decoration-fg">
+      {label}
+    </Link>
+  );
+}
+
 function SourceRow({ source }: { source: DiscoverySource }) {
   const toggle = useSetSourceEnabled();
   const run = source.lastRun;
@@ -108,7 +121,8 @@ function SourceRow({ source }: { source: DiscoverySource }) {
           {run && run.status !== 'SUCCESS' && <Badge tone={STATUS_TONE[run.status]}>{run.status.toLowerCase()}</Badge>}
         </div>
         <p className="mt-0.5 text-xs text-muted">
-          {providerLabel(source.provider)} · {source.jobCount} {source.jobCount === 1 ? 'job' : 'jobs'} · ran {timeAgo(source.lastRunAt)}
+          {providerLabel(source.provider)} · <JobsLink sourceId={source.id} count={source.jobCount} /> · ran{' '}
+          {timeAgo(source.lastRunAt)}
           {run && run.status !== 'FAILED' && run.status !== 'RUNNING' && (
             <>
               {' '}
@@ -133,7 +147,6 @@ function SourceRow({ source }: { source: DiscoverySource }) {
 
 export function SourcesPage() {
   const sources = useSources();
-  const runNow = useRunDiscovery();
   const [showPlanned, setShowPlanned] = useState(false);
   const active = (sources.data ?? []).filter((s) => s.supported);
   const planned = (sources.data ?? []).filter((s) => !s.supported);
@@ -146,25 +159,9 @@ export function SourcesPage() {
       <AiSpendCard />
       <GmailCard />
 
-      <Card className="p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="max-w-md text-sm text-muted">
-            Discovery runs every night at 02:00. Sources that ran in the last few hours are skipped, to respect the job
-            boards' request limits.
-          </p>
-          <Button onClick={() => runNow.mutate()} disabled={runNow.isPending}>
-            <Play className="size-4" /> {runNow.isPending ? 'Queuing…' : 'Run now'}
-          </Button>
-        </div>
-        {runNow.isSuccess && (
-          <output className="mt-2 block text-sm text-fg">
-            Queued {runNow.data.queued.length} source{runNow.data.queued.length === 1 ? '' : 's'}.
-            {runNow.data.skipped.length > 0 && ` Skipped ${runNow.data.skipped.length} that ran in the last ${runNow.data.cooldownHours}h.`}{' '}
-            Results appear here as each finishes (the worker must be running).
-          </output>
-        )}
-        {runNow.isError && <p className="mt-2 text-sm text-danger-fg">{runNow.error.message}</p>}
-      </Card>
+      {/* Same control as on the Jobs page. Sources checked in the last few hours are
+          skipped, to respect the job boards' request limits. */}
+      <FindNewJobs />
 
       {sources.isPending && <Skeleton className="h-64 w-full" />}
       {sources.isError && <p className="text-danger-fg">Couldn't load sources: {sources.error.message}</p>}

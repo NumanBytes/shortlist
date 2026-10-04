@@ -84,7 +84,7 @@ describe('Alert-email jobs (e2e)', () => {
       notAlerts: 1,
       deferred: 0,
       failed: 0,
-      portals: [{ portal: 'indeed', label: 'Indeed', emails: 2, jobsFound: 8, parserWarnings: 1, lastRun: expect.objectContaining({ status: 'SUCCESS', jobsNew: 4 }) }],
+      portals: [{ portal: 'indeed', sourceId: src.id, label: 'Indeed', emails: 2, jobsFound: 8, parserWarnings: 1, lastRun: expect.objectContaining({ status: 'SUCCESS', jobsNew: 4 }) }],
     });
   });
 });

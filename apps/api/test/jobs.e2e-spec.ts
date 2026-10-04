@@ -1,4 +1,4 @@
-import { DISCOVERY_QUEUE } from '@shortlist/shared';
+import { DISCOVERY_QUEUE, EMAIL_QUEUE, WORKER_HEARTBEAT_KEY } from '@shortlist/shared';
 import { Queue } from 'bullmq';
 import { Redis } from 'ioredis';
 import { createTestApp, type TestApp, type TestUser } from './helpers.js';
@@ -74,6 +74,17 @@ describe('Jobs & discovery (e2e)', () => {
       await t.http().get('/api/v1/jobs?status=NOPE').set(me.auth).expect(400);
     });
 
+    it('filters by source — only the caller\'s jobs from it', async () => {
+      const src = await source(me);
+      await job(me, { title: 'From the board', jobSourceId: src.id });
+      await job(me, { title: 'From elsewhere' });
+      const res = await t.http().get(`/api/v1/jobs?sourceId=${src.id}`).set(me.auth).expect(200);
+      expect(res.body.map((j: { title: string }) => j.title)).toEqual(['From the board']);
+      const theirs = await t.http().get(`/api/v1/jobs?sourceId=${src.id}`).set(other.auth).expect(200);
+      expect(theirs.body).toEqual([]);
+      await t.http().get('/api/v1/jobs?sourceId=not-a-uuid').set(me.auth).expect(400);
+    });
+
     it('returns the full description on GET /jobs/:id, 404 for others', async () => {
       const j = await job(me);
       const res = await t.http().get(`/api/v1/jobs/${j.id}`).set(me.auth).expect(200);
@@ -138,6 +149,54 @@ describe('Jobs & discovery (e2e)', () => {
       expect(queued).toHaveLength(1);
       expect(queued[0]!.name).toBe('discover-source');
       await Promise.all(queued.map((j) => j.remove()));
+    });
+
+    it('"run now" joins a source already queued instead of queuing it twice', async () => {
+      const user = await t.register();
+      const s = await source(user);
+      await t.http().post('/api/v1/discovery/run').set(user.auth).expect(202);
+      await t.http().post('/api/v1/discovery/run').set(user.auth).expect(202);
+      const queued = (await queue.getJobs(['waiting', 'delayed', 'active'])).filter((j) => j.data.sourceId === s.id);
+      expect(queued).toHaveLength(1);
+      await Promise.all(queued.map((j) => j.remove()));
+    });
+
+    it('"run now" also checks the Gmail alert label when Gmail is connected', async () => {
+      const user = await t.register();
+      await t.prisma.gmailConnection.create({
+        data: { userId: user.user.id, emailAddress: 'me@example.com', refreshTokenEnc: 'sealed', labelName: 'Shortlist' },
+      });
+      const res = await t.http().post('/api/v1/discovery/run').set(user.auth).expect(202);
+      expect(res.body.emailQueued).toBe(true);
+      const email = new Queue(EMAIL_QUEUE, { connection: redis });
+      const checks = (await email.getJobs(['waiting', 'delayed', 'active'])).filter((j) => j.data.userId === user.user.id);
+      expect(checks).toHaveLength(1);
+      await Promise.all(checks.map((j) => j.remove()));
+      await email.close();
+    });
+
+    it('reports how fresh the list is and when "run now" can next do something', async () => {
+      const user = await t.register();
+      const ranAt = new Date(Date.now() - 3600 * 1000);
+      const s = await source(user, { lastRunAt: ranAt });
+      await source(user, { lastRunAt: new Date(Date.now() - 7200 * 1000) });
+      await source(user, { isEnabled: false }); // never ran, but disabled: doesn't make a run due
+      await t.prisma.discoveryRun.create({ data: { jobSourceId: s.id, status: 'RUNNING' } });
+      const res = await t.http().get('/api/v1/discovery/status').set(user.auth).expect(200);
+      expect(res.body).toMatchObject({ enabledSources: 2, lastCheckedAt: ranAt.toISOString(), running: 1, cooldownHours: 6 });
+      // The older source becomes due first: 2h ago + 6h cooldown.
+      expect(Date.parse(res.body.availableAt)).toBeCloseTo(Date.now() + 4 * 3600 * 1000, -4);
+      expect(typeof res.body.workerOnline).toBe('boolean');
+    });
+
+    it("knows whether a worker is running from its heartbeat", async () => {
+      const before = await redis.get(WORKER_HEARTBEAT_KEY);
+      await redis.set(WORKER_HEARTBEAT_KEY, new Date().toISOString(), 'PX', 60_000);
+      expect((await t.http().get('/api/v1/discovery/status').set(me.auth).expect(200)).body.workerOnline).toBe(true);
+      if (!before) {
+        await redis.del(WORKER_HEARTBEAT_KEY);
+        expect((await t.http().get('/api/v1/discovery/status').set(me.auth).expect(200)).body.workerOnline).toBe(false);
+      }
     });
   });
 });

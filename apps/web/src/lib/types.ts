@@ -160,6 +160,26 @@ export interface RunNowResult {
   queued: string[];
   skipped: string[];
   cooldownHours: number;
+  emailQueued: boolean;
+}
+
+// How fresh the job list is, and what "Find new jobs" can do right now.
+export interface DiscoveryStatus {
+  enabledSources: number;
+  lastCheckedAt: string | null;
+  running: number;
+  availableAt: string | null; // null: a manual run would queue something now
+  nextNightlyAt: string | null;
+  workerOnline: boolean | null; // null: Redis didn't answer
+  cooldownHours: number;
+}
+
+// A resume the worker is tailoring (or waiting to) — shown on every page.
+export interface ActiveTailoring {
+  jobId: string;
+  title: string;
+  company: string;
+  queuedAt: string;
 }
 
 // ── Resumes (Agents.md §13) ──────────────────────────────────────────────────
@@ -188,6 +208,8 @@ export interface ResumeContent {
 export interface JobResume {
   status: 'NONE' | 'PENDING' | 'READY' | 'DEFERRED' | 'FAILED';
   error: string | null;
+  queuedAt: string | null; // while PENDING
+  workerOnline: boolean | null; // while PENDING; null when unknown
   reused: boolean;
   overlap: number | null;
   canTailor: boolean;
@@ -225,6 +247,7 @@ export interface GmailStatus {
     failed: number;
     portals: {
       portal: string;
+      sourceId: string | null; // its JobSource, for the "View jobs" link
       label: string;
       emails: number;
       jobsFound: number;

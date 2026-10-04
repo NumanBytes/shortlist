@@ -11,6 +11,8 @@ const education = [{ id: 'ed', degree: 'BS Information Technology', institution:
 const resume = (status: 'DRAFT' | 'APPROVED', stale: string[] = []): JobResume => ({
   status: 'READY',
   error: null,
+  queuedAt: null,
+  workerOnline: null,
   reused: false,
   overlap: null,
   canTailor: true,
@@ -47,15 +49,24 @@ const render = () => renderWithProviders(<ResumePage />, { path: '/jobs/:jobId/r
 describe('ResumePage', () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  it('renders the CV layout with each bullet’s sources, and what the checks removed', async () => {
+  it('renders the CV layout clean — as it will print — and what the checks removed', async () => {
     setup(resume('DRAFT'));
     render();
     expect(await screen.findByRole('heading', { name: 'Numan Razzaq' })).toBeInTheDocument();
     expect(screen.getByText(/numan@example.com \| \+92 300 0000000 \| Lahore, Pakistan/)).toBeInTheDocument();
     expect(screen.getByText('Built frontend features in React.')).toBeInTheDocument();
-    expect(screen.getByText(/Used React to build frontend features/)).toBeInTheDocument(); // source
+    // Sources are a review aid, off until asked for — never shown as if part of the resume.
+    expect(screen.queryByText(/Used React to build frontend features/)).not.toBeInTheDocument();
     expect(screen.getByText(/BS Information Technology \| University of the Punjab/)).toBeInTheDocument();
     expect(screen.getByText(/1 bullet removed by the truthfulness checks/)).toBeInTheDocument();
+  });
+
+  it('shows each bullet’s sources, labelled as your evidence, when switched on', async () => {
+    setup(resume('DRAFT'));
+    render();
+    await userEvent.click(await screen.findByRole('switch', { name: 'Show sources' }));
+    expect(screen.getByText(/Used React to build frontend features/)).toBeInTheDocument();
+    expect(screen.getByText('From your evidence')).toBeInTheDocument();
   });
 
   it('asks for approval before offering the PDF — never optimistically', async () => {

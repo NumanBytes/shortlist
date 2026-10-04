@@ -1,7 +1,7 @@
 import { AlertTriangle, Mail, RefreshCw, ShieldCheck } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { useSearchParams } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { timeAgo } from '../lib/format';
 import { gmailKeys, useCheckGmail, useConnectGmail, useDisconnectGmail, useGmail } from '../lib/queries';
 import type { GmailStatus } from '../lib/types';
@@ -126,6 +126,17 @@ function Body({ status, onCheck }: { status: GmailStatus; onCheck: () => void })
                 <span className="font-medium text-fg">{p.label}</span>
                 <span className="text-muted tabular-nums">
                   {p.emails} email{p.emails === 1 ? '' : 's'} · {p.jobsFound} job{p.jobsFound === 1 ? '' : 's'}
+                  {p.sourceId && p.jobsFound > 0 && (
+                    <>
+                      {' · '}
+                      <Link
+                        to={`/?source=${p.sourceId}&tab=all`}
+                        className="font-medium text-fg underline decoration-border underline-offset-2 hover:decoration-fg"
+                      >
+                        View jobs
+                      </Link>
+                    </>
+                  )}
                 </span>
               </div>
               {p.lastRun && (

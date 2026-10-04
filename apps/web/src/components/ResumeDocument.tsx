@@ -5,31 +5,63 @@ import type { Education, JobResume, PublicUser, ResumeBullet, ResumeContent } fr
 // then Experience, Skills, Projects, Education. Paper and ink colours stay the same in dark
 // mode — it's a document. Printed with the browser's "Save as PDF", so the text stays
 // selectable for applicant tracking systems.
+//
+// Sizes are in pt, measured from the user's CV (a Google Docs export, 2026-10-04): US
+// Letter, 1in margins, Arial 11pt on a ~15.5pt line, name 18pt, contact 12pt. Bullets hang
+// 18pt in with the text at 36pt, so wrapped lines align with the text, not the bullet.
+// Experience and Projects use a large "●"; Skills a small "•". A blank line separates
+// sections and projects.
 
 type Sources = JobResume['sources'];
 
 const monthYear = (iso: string) => new Date(iso).toLocaleString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
 const bare = (url: string) => url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
 
+const LINE = 'mt-[15.5pt]'; // one blank line, as between the CV's sections and projects
+
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="mt-4 break-inside-avoid-page">
-      <h2 className="mb-1 font-bold underline underline-offset-2">{title}</h2>
+    <section className={`${LINE} break-inside-avoid-page`}>
+      <h2 className="font-bold underline underline-offset-2">{title}</h2>
       {children}
     </section>
   );
 }
 
+// The CV's two bullet styles: a large "●" for Experience and Projects, a small "•" for
+// Skills. A fixed-width marker column, then the text, so wrapped lines line up with the
+// text. A flex row, not an absolutely positioned marker: positioned content is written to
+// the PDF out of reading order (the headings first, the bullets after), and applicant
+// tracking systems read that text order.
+const MARKER = { dot: { glyph: '●', size: 'text-[12.5pt]' }, small: { glyph: '•', size: '' } } as const;
+
+export function BulletItem({ kind, children }: { kind: keyof typeof MARKER; children: ReactNode }) {
+  return (
+    <li className="flex items-baseline">
+      <span aria-hidden="true" className={`w-[18pt] shrink-0 ${MARKER[kind].size}`}>
+        {MARKER[kind].glyph}
+      </span>
+      <div className="min-w-0 flex-1">{children}</div>
+    </li>
+  );
+}
+
+const LIST = 'ml-[18pt] list-none';
+
 function Bullets({ bullets, sources, showSources }: { bullets: ResumeBullet[]; sources: Sources; showSources: boolean }) {
   return (
-    <ul className="ml-5 list-disc space-y-0.5">
+    <ul className={LIST}>
       {bullets.map((b, i) => (
-        <li key={i} className="pl-1">
+        <BulletItem key={i} kind="dot">
           {b.label && <strong>{b.label}: </strong>}
           {b.text}
           {showSources && (
-            // Review aid only: what the user wrote that this bullet was made from.
-            <ul className="mt-1 mb-1.5 space-y-0.5 rounded bg-ink/5 px-2 py-1.5 text-xs text-ink-muted print:hidden" aria-label="Sources">
+            // Review aid only, never part of the resume: what the user wrote that this
+            // bullet was made from. Styled as app UI (accent edge, UI font, a label) so it
+            // can't be mistaken for a duplicate bullet, and hidden when printing.
+            <div className="mt-1 mb-2 border-l-2 border-accent bg-apply-bg/40 py-1 pr-2 pl-2.5 font-sans text-xs leading-snug text-ink-muted not-italic print:hidden">
+              <p className="mb-0.5 text-[10px] font-semibold tracking-wide text-accent uppercase">From your evidence</p>
+              <ul className="space-y-0.5" aria-label="Sources">
               {b.evidenceIds.map((id) => {
                 const s = sources[id];
                 return (
@@ -45,9 +77,10 @@ function Bullets({ bullets, sources, showSources }: { bullets: ResumeBullet[]; s
                   </li>
                 );
               })}
-            </ul>
+              </ul>
+            </div>
           )}
-        </li>
+        </BulletItem>
       ))}
     </ul>
   );
@@ -72,17 +105,17 @@ export function ResumeDocument({
   const links = [profile.linkedinUrl, profile.githubUrl].filter((x): x is string => !!x);
 
   return (
-    <div className="mx-auto w-full max-w-[210mm] bg-paper px-6 py-8 font-[Arial,Helvetica,sans-serif] text-[13px] leading-snug text-ink shadow-sm ring-1 ring-border sm:px-12 sm:py-10 print:max-w-none print:p-0 print:text-[10.5pt] print:shadow-none print:ring-0">
+    <div className="mx-auto w-full max-w-[8.5in] bg-paper px-5 py-8 font-[Arial,Helvetica,sans-serif] text-[11pt] leading-[15.5pt] text-ink shadow-sm ring-1 ring-border sm:px-[1in] sm:py-[1in] print:max-w-none print:p-0 print:shadow-none print:ring-0">
       {draft && (
         <p className="mb-3 hidden border border-ink py-1 text-center text-xs font-bold tracking-widest print:block">
           DRAFT — NOT YET APPROVED
         </p>
       )}
       <header className="text-center">
-        <h1 className="text-2xl font-bold">{profile.name}</h1>
-        <p className="mt-0.5">{contact.join(' | ')}</p>
+        <h1 className="text-[18pt] leading-[22pt] font-bold">{profile.name}</h1>
+        <p className="text-[12pt] leading-[17pt]">{contact.join(' | ')}</p>
         {links.length > 0 && (
-          <p>
+          <p className="text-[12pt] leading-[17pt]">
             {links.map((l, i) => (
               <span key={l}>
                 {i > 0 && ' | '}
@@ -97,8 +130,8 @@ export function ResumeDocument({
 
       {content.experience.length > 0 && (
         <Section title="Experience">
-          {content.experience.map((r) => (
-            <div key={r.workExperienceId} className="mb-2 break-inside-avoid">
+          {content.experience.map((r, i) => (
+            <div key={r.workExperienceId} className={`break-inside-avoid ${i > 0 ? LINE : ''}`}>
               <div className="flex justify-between gap-4">
                 <p className="italic">
                   {r.title} | {r.company}
@@ -115,11 +148,11 @@ export function ResumeDocument({
 
       {content.skillGroups.length > 0 && (
         <Section title="Skills">
-          <ul className="ml-5 list-disc space-y-0.5">
+          <ul className={LIST}>
             {content.skillGroups.map((g) => (
-              <li key={g.label} className="pl-1">
+              <BulletItem key={g.label} kind="small">
                 <strong>{g.label}:</strong> {g.skills.map((s) => s.name).join(', ')}
-              </li>
+              </BulletItem>
             ))}
           </ul>
         </Section>
@@ -127,8 +160,8 @@ export function ResumeDocument({
 
       {content.projects.length > 0 && (
         <Section title="Projects">
-          {content.projects.map((p) => (
-            <div key={p.projectId} className="mb-2 break-inside-avoid">
+          {content.projects.map((p, i) => (
+            <div key={p.projectId} className={`break-inside-avoid ${i > 0 ? LINE : ''}`}>
               <p className="font-bold">{p.name}</p>
               <Bullets bullets={p.bullets} sources={sources} showSources={showSources} />
             </div>
