@@ -264,15 +264,63 @@ Migrations run automatically before the new API and worker start.
 
 ## Backups
 
-Nightly dumps land in `~/shortlist/deploy/backups/` (14 days kept). They protect against
-mistakes, **not** against losing the server — copy them somewhere else now and then:
+Two layers:
 
-```bash
-# On your laptop
-scp YOUR_USER@YOUR_SERVER_IP:'~/shortlist/deploy/backups/*' ~/shortlist-backups/
-```
+| | Where | When | Kept | Protects against |
+|---|---|---|---|---|
+| Nightly dump | `~/shortlist/deploy/backups/` on the server | 03:30 | 14 days | Mistakes: a bad migration, a deleted row |
+| Off-site copy | Google Drive, folder `shortlist-backups` | 04:00 | 30 days | Losing the server or the whole hosting account |
 
-Restore one: same as step 6, with that file.
+At worst you lose the day since the last 04:00 copy. Restore either one: same as step 6,
+with that file (download it from Google Drive first).
+
+### Off-site copies (Google Drive): one-time setup, about 15 minutes
+
+The `offsite` service uses **rclone** (a command-line tool for cloud storage). It needs
+permission to write to your Google Drive once. The server has no browser, so the
+Google sign-in happens on your laptop and you paste the result back.
+
+1. **On your laptop:** `sudo apt install rclone`.
+2. **On the server**, in `~/shortlist/deploy`:
+   ```bash
+   docker compose run --rm --entrypoint rclone offsite config
+   ```
+   Answer:
+   - `n` (new remote), name: **`gdrive`**
+   - Storage: type **`drive`**
+   - `client_id` and `client_secret`: press **Enter** (rclone's own)
+   - `scope`: type **`drive.file`**. rclone can then only see files it created itself,
+     not the rest of your Drive. Least privilege: a leaked token can't read your documents.
+   - `service_account_file`: Enter. Edit advanced config: `n`
+   - **Use web browser to automatically authenticate?** `n` (the server has none). It
+     prints a command like `rclone authorize "drive" "eyJ…"`.
+3. **On your laptop**, run that exact command. A browser opens: sign in to Google and
+   allow access. The laptop terminal prints a long token (`eyJ…` or `{…}`): copy all of it.
+4. **Back on the server**, paste it at the `config_token>` prompt. Shared Drive: `n`.
+   Keep this remote: `y`. Then `q` to quit.
+5. Start the service and test it now instead of waiting for 04:00:
+   ```bash
+   docker compose up -d offsite
+   docker compose exec offsite /bin/sh /offsite-backup.sh
+   ```
+   Expect `offsite: copied shortlist-…sql.gz to gdrive:shortlist-backups`, and a
+   `shortlist-backups` folder with that file at <https://drive.google.com>.
+
+The token is stored in `deploy/rclone/rclone.conf`. It's git-ignored; treat it like a
+password. If you remove access in your Google account, rerun step 2.
+
+### Get an email when a copy fails (optional, 5 minutes)
+
+The script fails loudly in the logs, but nobody reads logs at 04:00. A **dead man's
+switch** turns silence into an alert: the script checks in after every run, and a free
+service emails you when a check-in fails *or never arrives* (the server's down, the
+service stopped). Only an outside service can notice that nothing happened.
+
+1. Sign up at <https://healthchecks.io> (free), **Add Check**: period **1 day**, grace
+   **2 hours**. Copy its ping URL (`https://hc-ping.com/…`).
+2. On the server: add `OFFSITE_PING_URL=https://hc-ping.com/…` to `.env`, then
+   `docker compose up -d offsite` and run the test command from step 5. The check turns
+   green.
 
 ## Useful commands
 
@@ -282,6 +330,8 @@ Restore one: same as step 6, with that file.
 | Logs | `docker compose logs -f worker` |
 | Restart one service | `docker compose restart api` |
 | Run a database backup now | `docker compose exec backup /bin/sh /backup.sh` |
+| Copy the newest backup to Google Drive now | `docker compose exec offsite /bin/sh /offsite-backup.sh` |
+| Last off-site copy result | `docker compose logs --tail 5 offsite` |
 | Open the database | `docker compose exec postgres psql -U shortlist` |
 | Find new jobs now (no app) | `docker compose exec worker node apps/worker/dist/cli/discover-now.js` |
 
@@ -290,10 +340,12 @@ Restore one: same as step 6, with that file.
 Nothing in Shortlist is tied to one provider, so moving (AWS's free plan ending, a better
 deal) is this guide again:
 
-1. On the old server: `docker compose exec backup /bin/sh /backup.sh`, then copy the newest
-   file from `deploy/backups/` to your laptop (see "Backups").
+1. On the old server: `docker compose exec backup /bin/sh /backup.sh`, then
+   `docker compose exec offsite /bin/sh /offsite-backup.sh`. The newest dump is now in
+   Google Drive: download it.
 2. On the new server: steps 3–5, with the **same `TOKEN_ENCRYPTION_KEY`** (your Gmail
-   connection was encrypted with it).
+   connection was encrypted with it). Copy `deploy/rclone/rclone.conf` across too (or
+   redo "Off-site copies") so the Google Drive copies continue.
 3. Step 6 with that backup file.
 4. Point the DuckDNS hostname at the new IP. Caddy gets a new certificate by itself, and
    the Google redirect URI stays the same because the hostname does.

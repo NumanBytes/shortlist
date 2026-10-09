@@ -114,6 +114,23 @@ services:
     depends_on:
       postgres: { condition: service_healthy }
 
+  # Copies the newest dump to Google Drive at 04:00 (after the 03:30 dump), 30 days kept
+  # there (deploy/offsite-backup.sh). Needs deploy/rclone/rclone.conf, created once with
+  # `docker compose run --rm --entrypoint rclone offsite config` (README, "Off-site copies").
+  offsite:
+    image: rclone/rclone:1
+    restart: unless-stopped
+    environment:
+      TZ: ${DISCOVERY_TZ:-Asia/Karachi}
+      OFFSITE_PING_URL: ${OFFSITE_PING_URL:-}
+    volumes:
+      - ./offsite-backup.sh:/offsite-backup.sh:ro
+      - ./backups:/backups:ro
+      # rclone keeps its Google token here and refreshes it, so not read-only. A secret:
+      # git-ignored, never committed.
+      - ./rclone:/config/rclone
+    entrypoint: ['/bin/sh', '-c', 'echo "0 4 * * * /bin/sh /offsite-backup.sh" | crontab - && crond -f -l 8']
+
 volumes:
   postgres-data:
   redis-data:

@@ -12,3 +12,4 @@ apps/worker/test/fixtures/email/.private/
 
 # Database dumps made on the server (personal data).
 deploy/backups/
+deploy/rclone/
