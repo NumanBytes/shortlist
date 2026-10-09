@@ -300,7 +300,7 @@ that the next nightly run redoes.
 worker's environment/database access path. The browser never sees them; the API never
 needs the Claude key. A compromised frontend cannot spend money or read mail.
 
-**Deployment: one VPS running everything (decided 2026-10-04; prepared, not yet live).**
+**Deployment: one VPS running everything (decided 2026-10-04; live since 2026-10-09).**
 The user chose a single small Linux server (a VPS, ~$4–6/month) over managed services:
 - **Free tiers didn't fit.** Upstash's free Redis caps commands per month, and BullMQ polls
   Redis constantly, so an idle worker would exhaust it.
@@ -350,6 +350,34 @@ Verified locally (2026-10-04) on test ports with the full stack:
 That test found a bug: Compose passes a blank optional setting (`${VAR:-}`) as `""`,
 which failed env validation. **Both apps now treat an empty env value as not set.**
 `deploy/README.md` is the step-by-step guide.
+
+**Host: AWS EC2 `t4g.small` on the free plan, then a budget VPS (decided 2026-10-08).**
+Oracle Cloud's Always Free ARM server was tried first, and failed for days with "Out of
+capacity". The user chose AWS's free plan for hands-on AWS experience. It gives credits
+for **6 months**, so it's a bridge: plan the move to a budget VPS before it ends. The
+README documents both as step 1A (AWS) and 1B (VPS: Contabo/Netcup monthly, RackNerd
+yearly), with every later step shared.
+- **AWS setup:** root user with MFA, used only for billing; an `Admins` group with
+  AdministratorAccess and an IAM user in it (permissions on groups, not users); no
+  access keys; a zero-spend budget alert. Mumbai (`ap-south-1`), nearest default region
+  to Pakistan. 30 GiB gp3. An Elastic IP, since a public IP changes on stop/start.
+- **ARM (Graviton):** every base image is multi-arch. Native packages were checked:
+  `bcrypt` 6 ships `linux-arm64` glibc prebuilds, and the lockfile has the arm64 builds
+  of rollup, rolldown, lightningcss, tailwind oxide and oxlint. Prisma fetches its engine
+  for the build machine, and images are built on the server. Confirmed 2026-10-09: the
+  full stack built and runs on the t4g.small, and the user's local database was imported
+  with README step 6.
+- **Firewall:** on AWS the security group (22 from the user's IP; 80 for Let's Encrypt;
+  443). On a VPS, `ufw` with the same ports, plus SSH keys only via
+  `/etc/ssh/sshd_config.d/00-keys-only.conf` (`00-` because sshd keeps the first value it
+  reads, so it beats provider drop-ins that re-enable passwords). AWS images are keys-only
+  already.
+- **The repo is private,** so the server clones it with a read-only GitHub **deploy key**
+  scoped to this one repository, never the user's own key or a token.
+- **Data loss is the main risk** of a free account that can end. Nightly dumps stay on the
+  server, so copying them off-server (outside AWS: a copy in S3 would vanish with the
+  account) is the next task. Moving follows "Moving to another server": backup → steps
+  3–6 → repoint DuckDNS, same `TOKEN_ENCRYPTION_KEY`.
 
 ---
 
@@ -1883,6 +1911,7 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
 | 2026-10-04 | Design fidelity pass (side-by-side with each board) + phase 3 screens; System/Light/Dark appearance (pre-paint, per device); single-source retry, today's spend, jobs this week | §8.4.1 — user doubted fidelity, asked for a theme switch |
 | 2026-10-04 | E2E tests use Redis database 15, never 0 | §15.3 — a running dev worker consumed the jobs e2e tests queued |
 | 2026-10-04 | Mobile design implemented in the existing PWA (tokens, Geist, native-`<dialog>` sheets, pushed screens without tab bar, status sheet, `GET /jobs/counts`); fake progress steps, the sample resume and "Forgot password" not copied | §8.4.1 — user's Claude Design boards |
+| 2026-10-08 | Host: AWS EC2 t4g.small (Graviton, Mumbai) on the 6-month free plan, then a budget VPS; guide has both as step 1A/1B; private repo cloned with a read-only deploy key; off-AWS backups next | §4 — Oracle Always Free kept failing ("Out of capacity"); user wants AWS experience |
 | 2026-10-04 | Deploy on one VPS with Docker Compose (Caddy for HTTPS, Postgres 18, Redis, API, worker, migrate, nightly backup); DuckDNS hostname; empty env values = unset | §4 — user's choice over free tiers (Upstash quota vs BullMQ polling; sleeping hosts can't run the worker) |
 | 2026-10-04 | Tailoring prompt: ≤18 words, one topic, no company name, scope stated positively, no minimum (it caused padding); skill names resolved only to offered skills; `preview:resume` CLI | §13.1 — bullets averaged 20 words vs the CV's 12 |
 | 2026-10-04 | Login/register rate limits: Redis fixed-window counters (Lua), failed logins per account + attempts per IP + sign-ups per IP; 429 + Retry-After; fail open; `TRUST_PROXY_HOPS` | §8.1 — roadmap step 8 |
@@ -1964,7 +1993,9 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
    probing + monthly ATS-scoped search), then **Milestone 3** (custom sites via change
    watcher).
 7. **Deploy** (§4): one VPS with Docker Compose. **Prepared and tested locally
-   2026-10-04** (`deploy/`); going live needs the user's VPS and a DuckDNS hostname.
+   2026-10-04** (`deploy/`). **Live 2026-10-09** on AWS EC2 t4g.small with a DuckDNS
+   hostname and the user's production data; a budget VPS follows within 6 months (§4).
+   Next: automatic off-server (off-AWS) backup copies.
 8. ~~Rate-limit `/auth/login` and `/auth/register`~~ — built 2026-10-04 (§8.1).
 
 ### 17.3 Open decisions
