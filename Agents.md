@@ -374,10 +374,37 @@ yearly), with every later step shared.
   already.
 - **The repo is private,** so the server clones it with a read-only GitHub **deploy key**
   scoped to this one repository, never the user's own key or a token.
-- **Data loss is the main risk** of a free account that can end. Nightly dumps stay on the
-  server, so copying them off-server (outside AWS: a copy in S3 would vanish with the
-  account) is the next task. Moving follows "Moving to another server": backup → steps
-  3–6 → repoint DuckDNS, same `TOKEN_ENCRYPTION_KEY`.
+- **Data loss is the main risk** of a free account that can end. Moving follows "Moving
+  to another server": backup → steps 3–6 → repoint DuckDNS, same `TOKEN_ENCRYPTION_KEY`.
+
+**Off-site backups: Google Drive via an `offsite` Compose service (decided 2026-10-09).**
+The nightly dumps in `deploy/backups/` die with the server, and a copy in S3 would die
+with the AWS account, so the copy lives with a different company. Every night at 04:00
+(after the 03:30 dump) `deploy/offsite-backup.sh` copies the newest dump to
+`gdrive:shortlist-backups` and deletes copies there older than 30 days. At worst a day of
+data is lost.
+- **Why Drive:** the user already has it (15 GB free; a dump is ~100 KB), and the server
+  pushes by itself. Pulling to the laptop would need the laptop on and an unattended SSH
+  key.
+- **Why a Compose service, not rclone on the host:** it uses the official multi-arch
+  `rclone/rclone:1` image with busybox `crond`, the same pattern as `backup`. Moving
+  servers is copying one file (`deploy/rclone/rclone.conf`, git-ignored) with nothing to
+  install.
+- **Least privilege:** the Google scope is `drive.file`, so rclone sees only files it
+  created. A leaked token can't read the user's other documents. The server has no
+  browser, so OAuth runs once on the laptop (`rclone authorize`) and the token is pasted
+  back.
+- **Fails loudly:** a non-zero exit and a log line when there's no dump, the newest dump
+  is older than 26 hours (the nightly backup itself stopped), or the upload or pruning
+  fails. `rclone copy` skips files already there, so a re-run is harmless.
+- **Dead man's switch (optional `OFFSITE_PING_URL`, e.g. healthchecks.io):** pinged on
+  success and `/fail` on failure. The service emails when a ping fails or doesn't arrive,
+  the only way to notice a job that never ran. A failed ping never fails the backup.
+- Tested locally against a stand-in remote: no dump, a stale dump, success with pruning,
+  an idempotent re-run with an unreachable ping URL, a read-only remote, a missing config,
+  and job output reaching `docker compose logs`. Not encrypted: it's the user's own Drive.
+  rclone's `crypt` could be added later, but a forgotten passphrase would make every
+  backup useless.
 
 ---
 
@@ -1911,6 +1938,7 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
 | 2026-10-04 | Design fidelity pass (side-by-side with each board) + phase 3 screens; System/Light/Dark appearance (pre-paint, per device); single-source retry, today's spend, jobs this week | §8.4.1 — user doubted fidelity, asked for a theme switch |
 | 2026-10-04 | E2E tests use Redis database 15, never 0 | §15.3 — a running dev worker consumed the jobs e2e tests queued |
 | 2026-10-04 | Mobile design implemented in the existing PWA (tokens, Geist, native-`<dialog>` sheets, pushed screens without tab bar, status sheet, `GET /jobs/counts`); fake progress steps, the sample resume and "Forgot password" not copied | §8.4.1 — user's Claude Design boards |
+| 2026-10-09 | Off-site backups: `offsite` Compose service (rclone image) copies the newest dump to Google Drive at 04:00, 30 days kept; scope `drive.file`; fails loudly on a missing/stale dump; optional dead man's switch ping | §4 — server and hosting account can both be lost |
 | 2026-10-08 | Host: AWS EC2 t4g.small (Graviton, Mumbai) on the 6-month free plan, then a budget VPS; guide has both as step 1A/1B; private repo cloned with a read-only deploy key; off-AWS backups next | §4 — Oracle Always Free kept failing ("Out of capacity"); user wants AWS experience |
 | 2026-10-04 | Deploy on one VPS with Docker Compose (Caddy for HTTPS, Postgres 18, Redis, API, worker, migrate, nightly backup); DuckDNS hostname; empty env values = unset | §4 — user's choice over free tiers (Upstash quota vs BullMQ polling; sleeping hosts can't run the worker) |
 | 2026-10-04 | Tailoring prompt: ≤18 words, one topic, no company name, scope stated positively, no minimum (it caused padding); skill names resolved only to offered skills; `preview:resume` CLI | §13.1 — bullets averaged 20 words vs the CV's 12 |
@@ -1995,7 +2023,7 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
 7. **Deploy** (§4): one VPS with Docker Compose. **Prepared and tested locally
    2026-10-04** (`deploy/`). **Live 2026-10-09** on AWS EC2 t4g.small with a DuckDNS
    hostname and the user's production data; a budget VPS follows within 6 months (§4).
-   Next: automatic off-server (off-AWS) backup copies.
+   Off-site backups to Google Drive added 2026-10-09 (§4).
 8. ~~Rate-limit `/auth/login` and `/auth/register`~~ — built 2026-10-04 (§8.1).
 
 ### 17.3 Open decisions
