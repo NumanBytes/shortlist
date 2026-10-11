@@ -1,11 +1,12 @@
 import { InjectQueue } from '@nestjs/bullmq';
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { ANALYSIS_QUEUE, EmailExtractionSchema, costUsd, type EmailExtraction } from '@shortlist/shared';
+import { ANALYSIS_QUEUE, EmailExtractionSchema, costUsd, emailSourceKey } from '@shortlist/shared';
 import { GoogleApiError, SecretBox, type GmailApi, type GoogleOAuth } from '@shortlist/shared/node';
 import type { Queue } from 'bullmq';
 import { enqueueAnalyses } from '../analysis/analysis.processor.js';
 import { BudgetGuard } from '../analysis/budget-guard.js';
 import { OutOfCreditError, PermanentAnalyzerError } from '../analysis/job-analyzer.js';
+import { parseModelOutput } from '../analysis/model-output.js';
 import { compileFilter } from '../discovery/filter.js';
 import { storeJobs } from '../discovery/job-store.js';
 import { loadPreferences } from '../discovery/preferences.js';
@@ -35,10 +36,11 @@ export type CheckOutcome =
   | { status: 'SUCCESS' | 'EMPTY'; read: number; jobsNew: number }
   | { status: 'SKIPPED'; reason: string };
 
-type Reading =
+type Reading = (
   | { status: 'PARSED'; parser: string; postings: EmailPosting[]; note: string | null }
   | { status: 'NOT_ALERT'; parser: string | null; note: string }
-  | { status: 'DEFERRED' | 'FAILED'; parser: string | null; note: string };
+  | { status: 'DEFERRED' | 'FAILED'; parser: string | null; note: string }
+) & { parserFailed?: true }; // a code parser found nothing and the model was asked instead
 
 // First check looks back this far; later checks overlap the previous one by a margin
 // (Gmail's `after:` is day-granular) and skip what was already read.
@@ -112,6 +114,7 @@ export class EmailService {
         status: r.status,
         parser: r.parser,
         note: r.note?.slice(0, 500) ?? null,
+        parserFailed: r.parserFailed ?? false,
         jobsFound: r.status === 'PARSED' ? r.postings.length : 0,
         error: null,
       };
@@ -160,18 +163,21 @@ export class EmailService {
     if (NOT_ALERT_SUBJECT.test(email.subject)) return { status: 'NOT_ALERT', parser: null, note: 'not a job alert (subject)' };
 
     const parser = email.sender ? EMAIL_PARSERS.find((p) => p.matches(email.sender!)) : undefined;
-    let note: string | null = null;
-    if (parser) {
-      try {
-        const r = parser.parse(email);
-        if (r.kind === 'not_alert') return { status: 'NOT_ALERT', parser: parser.portal, note: r.reason };
-        if (r.postings.length > 0) return { status: 'PARSED', parser: parser.portal, postings: r.postings, note: null };
-        note = `${portalLabel} parser found no jobs — read by AI instead; the parser may be out of date`;
-      } catch (err) {
-        note = `${portalLabel} parser failed (${(err as Error).message}) — read by AI instead`;
-      }
+    if (!parser) return this.readWithModel(userId, email, portalLabel, null);
+    let fallback: string;
+    try {
+      const r = parser.parse(email);
+      if (r.kind === 'not_alert') return { status: 'NOT_ALERT', parser: parser.portal, note: r.reason };
+      if (r.postings.length > 0) return { status: 'PARSED', parser: parser.portal, postings: r.postings, note: null };
+      fallback = `${portalLabel} parser found no jobs — read by AI instead; the parser may be out of date`;
+    } catch (err) {
+      fallback = `${portalLabel} parser failed (${(err as Error).message}) — read by AI instead`;
     }
+    return { ...(await this.readWithModel(userId, email, portalLabel, fallback)), parserFailed: true };
+  }
 
+  // The model fallback (Agents.md §10.4). `note` explains why a code parser didn't answer.
+  private async readWithModel(userId: string, email: AlertEmail, portalLabel: string, note: string | null): Promise<Reading> {
     if (!this.extractor.configured) return { status: 'DEFERRED', parser: null, note: 'ANTHROPIC_API_KEY is not set in the worker' };
     const guard = await this.budget.checkMonthly(userId);
     if (!guard.allowed) return { status: 'DEFERRED', parser: null, note: guard.reason };
@@ -187,7 +193,7 @@ export class EmailService {
     }
 
     // Log the spend before using the output: the call was billed either way.
-    const parsed = parseExtraction(result.text, result.stopReason);
+    const parsed = parseModelOutput(result.text, result.stopReason, EmailExtractionSchema, 'read this email');
     await this.prisma.aiUsage.create({
       data: {
         userId,
@@ -209,7 +215,7 @@ export class EmailService {
   private async storePortal(userId: string, portal: string, label: string, postings: EmailPosting[], filter: ReturnType<typeof compileFilter>) {
     // The seeded email_alerts:<portal> row when there is one, else created on first use.
     // EMAIL_INBOX sources are never run by the discovery fan-out.
-    const key = `email_alerts:${portal.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`;
+    const key = emailSourceKey(portal);
     const source = await this.prisma.jobSource.upsert({
       where: { userId_key: { userId, key } },
       create: { userId, key, name: label, type: 'EMAIL_INBOX', config: { provider: 'email_alerts', note: 'Read from job-alert emails in Gmail' }, isEnabled: false },
@@ -283,17 +289,4 @@ export class EmailService {
       data: { lastError: reason.slice(0, 1000), lastCheckedAt: new Date(), lastCheckStatus: 'FAILED' },
     });
   }
-}
-
-function parseExtraction(text: string, stopReason: string | null): { ok: true; value: EmailExtraction } | { ok: false; reason: string } {
-  if (stopReason === 'max_tokens') return { ok: false, reason: 'Model output was cut off (max_tokens)' };
-  if (stopReason === 'refusal') return { ok: false, reason: 'Model declined to read this email' };
-  let json: unknown;
-  try {
-    json = JSON.parse(text);
-  } catch {
-    return { ok: false, reason: 'Model output was not valid JSON' };
-  }
-  const r = EmailExtractionSchema.safeParse(json);
-  return r.success ? { ok: true, value: r.data } : { ok: false, reason: `Model output failed validation: ${r.error.issues[0]?.message ?? 'unknown'}` };
 }

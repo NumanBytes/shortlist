@@ -115,7 +115,7 @@ describe('EmailService.check — reading', () => {
     expect(out).toMatchObject({ status: 'SUCCESS', read: 1 });
 
     const msg = await prisma.emailMessage.findFirstOrThrow({ where: { userId: user.id } });
-    expect(msg).toMatchObject({ status: 'PARSED', parser: 'indeed', portal: 'indeed', jobsFound: 6, note: null });
+    expect(msg).toMatchObject({ status: 'PARSED', parser: 'indeed', portal: 'indeed', jobsFound: 6, note: null, parserFailed: false });
 
     const job = await prisma.job.findFirstOrThrow({ where: { userId: user.id, title: 'Full Stack Developer', company: 'WSL Consultants' } });
     expect(job).toMatchObject({
@@ -224,6 +224,7 @@ describe('EmailService.check — the model fallback', () => {
       parser: 'ai',
       portal: 'indeed',
       note: expect.stringMatching(/Indeed parser found no jobs.*may be out of date/),
+      parserFailed: true, // counted as a parser warning on the Sources page
     });
   });
 });

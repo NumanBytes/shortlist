@@ -5,7 +5,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { compileFilter } from './filter.js';
 import { storeJobs } from './job-store.js';
 import { loadPreferences } from './preferences.js';
-import type { AdapterRegistry, Posting } from './types.js';
+import type { AdapterContext, AdapterRegistry, Posting } from './types.js';
 
 export const ADAPTER_REGISTRY = Symbol('ADAPTER_REGISTRY');
 
@@ -51,8 +51,14 @@ export class DiscoveryService {
       const rejections: Record<string, number> = {};
       const count = (reason: string) => (rejections[reason] = (rejections[reason] ?? 0) + 1);
 
-      const adapter = this.adapters[config.provider] as (c: typeof config, ctx: { sourceName: string }) => Promise<Posting[]>;
-      const postings = await adapter(config, { sourceName: source.name });
+      const adapter = this.adapters[config.provider] as (c: typeof config, ctx: AdapterContext) => Promise<Posting[]>;
+      const postings = await adapter(config, {
+        sourceName: source.name,
+        onSkipped: (reason) => {
+          count('invalid posting');
+          this.logger.warn(`${source.name}: skipped ${reason}`);
+        },
+      });
 
       // Stage A: title / location / age, from the listing alone.
       const enforceMaxAge = source.type === 'AGGREGATOR_API';

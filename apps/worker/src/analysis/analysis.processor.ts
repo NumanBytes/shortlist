@@ -1,19 +1,12 @@
 import { InjectQueue, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject, Logger, type OnModuleInit } from '@nestjs/common';
-import { ANALYSIS_QUEUE, AnalysisJob, type AnalyzeJobData } from '@shortlist/shared';
+import { ANALYSIS_QUEUE, AnalysisJob, queueJobOptions, type AnalyzeJobData } from '@shortlist/shared';
 import { Queue, UnrecoverableError, type Job } from 'bullmq';
 import { ENV } from '../config/config.module.js';
 import type { Env } from '../config/env.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AnalysisService, PermanentAnalysisError } from './analysis.service.js';
 import { BudgetGuard } from './budget-guard.js';
-
-export const ANALYZE_JOB_OPTIONS = {
-  attempts: 3,
-  backoff: { type: 'exponential' as const, delay: 120_000 },
-  removeOnComplete: { age: 7 * 24 * 3600, count: 2000 },
-  removeOnFail: { age: 30 * 24 * 3600 },
-};
 
 @Processor(ANALYSIS_QUEUE)
 export class AnalysisProcessor extends WorkerHost implements OnModuleInit {
@@ -77,29 +70,15 @@ export class AnalysisProcessor extends WorkerHost implements OnModuleInit {
   }
 }
 
-// Two layers keep one job from being analysed (and billed) twice concurrently:
-// - `deduplication` (by job id): while an analysis for a job is waiting, delayed in retry
-//   backoff, or running, any further add — from discovery, the nightly sweep, or the
-//   API's "Retry" — returns the existing one instead of queuing another.
-// - The BullMQ job id still includes the batch, so once an analysis has finished (e.g.
-//   DEFERRED today), tomorrow's sweep can queue the job again.
+// Joins an analysis already queued or running for the same posting instead of paying for
+// a second one (see queueJobOptions in @shortlist/shared).
 export async function enqueueAnalyses(queue: Queue, jobIds: string[], batchId: string) {
   if (jobIds.length === 0) return;
   await queue.addBulk(
     jobIds.map((jobId) => ({
       name: AnalysisJob.Job,
       data: { jobId } satisfies AnalyzeJobData,
-      opts: {
-        ...ANALYZE_JOB_OPTIONS,
-        jobId: `analyze__${jobId}__${safeId(batchId)}`,
-        deduplication: { id: analysisDedupeId(jobId) },
-      },
+      opts: queueJobOptions.analyzeJob(jobId, batchId),
     })),
   );
 }
-
-export const analysisDedupeId = (jobId: string) => `analyze-${jobId}`;
-
-// BullMQ custom ids can't contain ":", but scheduler-fired jobs have ids like
-// "repeat:<scheduler>:<millis>". (Two colons happen to be tolerated; don't rely on it.)
-export const safeId = (id: string) => id.replace(/:/g, '-');

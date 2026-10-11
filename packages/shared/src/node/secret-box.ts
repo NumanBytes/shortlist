@@ -10,6 +10,7 @@ import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
 
 const ALGORITHM = 'aes-256-gcm';
 const VERSION = 'v1';
+const TAG_BYTES = 16;
 
 export class SecretBox {
   private readonly key: Buffer;
@@ -31,7 +32,9 @@ export class SecretBox {
   open(sealed: string, context: string): string {
     const [version, iv, tag, ciphertext] = sealed.split('.');
     if (version !== VERSION || !iv || !tag || ciphertext === undefined) throw new Error('Unrecognized sealed value');
-    const decipher = createDecipheriv(ALGORITHM, this.key, Buffer.from(iv, 'base64url'));
+    // Pin the full 16-byte tag: without it Node accepts a truncated tag, and a shorter tag
+    // is easier to forge.
+    const decipher = createDecipheriv(ALGORITHM, this.key, Buffer.from(iv, 'base64url'), { authTagLength: TAG_BYTES });
     decipher.setAAD(Buffer.from(context, 'utf8'));
     decipher.setAuthTag(Buffer.from(tag, 'base64url'));
     return Buffer.concat([decipher.update(Buffer.from(ciphertext, 'base64url')), decipher.final()]).toString('utf8');

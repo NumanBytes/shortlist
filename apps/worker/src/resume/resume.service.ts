@@ -6,10 +6,10 @@ import {
   requirementProfile,
   type ResumeEvidence,
   type ResumeContent,
-  type ResumeOutput,
 } from '@shortlist/shared';
 import { BudgetGuard } from '../analysis/budget-guard.js';
 import { OutOfCreditError, PermanentAnalyzerError } from '../analysis/job-analyzer.js';
+import { parseModelOutput } from '../analysis/model-output.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { buildResumePrompt } from './prompt.js';
 import { RESUME_WRITER, type ResumeWriter } from './resume-writer.js';
@@ -120,7 +120,7 @@ export class ResumeService {
 
     // Log the spend before anything else: the call was billed whatever happens next.
     const cost = costUsd(result.model, result.usage);
-    const parsed = this.parse(result.text, result.stopReason);
+    const parsed = parseModelOutput(result.text, result.stopReason, ResumeOutputSchema, 'write this resume');
     await this.prisma.aiUsage.create({
       data: { userId: job.userId, jobId: job.id, purpose: 'TAILOR_RESUME', model: result.model, ...result.usage, costUsd: cost, succeeded: parsed.ok },
     });
@@ -163,22 +163,6 @@ export class ResumeService {
       projectRoleId: e.project?.workExperienceId ?? null,
     }));
     return { evidence, roles, projects, allSkillNames: skills.map((s) => s.name) };
-  }
-
-  private parse(text: string, stopReason: string | null): { ok: true; value: ResumeOutput } | { ok: false; reason: string } {
-    if (stopReason === 'max_tokens') return { ok: false, reason: 'Model output was cut off (max_tokens)' };
-    if (stopReason === 'refusal') return { ok: false, reason: 'Model declined to write this resume' };
-    let json: unknown;
-    try {
-      json = JSON.parse(text);
-    } catch {
-      return { ok: false, reason: 'Model output was not valid JSON' };
-    }
-    const r = ResumeOutputSchema.safeParse(json);
-    if (r.success) return { ok: true, value: r.data };
-    // Say WHERE it failed ("experience.0.bullets.2.evidence.1"): "too big" alone isn't actionable.
-    const issue = r.error.issues[0];
-    return { ok: false, reason: `Model output failed validation at ${issue?.path.join('.') || '(root)'}: ${issue?.message ?? 'unknown'}` };
   }
 
   private async defer(jobId: string, reason: string): Promise<TailorOutcome> {

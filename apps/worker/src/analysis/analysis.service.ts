@@ -12,6 +12,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service.js';
 import { BudgetGuard } from './budget-guard.js';
 import { JOB_ANALYZER, OutOfCreditError, PermanentAnalyzerError, type JobAnalyzer } from './job-analyzer.js';
+import { parseModelOutput } from './model-output.js';
 import { buildAnalysisPrompt } from './prompt.js';
 
 export type AnalysisOutcome =
@@ -22,6 +23,14 @@ export type AnalysisOutcome =
 
 // A failure that retrying can't fix; the processor maps it to UnrecoverableError.
 export class PermanentAnalysisError extends Error {}
+
+// The job's description changed while the model was reading the old one (Agents.md §10.5,
+// "Paste full description"). Thrown inside the save transaction to roll it back.
+class DescriptionChanged extends Error {}
+
+// What scoring needs besides the job: the user's verified evidence and roles. The same for
+// every job of a user, so a re-score loads it once (not once per job).
+type ScoringContext = { skills: ScoringSkill[]; commercialYears: number };
 
 @Injectable()
 export class AnalysisService {
@@ -62,7 +71,7 @@ export class AnalysisService {
 
     // Log the spend first, whatever happens to the output: the call was billed.
     const cost = costUsd(result.model, result.usage);
-    const parsed = this.parse(result.text, result.stopReason);
+    const parsed = parseModelOutput(result.text, result.stopReason, JobAnalysisOutputSchema, 'analyse this posting');
     await this.prisma.aiUsage.create({
       data: {
         userId: job.userId,
@@ -81,9 +90,48 @@ export class AnalysisService {
     }
 
     const requirements = promoteExactNameMatches(this.resolveRefs(parsed.value, prompt.refs), skills);
-    const score = await this.score(job.userId, requirements, parsed.value);
+    const score = this.score(await this.scoringContext(job.userId), requirements, parsed.value);
 
+    try {
+      await this.saveAnalysis(jobId, job.rawJD, requirements, score, parsed.value, skills);
+    } catch (err) {
+      if (!(err instanceof DescriptionChanged)) throw err;
+      // A pasted description arrived mid-run; its own enqueue was folded into this run by the
+      // queue's deduplication, so nothing else would score it. Read the new text now.
+      this.logger.log(`${job.title} @ ${job.company}: description changed during analysis — analysing again`);
+      return this.analyzeJob(jobId);
+    }
+
+    this.logger.log(
+      `${job.title} @ ${job.company}: ${score.overallScore} ${score.verdict} ($${cost.toFixed(4)}${prompt.truncated ? ', description truncated' : ''})`,
+    );
+    return { status: 'DONE', overallScore: score.overallScore, verdict: score.verdict, costUsd: cost };
+  }
+
+  private async saveAnalysis(
+    jobId: string,
+    analysedJD: string,
+    requirements: ScoringRequirement[],
+    score: ReturnType<typeof scoreJob>,
+    output: JobAnalysisOutput,
+    skills: { id: string }[],
+  ) {
     await this.prisma.$transaction(async (tx) => {
+      // Compare-and-set on the text the model read: if it changed meanwhile, this result
+      // describes a posting that no longer exists — keep nothing.
+      const { count } = await tx.job.updateMany({
+        where: { id: jobId, rawJD: analysedJD },
+        data: {
+          analysisStatus: 'DONE',
+          analysisError: null,
+          analyzedAt: new Date(),
+          seniority: output.seniority,
+          yearsRequired: output.yearsRequired,
+          analyzedSkillIds: skills.map((sk) => sk.id),
+          redFlags: output.redFlags,
+        },
+      });
+      if (count === 0) throw new DescriptionChanged();
       await tx.jobRequirement.deleteMany({ where: { jobId } });
       await tx.jobMatch.deleteMany({ where: { jobId } });
       await tx.jobRequirement.createMany({ data: requirements.map((r) => ({ jobId, ...r })) });
@@ -98,24 +146,7 @@ export class AnalysisService {
           gaps: { create: score.gaps },
         },
       });
-      await tx.job.update({
-        where: { id: jobId },
-        data: {
-          analysisStatus: 'DONE',
-          analysisError: null,
-          analyzedAt: new Date(),
-          seniority: parsed.value.seniority,
-          yearsRequired: parsed.value.yearsRequired,
-          analyzedSkillIds: skills.map((sk) => sk.id),
-          redFlags: parsed.value.redFlags,
-        },
-      });
     });
-
-    this.logger.log(
-      `${job.title} @ ${job.company}: ${score.overallScore} ${score.verdict} ($${cost.toFixed(4)}${prompt.truncated ? ', description truncated' : ''})`,
-    );
-    return { status: 'DONE', overallScore: score.overallScore, verdict: score.verdict, costUsd: cost };
   }
 
   // After evidence changes, for every analysed job:
@@ -130,6 +161,7 @@ export class AnalysisService {
       where: { userId, analysisStatus: 'DONE' },
       include: { requirements: true },
     });
+    const context = await this.scoringContext(userId);
     let rescored = 0;
     const needsReanalysis: string[] = [];
     for (const job of jobs) {
@@ -158,7 +190,7 @@ export class AnalysisService {
           });
         }
       }
-      const score = await this.score(userId, reqs, { yearsRequired: job.yearsRequired, redFlags: job.redFlags });
+      const score = this.score(context, reqs, { yearsRequired: job.yearsRequired, redFlags: job.redFlags });
       await this.prisma.$transaction(async (tx) => {
         const match = await tx.jobMatch.findUnique({ where: { jobId: job.id } });
         if (match) await tx.skillGap.deleteMany({ where: { jobMatchId: match.id } });
@@ -188,11 +220,7 @@ export class AnalysisService {
     return skills;
   }
 
-  private async score(
-    userId: string,
-    requirements: ScoringRequirement[],
-    meta: Pick<JobAnalysisOutput, 'yearsRequired' | 'redFlags'>,
-  ) {
+  private async scoringContext(userId: string): Promise<ScoringContext> {
     const [skills, roles] = await Promise.all([
       this.prisma.skill.findMany({
         where: { userId },
@@ -205,20 +233,30 @@ export class AnalysisService {
       }),
       this.prisma.workExperience.findMany({ where: { userId }, select: { startDate: true, endDate: true } }),
     ]);
-    const scoringSkills: ScoringSkill[] = skills.map((s) => ({
-      id: s.id,
-      name: s.name,
-      evidence: s.evidence.map((e) => ({
-        context: e.context,
-        depth: e.depth,
-        lastUsed: e.lastUsed,
-        source: e.workExperience?.company ?? e.project?.name ?? null,
+    return {
+      skills: skills.map((s) => ({
+        id: s.id,
+        name: s.name,
+        evidence: s.evidence.map((e) => ({
+          context: e.context,
+          depth: e.depth,
+          lastUsed: e.lastUsed,
+          source: e.workExperience?.company ?? e.project?.name ?? null,
+        })),
       })),
-    }));
+      commercialYears: commercialYears(roles),
+    };
+  }
+
+  private score(
+    context: ScoringContext,
+    requirements: ScoringRequirement[],
+    meta: Pick<JobAnalysisOutput, 'yearsRequired' | 'redFlags'>,
+  ) {
     return scoreJob({
       requirements,
-      skills: scoringSkills,
-      userCommercialYears: commercialYears(roles),
+      skills: context.skills,
+      userCommercialYears: context.commercialYears,
       jobYearsRequired: meta.yearsRequired,
       redFlags: meta.redFlags,
     });
@@ -247,22 +285,6 @@ export class AnalysisService {
     });
     if (dropped) this.logger.warn(`Dropped ${dropped} unknown skill reference(s) from the model's output`);
     return out;
-  }
-
-  private parse(text: string, stopReason: string | null): { ok: true; value: JobAnalysisOutput } | { ok: false; reason: string } {
-    if (stopReason === 'max_tokens') return { ok: false, reason: 'Model output was cut off (max_tokens)' };
-    if (stopReason === 'refusal') return { ok: false, reason: 'Model declined to analyse this posting' };
-    let json: unknown;
-    try {
-      json = JSON.parse(text);
-    } catch {
-      return { ok: false, reason: 'Model output was not valid JSON' };
-    }
-    const result = JobAnalysisOutputSchema.safeParse(json);
-    if (!result.success) {
-      return { ok: false, reason: `Model output failed validation: ${result.error.issues[0]?.message ?? 'unknown'}` };
-    }
-    return { ok: true, value: result.data };
   }
 
   private async defer(jobId: string, reason: string): Promise<AnalysisOutcome> {

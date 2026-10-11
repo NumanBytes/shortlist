@@ -584,6 +584,9 @@ model EmailMessage {
   status     EmailStatus
   parser     String? // "indeed" (code) or "ai" (model fallback)
   note       String? // e.g. "Indeed parser found no jobs — read by AI": a parser may be out of date
+  // A code parser found nothing in (or threw on) what should be an alert, so the model read
+  // it: the portal probably changed its email layout. Counted on the Sources page.
+  parserFailed Boolean @default(false)
   jobsFound  Int         @default(0)
   error      String?
   readAt     DateTime    @default(now())

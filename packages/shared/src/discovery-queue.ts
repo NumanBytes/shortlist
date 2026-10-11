@@ -66,3 +66,56 @@ export interface CheckEmailData {
 export const WORKER_HEARTBEAT_KEY = 'shortlist:worker:heartbeat';
 export const WORKER_HEARTBEAT_INTERVAL_MS = 20_000;
 export const WORKER_HEARTBEAT_TTL_MS = 60_000;
+
+// ── Job ids and options ──────────────────────────────────────────────────────
+// The API and the worker both add these jobs, so how each job is identified lives here,
+// once. Two ids per job:
+// - `deduplication.id` (per thing being worked on): while a job for that source / posting /
+//   mailbox is waiting, in retry backoff or running, another add — a second tap, the nightly
+//   run, the other app — joins it instead of running twice. For model calls, running twice
+//   means paying twice, so a dedupe id that differs by one character between the apps would
+//   silently cost money.
+// - `jobId` (per batch): once a job has finished, the next batch can queue it again; and a
+//   retried fan-out re-adding the same ids is a no-op.
+// BullMQ custom ids can't contain ":", but scheduler-fired batch ids look like
+// "repeat:<scheduler>:<millis>", so those are made safe.
+export const safeJobId = (id: string) => id.replace(/:/g, '-');
+
+export const dedupeId = {
+  discoverSource: (sourceId: string) => `discover-${sourceId}`,
+  analyzeJob: (jobId: string) => `analyze-${jobId}`,
+  tailorResume: (jobId: string) => `tailor-${jobId}`,
+  checkEmail: (userId: string) => `email-${userId}`,
+};
+
+const KEEP = {
+  removeOnComplete: { age: 7 * 24 * 3600, count: 1000 },
+  removeOnFail: { age: 30 * 24 * 3600 },
+};
+// Transient failures (timeouts, 5xx) retry with backoff. Analysis waits longer between
+// attempts: its usual transient failure is the model API being overloaded.
+const retry = (delayMs: number) => ({ attempts: 3, backoff: { type: 'exponential' as const, delay: delayMs }, ...KEEP });
+
+// Everything BullMQ needs to add one job besides its name and data.
+export const queueJobOptions = {
+  discoverSource: (sourceId: string, batchId: string) => ({
+    ...retry(60_000),
+    jobId: `${sourceId}__${safeJobId(batchId)}`,
+    deduplication: { id: dedupeId.discoverSource(sourceId) },
+  }),
+  analyzeJob: (jobId: string, batchId: string) => ({
+    ...retry(120_000),
+    jobId: `analyze__${jobId}__${safeJobId(batchId)}`,
+    deduplication: { id: dedupeId.analyzeJob(jobId) },
+  }),
+  tailorResume: (jobId: string, batchId: string) => ({
+    ...retry(60_000),
+    jobId: `tailor__${jobId}__${safeJobId(batchId)}`,
+    deduplication: { id: dedupeId.tailorResume(jobId) },
+  }),
+  checkEmail: (userId: string, batchId: string) => ({
+    ...retry(60_000),
+    jobId: `email__${userId}__${safeJobId(batchId)}`,
+    deduplication: { id: dedupeId.checkEmail(userId) },
+  }),
+};

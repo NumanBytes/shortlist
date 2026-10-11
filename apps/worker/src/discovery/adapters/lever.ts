@@ -1,5 +1,6 @@
 import { getJson } from '../http.js';
 import { htmlToText, joinParts, toDate } from '../text.js';
+import { mapPostings } from '../postings.js';
 import type { Adapter, Posting, WorkMode } from '../types.js';
 
 // Public Postings API — https://github.com/lever/postings-api
@@ -22,7 +23,7 @@ export const lever: Adapter<{ provider: 'lever'; site: string }> = async ({ site
   const postings = await getJson<LeverPosting[]>(
     `https://api.lever.co/v0/postings/${encodeURIComponent(site)}?mode=json`,
   );
-  return postings.map((p): Posting => {
+  return mapPostings(postings, ctx, (p): Posting => {
     const places = p.categories?.allLocations?.length ? p.categories.allLocations.join(' / ') : p.categories?.location;
     return {
       externalId: p.id,

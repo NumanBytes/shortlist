@@ -27,6 +27,12 @@ describe('SecretBox (AES-256-GCM)', () => {
     expect(() => new SecretBox(key()).open(sealed, 'u')).toThrow();
   });
 
+  it('refuses a truncated authentication tag', () => {
+    const [v, iv, tag, ct] = box.seal('secret', 'u').split('.');
+    const short = Buffer.from(tag!, 'base64url').subarray(0, 4).toString('base64url');
+    expect(() => box.open([v, iv, short, ct].join('.'), 'u')).toThrow();
+  });
+
   it('refuses a key that is not 32 bytes', () => {
     expect(() => new SecretBox(randomBytes(16).toString('base64'))).toThrow(/32 bytes/);
   });

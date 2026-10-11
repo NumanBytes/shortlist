@@ -1,5 +1,6 @@
 import { getJson } from '../http.js';
 import { htmlToText, joinParts, toDate } from '../text.js';
+import { mapPostings } from '../postings.js';
 import type { Adapter, Posting } from '../types.js';
 
 // Public Posting API — https://developers.smartrecruiters.com/docs/posting-api
@@ -28,7 +29,7 @@ export const smartrecruiters: Adapter<{ provider: 'smartrecruiters'; company: st
     if (listings.length >= res.totalFound || res.content.length === 0) break;
   }
 
-  return listings.map((l): Posting => ({
+  return mapPostings(listings, ctx, (l): Posting => ({
     externalId: l.id,
     title: l.name.trim(),
     company: l.company?.name?.trim() || ctx.sourceName,

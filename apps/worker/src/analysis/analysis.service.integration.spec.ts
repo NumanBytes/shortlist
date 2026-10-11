@@ -12,10 +12,10 @@ const createdUsers: string[] = [];
 class FakeAnalyzer implements JobAnalyzer {
   configured = true;
   prompts: { system: string; user: string }[] = [];
-  next: (prompt: { user: string }) => Partial<AnalyzerResult> | Error = () => ({});
+  next: (prompt: { user: string }) => Partial<AnalyzerResult> | Error | Promise<Partial<AnalyzerResult>> = () => ({});
   async analyze(prompt: { system: string; user: string }): Promise<AnalyzerResult> {
     this.prompts.push(prompt);
-    const r = this.next(prompt);
+    const r = await this.next(prompt);
     if (r instanceof Error) throw r;
     return {
       model: 'claude-haiku-4-5-20251001',
@@ -234,6 +234,26 @@ describe('AnalysisService.analyzeJob', () => {
     await svc.analyzeJob(job.id);
     expect(await svc.analyzeJob(job.id)).toMatchObject({ status: 'SKIPPED' });
     expect(analyzer.prompts).toHaveLength(1);
+  });
+
+  it('analyses again when the description is pasted while the model is reading the old one', async () => {
+    const { job } = await setup();
+    const { svc, analyzer } = service();
+    analyzer.next = async (p) => {
+      // First call: the user pastes the full posting mid-run (JobsService.pasteDescription).
+      if (analyzer.prompts.length === 1) {
+        await prisma.job.update({ where: { id: job.id }, data: { rawJD: 'Full posting: React, TypeScript, Kubernetes.', analysisStatus: 'PENDING' } });
+      }
+      return { text: output(p.user) };
+    };
+
+    const outcome = await svc.analyzeJob(job.id);
+
+    expect(outcome).toMatchObject({ status: 'DONE' });
+    expect(analyzer.prompts).toHaveLength(2);
+    expect(analyzer.prompts[1]!.user).toContain('Kubernetes');
+    // Both calls were billed, so both are logged.
+    expect(await prisma.aiUsage.count({ where: { jobId: job.id } })).toBe(2);
   });
 });
 

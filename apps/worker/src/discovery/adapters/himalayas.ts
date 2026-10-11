@@ -1,5 +1,6 @@
 import { getJson } from '../http.js';
 import { htmlToText, toDate } from '../text.js';
+import { mapPostings } from '../postings.js';
 import type { Adapter, Posting } from '../types.js';
 
 // https://himalayas.app/api — cursor-paginated, newest first. We read the first
@@ -17,7 +18,7 @@ interface HimalayasJob {
 
 const PAGE_SIZE = 20;
 
-export const himalayas: Adapter<{ provider: 'himalayas'; maxPages: number }> = async ({ maxPages }) => {
+export const himalayas: Adapter<{ provider: 'himalayas'; maxPages: number }> = async ({ maxPages }, ctx) => {
   const jobs: HimalayasJob[] = [];
   let cursor: string | null = null;
   for (let page = 0; page < maxPages; page++) {
@@ -27,7 +28,7 @@ export const himalayas: Adapter<{ provider: 'himalayas'; maxPages: number }> = a
     cursor = res.nextCursor ?? null;
     if (!cursor) break;
   }
-  return jobs.map((j): Posting => ({
+  return mapPostings(jobs, ctx, (j): Posting => ({
     externalId: j.guid,
     title: j.title.trim(),
     company: j.companyName.trim(),

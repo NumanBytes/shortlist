@@ -1,4 +1,5 @@
 import { ConflictException, Inject, Injectable, Logger, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
+import { emailSourceKey } from '@shortlist/shared';
 import { GMAIL_READONLY_SCOPE, SecretBox, authorizationUrl, pkcePair, type GmailApi, type GoogleOAuth } from '@shortlist/shared/node';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { ENV } from '../config/config.module.js';
@@ -60,7 +61,7 @@ export class GmailService {
       this.prisma.emailMessage.groupBy({ by: ['portal'], where: { ...recent, status: 'PARSED' }, _count: true, _sum: { jobsFound: true } }),
       // A code parser that found nothing (or threw) and handed the email to the model: the
       // portal probably changed its email layout (Agents.md §10.4).
-      this.prisma.emailMessage.groupBy({ by: ['portal'], where: { ...recent, note: { contains: 'parser' } }, _count: true }),
+      this.prisma.emailMessage.groupBy({ by: ['portal'], where: { ...recent, parserFailed: true }, _count: true }),
       this.prisma.jobSource.findMany({
         where: { userId, type: 'EMAIL_INBOX', lastRunAt: { not: null } },
         select: { id: true, key: true, name: true, discoveryRuns: { orderBy: { startedAt: 'desc' }, take: 1, select: { status: true, jobsNew: true, finishedAt: true } } },
@@ -81,7 +82,7 @@ export class GmailService {
           .filter((p) => p.portal)
           .sort((a, b) => b._count - a._count)
           .map((p) => {
-            const src = sourceBy.get(`email_alerts:${p.portal!.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`);
+            const src = sourceBy.get(emailSourceKey(p.portal!));
             return {
               portal: p.portal!,
               sourceId: src?.id ?? null,
@@ -123,10 +124,13 @@ export class GmailService {
   async finishConnect(p: { code?: string; state?: string; error?: string; nonce?: string }): Promise<ConnectOutcome> {
     if (!this.configured) return 'google_error';
     if (!p.state) return 'mismatch';
-    // Consume the state whatever happens next: it is single-use.
+    // Consume the state whatever happens next: it is single-use. The delete is conditional
+    // (deleteMany + count), so of two callbacks racing with the same state exactly one wins;
+    // the other is a mismatch, not a "record not found" crash.
     const row = await this.prisma.oAuthState.findUnique({ where: { stateHash: sha256(p.state) } });
     if (!row) return 'mismatch';
-    await this.prisma.oAuthState.delete({ where: { id: row.id } });
+    const { count } = await this.prisma.oAuthState.deleteMany({ where: { id: row.id } });
+    if (count === 0) return 'mismatch';
     if (row.expiresAt < new Date()) return 'expired';
     if (!p.nonce || !safeEqual(sha256(p.nonce), row.nonceHash)) return 'mismatch';
     if (p.error) return 'denied'; // the user clicked Cancel on Google's screen

@@ -68,7 +68,7 @@ describe('Alert-email jobs (e2e)', () => {
     await t.prisma.emailMessage.createMany({
       data: [
         { userId: me.user.id, gmailMessageId: 'a', sender: 'donotreply@jobalert.indeed.com', portal: 'indeed', receivedAt: new Date(), status: 'PARSED', parser: 'indeed', jobsFound: 6 },
-        { userId: me.user.id, gmailMessageId: 'b', sender: 'donotreply@jobalert.indeed.com', portal: 'indeed', receivedAt: new Date(), status: 'PARSED', parser: 'ai', jobsFound: 2, note: 'Indeed parser found no jobs — read by AI instead; the parser may be out of date' },
+        { userId: me.user.id, gmailMessageId: 'b', sender: 'donotreply@jobalert.indeed.com', portal: 'indeed', receivedAt: new Date(), status: 'PARSED', parser: 'ai', jobsFound: 2, note: 'Indeed parser found no jobs — read by AI instead; the parser may be out of date', parserFailed: true },
         { userId: me.user.id, gmailMessageId: 'c', sender: 'jobs-noreply@linkedin.com', portal: 'linkedin', receivedAt: new Date(), status: 'NOT_ALERT', note: 'not a job alert (subject)' },
       ],
     });

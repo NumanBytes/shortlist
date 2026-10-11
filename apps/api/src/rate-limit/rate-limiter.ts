@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger, type OnModuleDestroy } from '@nestjs/common
 import { Redis } from 'ioredis';
 import { ENV } from '../config/config.module.js';
 import type { Env } from '../config/env.js';
+import { withTimeout } from '../common/with-timeout.js';
 
 export interface RateRule {
   limit: number;
@@ -80,29 +81,16 @@ export class RateLimiter implements OnModuleDestroy {
   }
 
   async reset(key: string): Promise<void> {
-    await this.bounded(this.redis.del(key)).catch(() => undefined);
+    await withTimeout(this.redis.del(key), TIMEOUT_MS).catch(() => undefined);
   }
 
   private async run(script: string, key: string, rule: RateRule, ok: (count: number) => boolean): Promise<RateDecision> {
     try {
-      const [count, ttlMs] = (await this.bounded(this.redis.eval(script, 1, key, rule.windowSeconds * 1000))) as [number, number];
+      const [count, ttlMs] = (await withTimeout(this.redis.eval(script, 1, key, rule.windowSeconds * 1000), TIMEOUT_MS)) as [number, number];
       return { allowed: ok(count), count, retryAfterSeconds: Math.max(1, Math.ceil((ttlMs > 0 ? ttlMs : 0) / 1000)) };
     } catch (err) {
       this.logger.warn(`Rate limiter unavailable, allowing request: ${(err as Error).message}`);
       return { allowed: true, count: 0, retryAfterSeconds: 0 };
-    }
-  }
-
-  private async bounded<T>(op: Promise<T>): Promise<T> {
-    let timer: NodeJS.Timeout | undefined;
-    const timeout = new Promise<never>((_, reject) => {
-      timer = setTimeout(() => reject(new Error(`no response from Redis in ${TIMEOUT_MS}ms`)), TIMEOUT_MS);
-    });
-    try {
-      return await Promise.race([op, timeout]);
-    } finally {
-      clearTimeout(timer);
-      op.catch(() => undefined);
     }
   }
 

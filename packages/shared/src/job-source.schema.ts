@@ -46,6 +46,11 @@ export const PlannedSourceConfigSchema = z
 
 export const JobSourceConfigSchema = z.union([ImplementedSourceConfigSchema, PlannedSourceConfigSchema]);
 
+// The JobSource key for one portal's alert emails (Agents.md §10.4), e.g. "rozee.pk" →
+// "email_alerts:rozee-pk". The worker files emails under it and the API looks it up, so
+// both must build it the same way. Seeded rows use the same slugs.
+export const emailSourceKey = (portal: string) => `email_alerts:${portal.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`;
+
 export type ImplementedSourceConfig = z.infer<typeof ImplementedSourceConfigSchema>;
 export type JobSourceConfig = z.infer<typeof JobSourceConfigSchema>;
 export type SourceProvider = ImplementedSourceConfig['provider'];

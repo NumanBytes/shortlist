@@ -157,6 +157,10 @@ export class AuthService implements OnModuleInit {
     db: Prisma.TransactionClient = this.prisma,
   ): Promise<{ accessToken: string; refreshToken: string }> {
     const { token, tokenHash, expiresAt } = this.tokens.generateRefreshToken();
+    // Every refresh adds a row, so prune this user's expired ones as we go — the table stays
+    // bounded by the token lifetime without a scheduled job. Revoked-but-unexpired rows stay:
+    // reuse detection needs them until they'd have expired anyway.
+    await db.refreshToken.deleteMany({ where: { userId, expiresAt: { lt: new Date() } } });
     await db.refreshToken.create({ data: { userId, tokenHash, expiresAt } });
     return { accessToken: this.tokens.signAccessToken(userId), refreshToken: token };
   }
