@@ -24,6 +24,8 @@ pnpm --filter @shortlist/worker preview:resume <jobId>
                         # real tailoring call (~$0.03, logged to AiUsage), printed with word counts, NOT saved
 pnpm build              # shared -> db (prisma generate) -> api -> worker -> web
 pnpm typecheck          # tsc --noEmit across all packages
+pnpm lint               # oxlint, type-aware, in every package (root .oxlintrc.json)
+pnpm format             # Prettier write (root .prettierrc.json); CI runs pnpm format:check
 pnpm test               # unit tests (*.spec.ts) in every package — does NOT run e2e
 
 pnpm db:generate        # regenerate Prisma client after editing schema.prisma
@@ -39,7 +41,6 @@ pnpm --filter @shortlist/worker test:integration   # DiscoveryService against th
 
 # API-only (apps/api)
 pnpm --filter @shortlist/api test:e2e                         # *.e2e-spec.ts — hits the real DB in apps/api/.env
-pnpm --filter @shortlist/api lint                             # oxlint --type-aware
 pnpm --filter @shortlist/api exec vitest run src/common/pipes/zod-validation.pipe.spec.ts   # single file
 pnpm --filter @shortlist/api exec vitest run -t "returns 400"                               # single test by name
 ```
@@ -94,7 +95,7 @@ packages/db       Prisma schema, migrations, re-exported PrismaClient
 ## Conventions
 
 - **ESM throughout** (`"type": "module"`, `nodenext`). Relative imports in `.ts` source end in `.js` — this is required, not a mistake.
-- Nest 12 defaults: **Vitest** (with globals) instead of Jest, **oxlint** instead of ESLint, Prettier for formatting. `typescript/no-floating-promises` is an error.
+- **Vitest** (with globals) instead of Jest, **oxlint** instead of ESLint, Prettier for formatting — one root config each, tools installed once at the root (docs/development.md §15.6). `typescript/no-floating-promises` and `no-explicit-any` are errors everywhere; mark a deliberately unawaited promise with `void`. Run `pnpm format` before committing: CI (`.github/workflows/ci.yml`) fails on unformatted files, lint, types, tests, e2e/integration and the Docker build. A red check doesn't block merging (private repo, free plan), so never merge a PR with one.
 - Worker tests: adapter tests serve recorded real responses from `apps/worker/test/fixtures/` via a stubbed `fetch` — never the network. When an adapter changes, recapture its fixture.
 - Web tests: Vitest + jsdom + Testing Library (`apps/web/src/**/*.test.ts(x)`), with `fetch` stubbed via `vi.stubGlobal`.
 - Unit tests: `*.spec.ts` next to the source (never a `__tests__/` folder), in the package whose code they test — `packages/shared` has its own Vitest suite. Code is grouped by feature (docs/development.md §15.5). E2E tests: `apps/api/test/*.e2e-spec.ts` using Supertest against the real database. Use `createTestApp()` from `test/helpers.ts`: it registers users, tracks their IDs, and `close()` deletes only those (files run in parallel, so never bulk-delete by email domain). It also points the app at Redis database 15 — specs that open Redis themselves must use `TEST_REDIS_URL`, never database 0 (a running dev worker would consume the jobs).

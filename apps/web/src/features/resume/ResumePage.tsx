@@ -31,7 +31,7 @@ export function ResumePage() {
   const navigate = useNavigate();
   const edge = useEdgeSwipeBack(() => {
     setNavDirection('back');
-    navigate(`/jobs/${jobId}`);
+    void navigate(`/jobs/${jobId}`);
   });
 
   // The browser names the saved PDF after the page title.

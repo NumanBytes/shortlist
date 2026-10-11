@@ -18,7 +18,7 @@ export function JobDetailPage() {
   const navigate = useNavigate();
   const edge = useEdgeSwipeBack(() => {
     setNavDirection('back');
-    navigate(back);
+    void navigate(back);
   });
 
   return (

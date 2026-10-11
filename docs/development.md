@@ -85,3 +85,31 @@ Group code by feature; keep only what several features share in common folders.
   blocks with pieces used by one screen, and `pages/` split each page from its parts
   (`JobDetailPage.tsx` beside `job-detail/`). By feature, everything a change touches is
   in one folder. Rejected: moving tests into `__tests__/` (see §15.3).
+
+### 15.6 CI, lint, formatting and dependencies (2026-10-12)
+
+Checks used to run only when someone ran them locally; nothing stopped a broken change
+from reaching `main`.
+- **CI (`.github/workflows/ci.yml`)** runs on every pull request and every push to
+  `main`, in three parallel jobs:
+  - `check`: formatting, lint, typecheck, unit tests and a production build;
+  - `integration`: API e2e and worker integration tests against Postgres 18 and Redis
+    service containers, after `migrate deploy` on the empty database (which also proves
+    every migration applies from scratch);
+  - `docker`: builds the `server` and `web` images the deploy uses.
+  The repo is private on a free plan, which can't make checks *required* before merging;
+  until then, don't merge a PR with a red check.
+- **One lint config** (`.oxlintrc.json` at the root; each package extends it). Every
+  package lints with type information, so `no-floating-promises` covers the web app too —
+  it found two `navigate()` calls whose promise was dropped. `no-explicit-any` is an error.
+- **One formatter config** (`.prettierrc.json`: single quotes, trailing commas, 120
+  columns, chosen as closest to the existing code). `pnpm format` writes, `pnpm
+  format:check` is what CI runs. Prettier skips applied migrations (checksummed),
+  recorded fixtures (compared byte for byte) and Markdown (hand-wrapped prose). The
+  one-time reformat commit is listed in `.git-blame-ignore-revs`, so `git blame` skips it.
+- **Dependencies:** lint and format tools are installed once at the root. Dependabot
+  (`.github/dependabot.yml`) opens weekly PRs — minor and patch updates grouped, majors
+  one by one — for npm packages, GitHub Actions and the Docker base images. A vulnerable
+  package nested inside a dependency that hasn't updated yet is pinned with a pnpm
+  `overrides` entry in `pnpm-workspace.yaml`, with the advisory id and when to drop it.
+

@@ -20,7 +20,8 @@
     "dev": "tsc -p tsconfig.json --watch --preserveWatchOutput",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.spec.json",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "lint": "oxlint --type-aware src/"
   },
   "dependencies": {
     "zod": "^4.6.5"

@@ -45,7 +45,7 @@ describe('GmailCard', () => {
 
   it('states the read-only limits, then sends the browser to Google', async () => {
     const assign = vi.fn();
-    vi.stubGlobal('location', { ...window.location, assign });
+    vi.stubGlobal('location', { href: window.location.href, origin: window.location.origin, assign });
     const fetch = mockFetch({}, (url) => (url.endsWith('/gmail/connect') ? { url: 'https://accounts.google.com/o/oauth2/v2/auth?x=1' } : notConnected));
     renderWithProviders(<GmailCard />);
     expect(await screen.findByText(/Read-only: Shortlist can’t send, delete or change mail/)).toBeInTheDocument();

@@ -14,6 +14,14 @@
     "typecheck": "pnpm --filter @shortlist/shared build && pnpm --filter @shortlist/db build && pnpm -r typecheck",
     "test": "pnpm --filter @shortlist/shared build && pnpm --filter @shortlist/db build && pnpm -r test",
     "db:migrate:dev": "pnpm --filter @shortlist/db db:migrate:dev",
-    "db:generate": "pnpm --filter @shortlist/db db:generate"
+    "db:generate": "pnpm --filter @shortlist/db db:generate",
+    "lint": "pnpm -r lint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "oxlint": "^1.87.0",
+    "oxlint-tsgolint": "^7.0.2004",
+    "prettier": "^3.9.8"
   }
 }

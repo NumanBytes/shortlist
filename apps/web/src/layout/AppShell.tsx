@@ -6,6 +6,7 @@ import { elapsed } from '../lib/format';
 import { RouteCommitted } from '../lib/navigation';
 import { useActiveTailoring, useGmail, useSkills } from '../lib/queries';
 import { useNow } from '../lib/hooks/useNow';
+import { ErrorBoundary } from './ErrorBoundary';
 import { InstallPrompt } from './InstallPrompt';
 import { Logo } from '../components/Logo';
 import { setTheme, useTheme, type ThemeChoice } from '../lib/theme';
@@ -215,7 +216,10 @@ export function AppShell() {
       </header>
 
       <div className="mx-auto max-w-6xl px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-36 sm:pt-6 sm:pb-12 print:max-w-none print:p-0">
-        <Outlet />
+        {/* A broken screen keeps the navigation, so the user can leave it. */}
+        <ErrorBoundary resetKey={pathname}>
+          <Outlet />
+        </ErrorBoundary>
       </div>
 
       <RouteCommitted />

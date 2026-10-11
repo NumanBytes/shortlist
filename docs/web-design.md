@@ -274,3 +274,18 @@ about Shortlist. Seven directions were drawn on a Claude Design canvas at real s
 - **Caching:** icons keep their file names when the mark changes, so Caddy sends them with
   `no-cache` (a cheap 304 while unchanged); browsers otherwise cache favicons for a long
   time.
+
+### 8.4.4 When a screen crashes (2026-10-12)
+
+A component that throws while rendering unmounts the whole React tree; in an installed
+PWA that is a blank screen with no address bar and no way back but force-quitting.
+- **Two error boundaries** (`layout/ErrorBoundary.tsx`). One wraps each screen inside
+  `AppShell`, so the navigation survives a broken screen; its `resetKey` is the path, so
+  leaving through a tab clears the error without a reload. A second wraps the whole app
+  in `main.tsx` for errors outside a screen (sign-in, the providers).
+- **The fallback** says what happened and offers *Reload* (most likely cause after a
+  deploy: an old screen meeting the new API) and *Go to Jobs*, a plain link with a full
+  page load, so it works even if the router is what broke.
+- Data errors are not this: failed requests already show inline errors through TanStack
+  Query. The boundary only catches bugs that throw during render.
+

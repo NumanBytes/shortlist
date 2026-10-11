@@ -302,7 +302,7 @@ export function checkBullet(
 export function assembleResume(input: AssembleInput): AssembleResult {
   const now = input.now ?? new Date();
   const byId = new Map(input.evidence.map((e) => [e.id, e]));
-  const policed = [...new Set([...input.policedNames.flatMap(splitOptions)])];
+  const policed = [...new Set(input.policedNames.flatMap(splitOptions))];
   const ctx: CheckContext = { byId, refs: input.refs, policed, aliases: input.requirementAliases, now };
   const dropped: ResumeContent['dropped'] = [];
   const used = new Set<string>();

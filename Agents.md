@@ -30,12 +30,12 @@ and the alternatives that were rejected.
 | §6 Truthfulness rules | this file | Non-negotiable: verified evidence only, what un-verifies it, placement |
 | §7 Career database | [docs/career-data.md](docs/career-data.md) | The one-time seed and the CV reconciliation |
 | §8 Authentication and security | [docs/security.md](docs/security.md) | Hand-rolled JWT, refresh cookie, rate limits, other security decisions |
-| §8.4 Web UI design | [docs/web-design.md](docs/web-design.md) | Design system, mobile design, interactions and motion, the app icon |
+| §8.4 Web UI design | [docs/web-design.md](docs/web-design.md) | Design system, mobile design, interactions and motion, the app icon, error screens |
 | §9 Job discovery · §11 Manual intake | [docs/discovery.md](docs/discovery.md) | Board adapters, filtering, dedupe, scheduling; "Add a job" (planned) |
 | §10 Email job alerts | [docs/email-alerts.md](docs/email-alerts.md) | Gmail read-only OAuth, parsers and the model fallback, partial jobs |
 | §12 AI analysis and scoring | [docs/ai-scoring.md](docs/ai-scoring.md) | The model maps requirements; code scores; budget guard |
 | §13 Resume tailoring | [docs/resume.md](docs/resume.md) | Tailoring rules, the resume library, approval, printing, application kit |
-| §15 Development workflow | [docs/development.md](docs/development.md) | Conventions, testing, migrations, code layout |
+| §15 Development workflow | [docs/development.md](docs/development.md) | Conventions, testing, migrations, code layout, CI and tooling |
 | §16 Decision log | [docs/decisions.md](docs/decisions.md) | Every decision, dated, with where it's described |
 | §17 Build state and roadmap | [docs/roadmap.md](docs/roadmap.md) | What's built, what's next, open decisions |
 | §18 Working agreements | this file | How the builder and assistants work together |
