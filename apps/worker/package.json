@@ -20,13 +20,13 @@
     "preview:resume": "node dist/cli/preview-resume.js"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.130.0",
+    "@anthropic-ai/sdk": "^0.132.1",
     "@nestjs/bullmq": "^12.0.0",
-    "@nestjs/common": "^12.0.4",
-    "@nestjs/core": "^12.0.4",
+    "@nestjs/common": "^12.1.2",
+    "@nestjs/core": "^12.1.2",
     "@shortlist/db": "workspace:*",
     "@shortlist/shared": "workspace:*",
-    "bullmq": "^6.3.10",
+    "bullmq": "^6.3.11",
     "fast-xml-parser": "^5.11.2",
     "ioredis": "^6.0.0",
     "reflect-metadata": "^0.2.2",
@@ -34,9 +34,9 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
-    "@nestjs/cli": "^12.0.3",
-    "@nestjs/schematics": "^12.0.4",
-    "@nestjs/testing": "^12.0.4",
+    "@nestjs/cli": "^12.0.8",
+    "@nestjs/schematics": "^12.0.6",
+    "@nestjs/testing": "^12.1.2",
     "@types/node": "^24.13.6",
     "typescript": "^6.0.3",
     "vitest": "^4.1.11"
