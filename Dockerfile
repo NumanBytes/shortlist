@@ -5,7 +5,7 @@
 #   web    — Caddy serving the built React app and forwarding /api to the API
 # Built by deploy/docker-compose.yml; see deploy/README.md.
 
-FROM node:22-bookworm-slim AS base
+FROM node:25-bookworm-slim AS base
 # OpenSSL: Prisma's query engine links against it.
 RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
