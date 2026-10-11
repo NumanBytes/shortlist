@@ -1,5 +1,6 @@
-import { ListChecks, Share, SquarePlus } from 'lucide-react';
+import { Share, SquarePlus } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { Logo } from './Logo';
 import { Button, Sheet } from './ui';
 
 // "Add Shortlist to your Home Screen" (design pattern board). The app is a PWA: installing
@@ -62,9 +63,7 @@ export function InstallPrompt({ delayMs = 4000 }: { delayMs?: number }) {
   return (
     <Sheet open={open} onClose={notNow} title="Add Shortlist to your Home Screen">
       <div className="flex items-center gap-3">
-        <span className="grid size-12 shrink-0 place-items-center rounded-[14px] bg-accent text-on-accent">
-          <ListChecks className="size-6" strokeWidth={2.25} />
-        </span>
+        <Logo withName={false} size="md" />
         <div>
           <p className="text-[17px] font-semibold text-fg">Add Shortlist to your Home Screen</p>
           <p className="text-[13px] text-muted">Opens full-screen, like an app. No App Store.</p>

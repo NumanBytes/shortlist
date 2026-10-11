@@ -23,6 +23,10 @@
 		# running an old version of the app after a deploy.
 		@shell path / /index.html /sw.js /registerSW.js /manifest.webmanifest
 		header @shell Cache-Control "no-cache"
+		# Icons keep their names when the mark changes, and browsers cache favicons hard
+		# when told nothing: re-check them (a cheap 304 while unchanged).
+		@icons path /favicon.svg /apple-touch-icon.png /pwa-*.png
+		header @icons Cache-Control "no-cache"
 		# A client-side route (/jobs/123) has no file: serve the app and let it route.
 		try_files {path} /index.html
 		file_server
