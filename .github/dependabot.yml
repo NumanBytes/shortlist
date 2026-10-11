@@ -24,3 +24,9 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    ignore:
+      # Node majors are a deliberate upgrade, done together with .nvmrc and local
+      # development, and only to an even-numbered (long-term support) release. Dependabot
+      # would propose every major, including short-lived odd ones (it opened 22 -> 25).
+      - dependency-name: node
+        update-types: ['version-update:semver-major']

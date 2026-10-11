@@ -109,7 +109,11 @@ from reaching `main`.
   one-time reformat commit is listed in `.git-blame-ignore-revs`, so `git blame` skips it.
 - **Dependencies:** lint and format tools are installed once at the root. Dependabot
   (`.github/dependabot.yml`) opens weekly PRs — minor and patch updates grouped, majors
-  one by one — for npm packages, GitHub Actions and the Docker base images. A vulnerable
+  one by one — for npm packages, GitHub Actions and the Docker base images. Node is the
+  exception: Dependabot proposes only patch and minor updates of the `node` image. A new
+  Node major is a deliberate upgrade to an even-numbered LTS release, changing `.nvmrc`,
+  the Dockerfile and local development together, so production never runs a Node
+  version that isn't tested locally (it first proposed 22 → 25, a short-lived release). A vulnerable
   package nested inside a dependency that hasn't updated yet is pinned with a pnpm
   `overrides` entry in `pnpm-workspace.yaml`, with the advisory id and when to drop it.
 
