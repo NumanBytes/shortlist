@@ -22,7 +22,14 @@ describe('loadEnv', () => {
   });
 
   it('treats empty values as not set (Docker Compose passes blank optional settings as "")', () => {
-    const env = loadEnv({ ...valid, GOOGLE_CLIENT_ID: '', GOOGLE_CLIENT_SECRET: '', GOOGLE_REDIRECT_URI: '', TOKEN_ENCRYPTION_KEY: '', PORT: '' });
+    const env = loadEnv({
+      ...valid,
+      GOOGLE_CLIENT_ID: '',
+      GOOGLE_CLIENT_SECRET: '',
+      GOOGLE_REDIRECT_URI: '',
+      TOKEN_ENCRYPTION_KEY: '',
+      PORT: '',
+    });
     expect(env.GOOGLE_CLIENT_ID).toBeUndefined();
     expect(env.PORT).toBe(3000); // the default, not a failed parse of ""
   });
@@ -66,7 +73,9 @@ describe('loadEnv', () => {
     });
 
     it('refuses an encryption key that is not 32 bytes', () => {
-      expect(() => loadEnv({ ...valid, ...google, TOKEN_ENCRYPTION_KEY: Buffer.alloc(16).toString('base64') })).toThrow(/32 bytes/);
+      expect(() => loadEnv({ ...valid, ...google, TOKEN_ENCRYPTION_KEY: Buffer.alloc(16).toString('base64') })).toThrow(
+        /32 bytes/,
+      );
     });
   });
 });

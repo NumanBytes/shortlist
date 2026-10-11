@@ -25,7 +25,16 @@ const detail: JobDetail = {
 
 const open = (d: JobDetail) => {
   // The resume card asks for the job's resume; everything else gets the job.
-  const noResume = { status: 'NONE', error: null, reused: false, overlap: null, canTailor: true, variant: null, sources: {}, reuse: [] };
+  const noResume = {
+    status: 'NONE',
+    error: null,
+    reused: false,
+    overlap: null,
+    canTailor: true,
+    variant: null,
+    sources: {},
+    reuse: [],
+  };
   const fetchMock = mockFetch(d, (url) => (url.endsWith('/resume') ? noResume : d));
   renderWithProviders(<JobDetailPage />, { path: '/jobs/:jobId', route: '/jobs/j1' });
   return fetchMock;
@@ -55,7 +64,12 @@ describe('JobDetailPage', () => {
   });
 
   it('explains a deferred score and lets the user retry', async () => {
-    const fetchMock = open({ ...detail, match: null, analysisStatus: 'DEFERRED', analysisError: 'Daily analysis cap reached (40 of 40)' });
+    const fetchMock = open({
+      ...detail,
+      match: null,
+      analysisStatus: 'DEFERRED',
+      analysisError: 'Daily analysis cap reached (40 of 40)',
+    });
     expect(await screen.findByText('Daily analysis cap reached (40 of 40)')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: /Retry/ }));
     await waitFor(() => expect(fetchMock.mock.calls.some(([u]) => u === '/api/v1/jobs/j1/analyze')).toBe(true));

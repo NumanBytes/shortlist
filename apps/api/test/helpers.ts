@@ -46,7 +46,13 @@ export async function createTestApp(configure: (b: TestingModuleBuilder) => Test
   // out of the way, in a namespace of this app's own. rate-limit.e2e-spec.ts sets real ones.
   const base = Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(AUTH_RATE_RULES)
-    .useValue({ ...DEFAULT_AUTH_RATE_RULES, loginPerIp: LOTS, loginFailuresPerAccount: LOTS, registerPerIp: LOTS, prefix: `test-rl:${crypto.randomUUID()}` });
+    .useValue({
+      ...DEFAULT_AUTH_RATE_RULES,
+      loginPerIp: LOTS,
+      loginFailuresPerAccount: LOTS,
+      registerPerIp: LOTS,
+      prefix: `test-rl:${crypto.randomUUID()}`,
+    });
   const moduleRef = await configure(base).compile();
   const app: INestApplication = configureApp(moduleRef.createNestApplication());
   await app.init();

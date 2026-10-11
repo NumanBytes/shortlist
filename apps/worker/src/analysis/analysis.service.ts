@@ -293,6 +293,9 @@ export class AnalysisService {
   }
 
   private async fail(jobId: string, reason: string) {
-    await this.prisma.job.update({ where: { id: jobId }, data: { analysisStatus: 'FAILED', analysisError: reason.slice(0, 1000) } });
+    await this.prisma.job.update({
+      where: { id: jobId },
+      data: { analysisStatus: 'FAILED', analysisError: reason.slice(0, 1000) },
+    });
   }
 }

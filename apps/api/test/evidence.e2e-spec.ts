@@ -19,7 +19,8 @@ describe('Skill evidence (e2e)', () => {
 
   let skillCounter = 0;
   async function newSkill(who: TestUser = me) {
-    const res = await t.http()
+    const res = await t
+      .http()
       .post('/api/v1/skills')
       .set(who.auth)
       .send({ name: `Skill ${++skillCounter}`, category: 'TOOL' })
@@ -37,16 +38,11 @@ describe('Skill evidence (e2e)', () => {
   });
 
   async function newEvidence(skillId: string, extra: Record<string, unknown> = {}) {
-    const res = await t.http()
-      .post('/api/v1/evidence')
-      .set(me.auth)
-      .send(evidenceBody(skillId, extra))
-      .expect(201);
+    const res = await t.http().post('/api/v1/evidence').set(me.auth).send(evidenceBody(skillId, extra)).expect(201);
     return res.body as { id: string; isVerified: boolean; verifiedAt: string | null };
   }
 
-  const verify = (id: string, who: TestUser = me) =>
-    t.http().post(`/api/v1/evidence/${id}/verify`).set(who.auth);
+  const verify = (id: string, who: TestUser = me) => t.http().post(`/api/v1/evidence/${id}/verify`).set(who.auth);
 
   describe('verification', () => {
     it('creates evidence unverified', async () => {
@@ -57,7 +53,8 @@ describe('Skill evidence (e2e)', () => {
 
     it('never accepts isVerified from a request body — create or update', async () => {
       const skillId = await newSkill();
-      await t.http()
+      await t
+        .http()
         .post('/api/v1/evidence')
         .set(me.auth)
         .send(evidenceBody(skillId, { isVerified: true }))
@@ -88,7 +85,8 @@ describe('Skill evidence (e2e)', () => {
     it('editing verified evidence un-verifies it', async () => {
       const ev = await newEvidence(await newSkill());
       await verify(ev.id).expect(200);
-      const res = await t.http()
+      const res = await t
+        .http()
         .patch(`/api/v1/evidence/${ev.id}`)
         .set(me.auth)
         .send({ whatIDid: 'Built and also designed the RBAC screens' })
@@ -139,12 +137,14 @@ describe('Skill evidence (e2e)', () => {
         data: { userId: other.user.id, company: 'Elsewhere', title: 'Dev', startDate: new Date('2024-01-01') },
       });
       const skillId = await newSkill();
-      await t.http()
+      await t
+        .http()
         .post('/api/v1/evidence')
         .set(me.auth)
         .send(evidenceBody(skillId, { projectId: theirProject.id }))
         .expect(400);
-      await t.http()
+      await t
+        .http()
         .post('/api/v1/evidence')
         .set(me.auth)
         .send(evidenceBody(skillId, { workExperienceId: theirJob.id }))
@@ -165,7 +165,8 @@ describe('Skill evidence (e2e)', () => {
         data: { userId: me.user.id, company: 'CloudCard', title: 'Frontend Dev', startDate: new Date('2024-05-01') },
       });
       const skillId = await newSkill();
-      await t.http()
+      await t
+        .http()
         .post('/api/v1/evidence')
         .set(me.auth)
         .send(evidenceBody(skillId, { projectId: project.id, workExperienceId: job.id }))
@@ -174,7 +175,8 @@ describe('Skill evidence (e2e)', () => {
       const ev = await newEvidence(skillId, { workExperienceId: job.id });
       await t.http().patch(`/api/v1/evidence/${ev.id}`).set(me.auth).send({ projectId: project.id }).expect(400);
       // Clearing one link while setting the other is allowed.
-      await t.http()
+      await t
+        .http()
         .patch(`/api/v1/evidence/${ev.id}`)
         .set(me.auth)
         .send({ workExperienceId: null, projectId: project.id })
@@ -183,7 +185,8 @@ describe('Skill evidence (e2e)', () => {
 
     it('rejects a lastUsed date in the future', async () => {
       const skillId = await newSkill();
-      await t.http()
+      await t
+        .http()
         .post('/api/v1/evidence')
         .set(me.auth)
         .send(evidenceBody(skillId, { lastUsed: '2999-01-01' }))

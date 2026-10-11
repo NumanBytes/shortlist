@@ -5,8 +5,28 @@ import { job } from '../../test/fixtures';
 import { mockFetch, renderWithProviders } from '../../test/render';
 import { ResumePage } from './ResumePage';
 
-const profile = { id: 'u', email: 'numan@example.com', name: 'Numan Razzaq', headline: null, targetRole: null, location: 'Lahore, Pakistan', phone: '+92 300 0000000', linkedinUrl: 'https://linkedin.com/in/numan', githubUrl: null, createdAt: '' };
-const education = [{ id: 'ed', degree: 'BS Information Technology', institution: 'University of the Punjab', location: null, startYear: 2019, endYear: 2023 }];
+const profile = {
+  id: 'u',
+  email: 'numan@example.com',
+  name: 'Numan Razzaq',
+  headline: null,
+  targetRole: null,
+  location: 'Lahore, Pakistan',
+  phone: '+92 300 0000000',
+  linkedinUrl: 'https://linkedin.com/in/numan',
+  githubUrl: null,
+  createdAt: '',
+};
+const education = [
+  {
+    id: 'ed',
+    degree: 'BS Information Technology',
+    institution: 'University of the Punjab',
+    location: null,
+    startYear: 2019,
+    endYear: 2023,
+  },
+];
 
 const resume = (status: 'DRAFT' | 'APPROVED', stale: string[] = []): JobResume => ({
   status: 'READY',
@@ -19,7 +39,14 @@ const resume = (status: 'DRAFT' | 'APPROVED', stale: string[] = []): JobResume =
   needsDescription: false,
   reuse: [],
   sources: {
-    e1: { skillName: 'React', whatIDid: 'Used React to build frontend features.', isVerified: true, context: 'COMMERCIAL', depth: 'PRODUCTION', lastUsed: '2026-09-01T00:00:00Z' },
+    e1: {
+      skillName: 'React',
+      whatIDid: 'Used React to build frontend features.',
+      isVerified: true,
+      context: 'COMMERCIAL',
+      depth: 'PRODUCTION',
+      lastUsed: '2026-09-01T00:00:00Z',
+    },
   },
   variant: {
     id: 'v1',
@@ -29,10 +56,27 @@ const resume = (status: 'DRAFT' | 'APPROVED', stale: string[] = []): JobResume =
     approvedAt: null,
     stale,
     content: {
-      experience: [{ workExperienceId: 'r', title: 'Software Engineer', company: 'CloudCard Inc.', location: null, startDate: '2024-05-01T00:00:00Z', endDate: null, isCurrent: true, bullets: [{ label: 'Frontend', text: 'Built frontend features in React.', evidenceIds: ['e1'] }] }],
+      experience: [
+        {
+          workExperienceId: 'r',
+          title: 'Software Engineer',
+          company: 'CloudCard Inc.',
+          location: null,
+          startDate: '2024-05-01T00:00:00Z',
+          endDate: null,
+          isCurrent: true,
+          bullets: [{ label: 'Frontend', text: 'Built frontend features in React.', evidenceIds: ['e1'] }],
+        },
+      ],
       projects: [],
       skillGroups: [{ label: 'Frontend', skills: [{ id: 's', name: 'React' }] }],
-      dropped: [{ where: 'Software Engineer, CloudCard Inc.', text: 'Led a team of 12.', reason: 'adds "12", which isn\'t in your evidence' }],
+      dropped: [
+        {
+          where: 'Software Engineer, CloudCard Inc.',
+          text: 'Led a team of 12.',
+          reason: 'adds "12", which isn\'t in your evidence',
+        },
+      ],
     },
   },
 });
@@ -82,7 +126,9 @@ describe('ResumePage', () => {
     await userEvent.click(screen.getByRole('button', { name: /Copy as plain text/ }));
     const text = (writeText.mock.calls[0] as unknown as [string])[0];
     expect(text).toMatch(/^Numan Razzaq\n/);
-    expect(text).toMatch(/EXPERIENCE\nSoftware Engineer \| CloudCard Inc\. — May 2024 - Present\n• Frontend: Built frontend features in React\./);
+    expect(text).toMatch(
+      /EXPERIENCE\nSoftware Engineer \| CloudCard Inc\. — May 2024 - Present\n• Frontend: Built frontend features in React\./,
+    );
     expect(text.indexOf('SKILLS')).toBeLessThan(text.indexOf('EDUCATION'));
     expect(text).not.toMatch(/Led a team of 12/); // removed bullets are never copied
   });
@@ -91,7 +137,9 @@ describe('ResumePage', () => {
     const fetch = setup(resume('DRAFT'));
     render();
     await userEvent.click(await screen.findByRole('button', { name: /Approve/ }));
-    await waitFor(() => expect(fetch.mock.calls.some(([url]) => String(url).endsWith('/resumes/v1/approve'))).toBe(true));
+    await waitFor(() =>
+      expect(fetch.mock.calls.some(([url]) => String(url).endsWith('/resumes/v1/approve'))).toBe(true),
+    );
     expect(screen.queryByRole('button', { name: /Save as PDF/ })).not.toBeInTheDocument();
   });
 

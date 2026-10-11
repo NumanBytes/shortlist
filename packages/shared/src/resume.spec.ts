@@ -24,7 +24,12 @@ describe('placementFor (Agents.md §6.1)', () => {
 });
 
 describe('reuse overlap (docs/resume.md §13.2)', () => {
-  const profile = requirementProfile([{ skillName: 'React.js' }, { skillName: 'TypeScript' }, { skillName: 'REST APIs' }, { skillName: 'AWS / GCP' }]);
+  const profile = requirementProfile([
+    { skillName: 'React.js' },
+    { skillName: 'TypeScript' },
+    { skillName: 'REST APIs' },
+    { skillName: 'AWS / GCP' },
+  ]);
 
   it('normalizes names and splits alternatives', () => {
     expect(profile).toEqual(['aws', 'gcp', 'react', 'restapi', 'typescript']);

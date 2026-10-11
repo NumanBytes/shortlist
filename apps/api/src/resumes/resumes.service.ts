@@ -93,7 +93,12 @@ export class ResumesService {
   async prepare(userId: string, jobId: string, input: PrepareResumeInput) {
     const job = await this.prisma.job.findFirst({
       where: { id: jobId, userId },
-      select: { analysisStatus: true, isPartial: true, requirements: { select: { skillName: true, importance: true } }, resume: true },
+      select: {
+        analysisStatus: true,
+        isPartial: true,
+        requirements: { select: { skillName: true, importance: true } },
+        resume: true,
+      },
     });
     if (!job) throw new NotFoundException('Job not found');
 
@@ -111,8 +116,10 @@ export class ResumesService {
       return this.forJob(userId, jobId);
     }
 
-    if (job.isPartial) throw new ConflictException('Paste the full job description first — the alert only had a summary');
-    if (job.analysisStatus !== 'DONE') throw new ConflictException('Score this job first — tailoring uses its requirements');
+    if (job.isPartial)
+      throw new ConflictException('Paste the full job description first — the alert only had a summary');
+    if (job.analysisStatus !== 'DONE')
+      throw new ConflictException('Score this job first — tailoring uses its requirements');
     if (job.resume?.status === 'PENDING') return this.forJob(userId, jobId); // already on its way
     await this.prisma.jobResume.upsert({
       where: { jobId },
@@ -123,7 +130,10 @@ export class ResumesService {
       await this.queues.enqueueTailoring(jobId);
     } catch (err) {
       // Not queued, so don't leave the job looking like it's being tailored.
-      await this.prisma.jobResume.update({ where: { jobId }, data: { status: 'FAILED', error: 'Job queue unavailable — try again' } });
+      await this.prisma.jobResume.update({
+        where: { jobId },
+        data: { status: 'FAILED', error: 'Job queue unavailable — try again' },
+      });
       throw err;
     }
     return this.forJob(userId, jobId);
@@ -136,7 +146,10 @@ export class ResumesService {
     if (!job) throw new NotFoundException('Job not found');
     if (job.resume?.status !== 'PENDING') throw new ConflictException('Nothing is being tailored for this job');
     const result = await this.queues.cancelTailoring(jobId);
-    if (result === 'running') throw new ConflictException("It's already being written — it can't be stopped now. It finishes in about a minute.");
+    if (result === 'running')
+      throw new ConflictException(
+        "It's already being written — it can't be stopped now. It finishes in about a minute.",
+      );
     if (job.resume.variantId) {
       await this.prisma.jobResume.update({ where: { jobId }, data: { status: 'READY', error: null } });
     } else {
@@ -152,7 +165,8 @@ export class ResumesService {
     if ((await this.staleReasons(userId, [variant])).get(variant.id)?.length) {
       throw new ConflictException('This resume is out of date — tailor it again before approving');
     }
-    if (variant.status === 'APPROVED') return { id: variant.id, status: variant.status, approvedAt: variant.approvedAt };
+    if (variant.status === 'APPROVED')
+      return { id: variant.id, status: variant.status, approvedAt: variant.approvedAt };
     return this.prisma.resumeVariant.update({
       where: { id: variantId },
       data: { status: 'APPROVED', approvedAt: new Date() },
@@ -191,19 +205,38 @@ export class ResumesService {
   private async sources(userId: string, ids: string[]) {
     const rows = await this.prisma.skillEvidence.findMany({
       where: { id: { in: ids }, skill: { userId } },
-      select: { id: true, whatIDid: true, isVerified: true, context: true, depth: true, lastUsed: true, skill: { select: { name: true } } },
+      select: {
+        id: true,
+        whatIDid: true,
+        isVerified: true,
+        context: true,
+        depth: true,
+        lastUsed: true,
+        skill: { select: { name: true } },
+      },
     });
     // What the review sheet shows under a bullet: the user's own words and how they rated it.
     return Object.fromEntries(
       rows.map((r) => [
         r.id,
-        { skillName: r.skill.name, whatIDid: r.whatIDid, isVerified: r.isVerified, context: r.context, depth: r.depth, lastUsed: r.lastUsed },
+        {
+          skillName: r.skill.name,
+          whatIDid: r.whatIDid,
+          isVerified: r.isVerified,
+          context: r.context,
+          depth: r.depth,
+          lastUsed: r.lastUsed,
+        },
       ]),
     );
   }
 
   // Approved, up-to-date resumes built for nearly the same requirements (docs/resume.md §13.2).
-  private async reuseOffers(userId: string, requirements: { skillName: string; importance: Importance }[], currentId: string | null) {
+  private async reuseOffers(
+    userId: string,
+    requirements: { skillName: string; importance: Importance }[],
+    currentId: string | null,
+  ) {
     if (requirements.length === 0) return [];
     const [settingsRow, approved] = await Promise.all([
       this.prisma.aiSettings.findUnique({ where: { userId } }),
@@ -217,7 +250,10 @@ export class ResumesService {
     const fits = approved
       .map((v) => ({ v, ...resumeOverlap(requirements, v.requirementProfile) }))
       .filter((x) => x.overlap >= min && x.missingRequired.length === 0);
-    const stale = await this.staleReasons(userId, fits.map((x) => x.v));
+    const stale = await this.staleReasons(
+      userId,
+      fits.map((x) => x.v),
+    );
     return fits
       .filter((x) => !stale.get(x.v.id)?.length)
       .sort((a, b) => b.overlap - a.overlap)

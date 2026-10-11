@@ -26,7 +26,11 @@ export function Roles() {
         />
       ))}
       <AddRow onClick={() => setEditing('new')}>Add role</AddRow>
-      <Sheet open={editing !== null} onClose={() => setEditing(null)} title={editing === 'new' ? 'Add role' : 'Edit role'}>
+      <Sheet
+        open={editing !== null}
+        onClose={() => setEditing(null)}
+        title={editing === 'new' ? 'Add role' : 'Edit role'}
+      >
         {editing && <RoleForm role={editing === 'new' ? undefined : editing} onDone={() => setEditing(null)} />}
       </Sheet>
     </Group>
@@ -39,10 +43,20 @@ export function Projects() {
   return (
     <Group label="Projects">
       {(projects.data ?? []).map((p) => (
-        <Row key={p.id} icon={<FolderKanban className="size-[18px]" />} title={p.name} sub={p.description ?? undefined} onClick={() => setEditing(p)} />
+        <Row
+          key={p.id}
+          icon={<FolderKanban className="size-[18px]" />}
+          title={p.name}
+          sub={p.description ?? undefined}
+          onClick={() => setEditing(p)}
+        />
       ))}
       <AddRow onClick={() => setEditing('new')}>Add project</AddRow>
-      <Sheet open={editing !== null} onClose={() => setEditing(null)} title={editing === 'new' ? 'Add project' : 'Edit project'}>
+      <Sheet
+        open={editing !== null}
+        onClose={() => setEditing(null)}
+        title={editing === 'new' ? 'Add project' : 'Edit project'}
+      >
         {editing && <ProjectForm project={editing === 'new' ? undefined : editing} onDone={() => setEditing(null)} />}
       </Sheet>
     </Group>
@@ -60,12 +74,18 @@ export function EducationList() {
           key={e.id}
           icon={<GraduationCap className="size-[18px]" />}
           title={e.degree}
-          sub={[e.institution, e.startYear || e.endYear ? `${e.startYear ?? '?'} – ${e.endYear ?? 'present'}` : null].filter(Boolean).join(' · ')}
+          sub={[e.institution, e.startYear || e.endYear ? `${e.startYear ?? '?'} – ${e.endYear ?? 'present'}` : null]
+            .filter(Boolean)
+            .join(' · ')}
           onClick={() => setEditing(e)}
         />
       ))}
       <AddRow onClick={() => setEditing('new')}>Add education</AddRow>
-      <Sheet open={editing !== null} onClose={() => setEditing(null)} title={editing === 'new' ? 'Add education' : 'Edit education'}>
+      <Sheet
+        open={editing !== null}
+        onClose={() => setEditing(null)}
+        title={editing === 'new' ? 'Add education' : 'Edit education'}
+      >
         {editing && <EducationForm initial={editing === 'new' ? undefined : editing} onDone={() => setEditing(null)} />}
       </Sheet>
     </Group>

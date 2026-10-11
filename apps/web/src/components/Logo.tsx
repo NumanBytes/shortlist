@@ -20,7 +20,11 @@ export function Logo({ withName = true, size = 'sm' }: { withName?: boolean; siz
         </g>
       </svg>
       {withName && (
-        <span className={`font-bold tracking-tight text-fg ${size === 'lg' ? 'text-[28px] leading-none' : 'text-base'}`}>Shortlist</span>
+        <span
+          className={`font-bold tracking-tight text-fg ${size === 'lg' ? 'text-[28px] leading-none' : 'text-base'}`}
+        >
+          Shortlist
+        </span>
       )}
     </span>
   );

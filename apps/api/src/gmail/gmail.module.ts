@@ -15,7 +15,11 @@ import { GMAIL_API, GOOGLE_OAUTH, GmailService } from './gmail.service.js';
       inject: [ENV],
       useFactory: (env: Env) =>
         env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET && env.GOOGLE_REDIRECT_URI
-          ? new HttpGoogleOAuth({ clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET, redirectUri: env.GOOGLE_REDIRECT_URI })
+          ? new HttpGoogleOAuth({
+              clientId: env.GOOGLE_CLIENT_ID,
+              clientSecret: env.GOOGLE_CLIENT_SECRET,
+              redirectUri: env.GOOGLE_REDIRECT_URI,
+            })
           : null,
     },
     { provide: GMAIL_API, useValue: new HttpGmailApi() },

@@ -14,7 +14,10 @@ const OUTCOME: Record<string, { ok: boolean; text: string }> = {
   expired: { ok: false, text: 'That attempt took longer than 10 minutes. Try again.' },
   mismatch: { ok: false, text: 'That sign-in didn’t start in this browser, so it was refused. Start again from here.' },
   scope: { ok: false, text: 'Read access to Gmail wasn’t granted. Tick it on Google’s screen to connect.' },
-  no_refresh_token: { ok: false, text: 'Google didn’t grant offline access. Remove Shortlist at myaccount.google.com/permissions, then connect again.' },
+  no_refresh_token: {
+    ok: false,
+    text: 'Google didn’t grant offline access. Remove Shortlist at myaccount.google.com/permissions, then connect again.',
+  },
   google_error: { ok: false, text: 'Google returned an error. Try again in a minute.' },
 };
 const POLLS = 15;
@@ -158,8 +161,8 @@ function Body({ status, onCheck }: { status: GmailStatus; onCheck: () => void })
                 // A code parser found nothing in what looked like an alert, and the model read
                 // it instead (docs/email-alerts.md §10.4) — the portal likely changed its email layout.
                 <p className="mt-0.5 flex gap-1.5 text-stretch-fg">
-                  <AlertTriangle className="size-3.5 shrink-0" /> {p.label}'s email layout may have changed — read by AI for now
-                  ({p.parserWarnings})
+                  <AlertTriangle className="size-3.5 shrink-0" /> {p.label}'s email layout may have changed — read by AI
+                  for now ({p.parserWarnings})
                 </p>
               )}
             </li>
@@ -179,7 +182,12 @@ function Body({ status, onCheck }: { status: GmailStatus; onCheck: () => void })
             <Button variant="secondary" onClick={() => setConfirmDisconnect(false)}>
               Cancel
             </Button>
-            <Button variant="danger" className="bg-surface" onClick={() => disconnect.mutate()} disabled={disconnect.isPending}>
+            <Button
+              variant="danger"
+              className="bg-surface"
+              onClick={() => disconnect.mutate()}
+              disabled={disconnect.isPending}
+            >
               Disconnect
             </Button>
           </div>
@@ -187,7 +195,11 @@ function Body({ status, onCheck }: { status: GmailStatus; onCheck: () => void })
       ) : (
         <div className="grid grid-cols-2 gap-2">
           {c.status === 'ACTIVE' ? (
-            <Button variant="secondary" onClick={() => check.mutate(undefined, { onSuccess: onCheck })} disabled={check.isPending}>
+            <Button
+              variant="secondary"
+              onClick={() => check.mutate(undefined, { onSuccess: onCheck })}
+              disabled={check.isPending}
+            >
               <RefreshCw className="size-4" /> {check.isPending ? 'Queuing…' : 'Check now'}
             </Button>
           ) : (
@@ -212,17 +224,19 @@ function Body({ status, onCheck }: { status: GmailStatus; onCheck: () => void })
 function FilterHelp() {
   return (
     <details className="rounded-lg border border-border">
-      <summary className="cursor-pointer px-3 py-2 text-sm font-medium text-fg">How to label job alerts in Gmail</summary>
+      <summary className="cursor-pointer px-3 py-2 text-sm font-medium text-fg">
+        How to label job alerts in Gmail
+      </summary>
       <ol className="list-decimal space-y-1 border-t border-border py-2 pr-3 pl-8 text-sm text-muted">
         <li>Open a job-alert email from one portal (LinkedIn, Indeed, Rozee.pk, Wellfound…).</li>
         <li>
-          Click <strong className="text-fg">▾</strong> next to “to me” and copy the <strong className="text-fg">from</strong>{' '}
-          address (e.g. donotreply@jobalert.indeed.com).
+          Click <strong className="text-fg">▾</strong> next to “to me” and copy the{' '}
+          <strong className="text-fg">from</strong> address (e.g. donotreply@jobalert.indeed.com).
         </li>
         <li>
           Click <strong className="text-fg">⋮ → Filter messages like these</strong>. Put that address in{' '}
-          <strong className="text-fg">From</strong> and clear anything Gmail filled in (such as “list:…” — it would match only
-          one alert), then <strong className="text-fg">Create filter</strong>.
+          <strong className="text-fg">From</strong> and clear anything Gmail filled in (such as “list:…” — it would
+          match only one alert), then <strong className="text-fg">Create filter</strong>.
         </li>
         <li>
           Tick <strong className="text-fg">Apply the label</strong> → New label “Shortlist”, and{' '}

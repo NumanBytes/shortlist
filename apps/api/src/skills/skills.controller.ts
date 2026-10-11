@@ -1,21 +1,5 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  HttpCode,
-  HttpStatus,
-  Param,
-  ParseUUIDPipe,
-  Patch,
-  Post,
-} from '@nestjs/common';
-import {
-  CreateSkillSchema,
-  UpdateSkillSchema,
-  type CreateSkillInput,
-  type UpdateSkillInput,
-} from '@shortlist/shared';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
+import { CreateSkillSchema, UpdateSkillSchema, type CreateSkillInput, type UpdateSkillInput } from '@shortlist/shared';
 import { CurrentUser, type AuthUser } from '../auth/current-user.decorator.js';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
 import { SkillsService } from './skills.service.js';
@@ -35,10 +19,7 @@ export class SkillsController {
   }
 
   @Post()
-  create(
-    @CurrentUser() user: AuthUser,
-    @Body(new ZodValidationPipe(CreateSkillSchema)) body: CreateSkillInput,
-  ) {
+  create(@CurrentUser() user: AuthUser, @Body(new ZodValidationPipe(CreateSkillSchema)) body: CreateSkillInput) {
     return this.skills.create(user.id, body);
   }
 

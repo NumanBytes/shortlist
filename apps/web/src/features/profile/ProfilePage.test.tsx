@@ -26,14 +26,34 @@ const usage = {
   last24hUsd: 0.05,
   jobs: { pending: 1, done: 20, deferred: 0, failed: 0 },
 };
-const roles = [{ id: 'r1', company: 'CloudCard Inc.', title: 'Software Engineer', startDate: '2024-05-01T00:00:00Z', endDate: null, isCurrent: true, location: null }];
+const roles = [
+  {
+    id: 'r1',
+    company: 'CloudCard Inc.',
+    title: 'Software Engineer',
+    startDate: '2024-05-01T00:00:00Z',
+    endDate: null,
+    isCurrent: true,
+    location: null,
+  },
+];
 
 const setup = () =>
   mockFetch(undefined, (url) =>
-    url.endsWith('/education') || url.endsWith('/projects') ? [] : url.endsWith('/work-experiences') ? roles : url.endsWith('/ai/usage') ? usage : url.endsWith('/gmail') ? { connection: null } : profile,
+    url.endsWith('/education') || url.endsWith('/projects')
+      ? []
+      : url.endsWith('/work-experiences')
+        ? roles
+        : url.endsWith('/ai/usage')
+          ? usage
+          : url.endsWith('/gmail')
+            ? { connection: null }
+            : profile,
   );
 const patches = (fetchMock: ReturnType<typeof setup>) =>
-  fetchMock.mock.calls.filter(([, i]) => i?.method === 'PATCH').map(([url, i]) => ({ url, body: JSON.parse(i!.body as string) }));
+  fetchMock.mock.calls
+    .filter(([, i]) => i?.method === 'PATCH')
+    .map(([url, i]) => ({ url, body: JSON.parse(i!.body as string) }));
 
 describe('ProfilePage', () => {
   it('shows who you are, your roles, and the account actions', async () => {
@@ -56,7 +76,11 @@ describe('ProfilePage', () => {
     await userEvent.type(screen.getByLabelText('LinkedIn URL'), 'https://linkedin.com/in/numan-razzaq');
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(patches(fetchMock)).toHaveLength(1));
-    expect(patches(fetchMock)[0]!.body).toMatchObject({ phone: null, linkedinUrl: 'https://linkedin.com/in/numan-razzaq', name: 'Numan Razzaq' });
+    expect(patches(fetchMock)[0]!.body).toMatchObject({
+      phone: null,
+      linkedinUrl: 'https://linkedin.com/in/numan-razzaq',
+      name: 'Numan Razzaq',
+    });
   });
 
   it('rejects a non-http link before sending', async () => {
@@ -73,7 +97,9 @@ describe('ProfilePage', () => {
     const fetchMock = setup();
     renderWithProviders(<ProfilePage />);
     await userEvent.click(await screen.findByRole('button', { name: /Raise the cap/ }));
-    await waitFor(() => expect(patches(fetchMock)).toEqual([{ url: '/api/v1/ai/settings', body: { monthlyBudgetUsd: 5.5 } }]));
+    await waitFor(() =>
+      expect(patches(fetchMock)).toEqual([{ url: '/api/v1/ai/settings', body: { monthlyBudgetUsd: 5.5 } }]),
+    );
   });
 
   it('does not turn an emptied budget field into a $0 budget', async () => {
@@ -93,6 +119,8 @@ describe('ProfilePage', () => {
     await userEvent.click(input);
     await userEvent.clear(input);
     await userEvent.type(input, '3{Enter}');
-    await waitFor(() => expect(patches(fetchMock)).toEqual([{ url: '/api/v1/ai/settings', body: { monthlyBudgetUsd: 3 } }]));
+    await waitFor(() =>
+      expect(patches(fetchMock)).toEqual([{ url: '/api/v1/ai/settings', body: { monthlyBudgetUsd: 3 } }]),
+    );
   });
 });

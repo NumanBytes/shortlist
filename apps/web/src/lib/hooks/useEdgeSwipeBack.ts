@@ -10,7 +10,8 @@ const EASE = 'cubic-bezier(.2,.8,.2,1)';
 
 const installed = () =>
   typeof window !== 'undefined' &&
-  (window.matchMedia?.('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true);
+  (window.matchMedia?.('(display-mode: standalone)').matches ||
+    (navigator as Navigator & { standalone?: boolean }).standalone === true);
 
 export function useEdgeSwipeBack(onBack: () => void) {
   const [dx, setDx] = useState(0);
@@ -21,7 +22,13 @@ export function useEdgeSwipeBack(onBack: () => void) {
   const handlers = {
     onPointerDown: (e: PointerEvent) => {
       if (!installed() || e.clientX > EDGE_PX || e.button !== 0) return;
-      start.current = { x: e.clientX, y: e.clientY, t: e.timeStamp, id: e.pointerId, w: (e.currentTarget as HTMLElement).offsetWidth || window.innerWidth };
+      start.current = {
+        x: e.clientX,
+        y: e.clientY,
+        t: e.timeStamp,
+        id: e.pointerId,
+        w: (e.currentTarget as HTMLElement).offsetWidth || window.innerWidth,
+      };
       horizontal.current = null;
     },
     onPointerMove: (e: PointerEvent) => {

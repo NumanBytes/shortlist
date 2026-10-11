@@ -24,7 +24,9 @@ export const smartrecruiters: Adapter<{ provider: 'smartrecruiters'; company: st
   const base = `https://api.smartrecruiters.com/v1/companies/${encodeURIComponent(company)}/postings`;
   const listings: SrListing[] = [];
   for (let page = 0; page < MAX_PAGES; page++) {
-    const res = await getJson<{ totalFound: number; content: SrListing[] }>(`${base}?limit=${PAGE}&offset=${page * PAGE}`);
+    const res = await getJson<{ totalFound: number; content: SrListing[] }>(
+      `${base}?limit=${PAGE}&offset=${page * PAGE}`,
+    );
     listings.push(...res.content);
     if (listings.length >= res.totalFound || res.content.length === 0) break;
   }

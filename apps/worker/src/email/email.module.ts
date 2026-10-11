@@ -45,12 +45,24 @@ export class EmailScheduler implements OnApplicationBootstrap {
       // Refreshing a token needs no redirect URI; it's only part of the consent step.
       useFactory: (env: Env) =>
         env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
-          ? new HttpGoogleOAuth({ clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET, redirectUri: '' })
+          ? new HttpGoogleOAuth({
+              clientId: env.GOOGLE_CLIENT_ID,
+              clientSecret: env.GOOGLE_CLIENT_SECRET,
+              redirectUri: '',
+            })
           : null,
     },
     { provide: WORKER_GMAIL_API, useValue: new HttpGmailApi() },
-    { provide: EMAIL_EXTRACTOR, inject: [ENV], useFactory: (env: Env) => new AnthropicEmailExtractor(env.ANTHROPIC_API_KEY) },
-    { provide: SECRET_BOX, inject: [ENV], useFactory: (env: Env) => (env.TOKEN_ENCRYPTION_KEY ? new SecretBox(env.TOKEN_ENCRYPTION_KEY) : null) },
+    {
+      provide: EMAIL_EXTRACTOR,
+      inject: [ENV],
+      useFactory: (env: Env) => new AnthropicEmailExtractor(env.ANTHROPIC_API_KEY),
+    },
+    {
+      provide: SECRET_BOX,
+      inject: [ENV],
+      useFactory: (env: Env) => (env.TOKEN_ENCRYPTION_KEY ? new SecretBox(env.TOKEN_ENCRYPTION_KEY) : null),
+    },
   ],
 })
 export class EmailModule {}

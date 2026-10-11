@@ -23,7 +23,13 @@ export class AnthropicEmailExtractor implements EmailExtractor {
     return this.client !== null;
   }
   extract({ system, user }: { system: string; user: string }) {
-    return structuredCall(this.client, { model: AI_MODELS.extractEmail, maxTokens: 4096, system, user, schema: EMAIL_EXTRACTION_JSON_SCHEMA });
+    return structuredCall(this.client, {
+      model: AI_MODELS.extractEmail,
+      maxTokens: 4096,
+      system,
+      user,
+      schema: EMAIL_EXTRACTION_JSON_SCHEMA,
+    });
   }
 }
 
@@ -67,7 +73,12 @@ export function buildExtractionPrompt(email: AlertEmail) {
 }
 
 // Lower-case, punctuation to spaces, single spaces: "Full-Stack Dev (MERN)" ~ "full stack dev mern".
-const norm = (s: string) => s.toLowerCase().normalize('NFKC').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+const norm = (s: string) =>
+  s
+    .toLowerCase()
+    .normalize('NFKC')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim();
 
 // Every job the model returns must be traceable to the email; anything else is dropped.
 export function checkExtracted(

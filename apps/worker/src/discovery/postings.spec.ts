@@ -22,7 +22,10 @@ describe('mapPostings', () => {
       { ok: posting({ title: '   ' }) },
       { ok: undefined as unknown as Posting }, // a mapping that throws on a missing field
     ];
-    const out = mapPostings(items, { sourceName: 'Board', onSkipped: (r) => skipped.push(r) }, (i) => ({ ...i.ok, title: i.ok.title }));
+    const out = mapPostings(items, { sourceName: 'Board', onSkipped: (r) => skipped.push(r) }, (i) => ({
+      ...i.ok,
+      title: i.ok.title,
+    }));
     expect(out.map((p) => p.url)).toEqual(['https://example.com/jobs/1']);
     expect(skipped).toHaveLength(3);
     expect(skipped[0]).toMatch(/url/);

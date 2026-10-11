@@ -36,7 +36,8 @@ export class EmailProcessor extends WorkerHost {
         } catch (err) {
           if (err instanceof PermanentEmailError) throw new UnrecoverableError(err.message);
           // Out of retries on a transient error: say so on the connection, not just in logs.
-          if (job.attemptsMade + 1 >= (job.opts.attempts ?? 1)) await this.email.failed(userId, `Couldn't reach Gmail: ${(err as Error).message}`);
+          if (job.attemptsMade + 1 >= (job.opts.attempts ?? 1))
+            await this.email.failed(userId, `Couldn't reach Gmail: ${(err as Error).message}`);
           throw err;
         }
       }

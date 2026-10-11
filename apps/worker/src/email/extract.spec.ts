@@ -1,4 +1,9 @@
-import { EMAIL_EXTRACTION_JSON_SCHEMA, EmailExtractionSchema, ExtractedWorkModeEnum, type EmailExtraction } from '@shortlist/shared';
+import {
+  EMAIL_EXTRACTION_JSON_SCHEMA,
+  EmailExtractionSchema,
+  ExtractedWorkModeEnum,
+  type EmailExtraction,
+} from '@shortlist/shared';
 import type { AlertEmail } from './alert-email.js';
 import { buildExtractionPrompt, checkExtracted } from './extract.js';
 
@@ -43,7 +48,9 @@ describe('checkExtracted', () => {
   });
 
   it('matches across punctuation and case, but only whole words', () => {
-    expect(check([job({ title: 'full stack dev (MERN)', company: 'GLOBEX PVT LTD', link: 'L2' })]).postings).toHaveLength(1);
+    expect(
+      check([job({ title: 'full stack dev (MERN)', company: 'GLOBEX PVT LTD', link: 'L2' })]).postings,
+    ).toHaveLength(1);
     expect(check([job({ company: 'Acme' })]).postings).toHaveLength(1); // "Acme" is a whole word of "Acme Corp"
     expect(check([job({ company: 'Acm' })]).dropped[0]!.reason).toBe('company not in the email');
   });
@@ -86,7 +93,9 @@ describe('extraction JSON schema stays in sync with the Zod schema', () => {
   it('has the same fields and enum', () => {
     const s = EMAIL_EXTRACTION_JSON_SCHEMA;
     expect([...s.required].sort()).toEqual(Object.keys(EmailExtractionSchema.shape).sort());
-    expect([...s.properties.jobs.items.required].sort()).toEqual(Object.keys(EmailExtractionSchema.shape.jobs.element.shape).sort());
+    expect([...s.properties.jobs.items.required].sort()).toEqual(
+      Object.keys(EmailExtractionSchema.shape.jobs.element.shape).sort(),
+    );
     expect(s.properties.jobs.items.properties.workMode.enum).toEqual(ExtractedWorkModeEnum.options);
   });
 });

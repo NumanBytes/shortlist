@@ -33,8 +33,7 @@ const NOT_ALERT_SUBJECT =
 export class PermanentEmailError extends Error {}
 
 export type CheckOutcome =
-  | { status: 'SUCCESS' | 'EMPTY'; read: number; jobsNew: number }
-  | { status: 'SKIPPED'; reason: string };
+  { status: 'SUCCESS' | 'EMPTY'; read: number; jobsNew: number } | { status: 'SKIPPED'; reason: string };
 
 type Reading = (
   | { status: 'PARSED'; parser: string; postings: EmailPosting[]; note: string | null }
@@ -75,14 +74,18 @@ export class EmailService {
     const startedAt = new Date();
 
     const accessToken = await this.accessToken(userId, c.refreshTokenEnc);
-    const label = (await this.gmail.labels(accessToken)).find((l) => l.name.toLowerCase() === c.labelName.toLowerCase());
+    const label = (await this.gmail.labels(accessToken)).find(
+      (l) => l.name.toLowerCase() === c.labelName.toLowerCase(),
+    );
     if (!label) {
       const reason = `There's no "${c.labelName}" label in ${c.emailAddress} yet — create the Gmail filter that applies it to job alerts`;
       await this.failed(userId, reason);
       throw new PermanentEmailError(reason);
     }
 
-    const query = c.lastCheckedAt ? `after:${Math.floor((c.lastCheckedAt.getTime() - OVERLAP_MS) / 1000)}` : FIRST_LOOKBACK;
+    const query = c.lastCheckedAt
+      ? `after:${Math.floor((c.lastCheckedAt.getTime() - OVERLAP_MS) / 1000)}`
+      : FIRST_LOOKBACK;
     const ids: string[] = [];
     let pageToken: string | undefined;
     do {
@@ -91,12 +94,18 @@ export class EmailService {
       pageToken = page.nextPageToken;
     } while (pageToken && ids.length < MAX_MESSAGES);
 
-    const known = await this.prisma.emailMessage.findMany({ where: { userId, gmailMessageId: { in: ids } }, select: { gmailMessageId: true } });
+    const known = await this.prisma.emailMessage.findMany({
+      where: { userId, gmailMessageId: { in: ids } },
+      select: { gmailMessageId: true },
+    });
     const seen = new Set(known.map((m) => m.gmailMessageId));
     // Deferred messages (budget, no API key) and ones read before parsing existed are read
     // again by id — they may be older than this check's window.
     const retry = (
-      await this.prisma.emailMessage.findMany({ where: { userId, status: { in: ['DEFERRED', 'UNPARSED'] } }, select: { gmailMessageId: true } })
+      await this.prisma.emailMessage.findMany({
+        where: { userId, status: { in: ['DEFERRED', 'UNPARSED'] } },
+        select: { gmailMessageId: true },
+      })
     ).map((m) => m.gmailMessageId);
     const toRead = [...new Set([...ids.filter((id) => !seen.has(id)), ...retry])].slice(0, MAX_MESSAGES);
 
@@ -143,8 +152,8 @@ export class EmailService {
     }
     if (toAnalyse.length) {
       // Best effort, like discovery: the nightly sweep picks up anything left PENDING.
-      await enqueueAnalyses(this.analysisQueue, toAnalyse, `email-${userId}-${startedAt.getTime()}`).catch((err: Error) =>
-        this.logger.warn(`Couldn't queue ${toAnalyse.length} email jobs for analysis: ${err.message}`),
+      await enqueueAnalyses(this.analysisQueue, toAnalyse, `email-${userId}-${startedAt.getTime()}`).catch(
+        (err: Error) => this.logger.warn(`Couldn't queue ${toAnalyse.length} email jobs for analysis: ${err.message}`),
       );
     }
 
@@ -160,7 +169,8 @@ export class EmailService {
   // One email → jobs. A code parser if the sender has one; the model otherwise, or when the
   // parser finds nothing in what should be an alert (it may be out of date).
   private async read(userId: string, email: AlertEmail, portalLabel: string): Promise<Reading> {
-    if (NOT_ALERT_SUBJECT.test(email.subject)) return { status: 'NOT_ALERT', parser: null, note: 'not a job alert (subject)' };
+    if (NOT_ALERT_SUBJECT.test(email.subject))
+      return { status: 'NOT_ALERT', parser: null, note: 'not a job alert (subject)' };
 
     const parser = email.sender ? EMAIL_PARSERS.find((p) => p.matches(email.sender!)) : undefined;
     if (!parser) return this.readWithModel(userId, email, portalLabel, null);
@@ -177,8 +187,14 @@ export class EmailService {
   }
 
   // The model fallback (docs/email-alerts.md §10.4). `note` explains why a code parser didn't answer.
-  private async readWithModel(userId: string, email: AlertEmail, portalLabel: string, note: string | null): Promise<Reading> {
-    if (!this.extractor.configured) return { status: 'DEFERRED', parser: null, note: 'ANTHROPIC_API_KEY is not set in the worker' };
+  private async readWithModel(
+    userId: string,
+    email: AlertEmail,
+    portalLabel: string,
+    note: string | null,
+  ): Promise<Reading> {
+    if (!this.extractor.configured)
+      return { status: 'DEFERRED', parser: null, note: 'ANTHROPIC_API_KEY is not set in the worker' };
     const guard = await this.budget.checkMonthly(userId);
     if (!guard.allowed) return { status: 'DEFERRED', parser: null, note: guard.reason };
 
@@ -208,17 +224,33 @@ export class EmailService {
     if (!parsed.value.isJobEmail) return { status: 'NOT_ALERT', parser: 'ai', note: note ?? 'not a job alert' };
 
     const { postings, dropped } = checkExtracted(parsed.value, email, prompt.refs);
-    if (dropped.length) this.logger.warn(`${portalLabel}: dropped ${dropped.length} extracted job(s): ${dropped.map((d) => d.reason).join(', ')}`);
+    if (dropped.length)
+      this.logger.warn(
+        `${portalLabel}: dropped ${dropped.length} extracted job(s): ${dropped.map((d) => d.reason).join(', ')}`,
+      );
     return { status: 'PARSED', parser: 'ai', postings, note };
   }
 
-  private async storePortal(userId: string, portal: string, label: string, postings: EmailPosting[], filter: ReturnType<typeof compileFilter>) {
+  private async storePortal(
+    userId: string,
+    portal: string,
+    label: string,
+    postings: EmailPosting[],
+    filter: ReturnType<typeof compileFilter>,
+  ) {
     // The seeded email_alerts:<portal> row when there is one, else created on first use.
     // EMAIL_INBOX sources are never run by the discovery fan-out.
     const key = emailSourceKey(portal);
     const source = await this.prisma.jobSource.upsert({
       where: { userId_key: { userId, key } },
-      create: { userId, key, name: label, type: 'EMAIL_INBOX', config: { provider: 'email_alerts', note: 'Read from job-alert emails in Gmail' }, isEnabled: false },
+      create: {
+        userId,
+        key,
+        name: label,
+        type: 'EMAIL_INBOX',
+        config: { provider: 'email_alerts', note: 'Read from job-alert emails in Gmail' },
+        isEnabled: false,
+      },
       update: {},
     });
     const run = await this.prisma.discoveryRun.create({ data: { jobSourceId: source.id, status: 'RUNNING' } });
@@ -236,14 +268,24 @@ export class EmailService {
       const snippet = postings.find((e) => e.url === p.url)?.snippet;
       return { posting: p, description: snippet ? `From the ${label} alert: ${snippet}` : '', partial: true };
     });
-    const stored = await storeJobs(this.prisma, { userId, jobSourceId: source.id, discoveryRunId: run.id, provider: portal }, items);
+    const stored = await storeJobs(
+      this.prisma,
+      { userId, jobSourceId: source.id, discoveryRunId: run.id, provider: portal },
+      items,
+    );
 
     const now = new Date();
     const status = postings.length === 0 ? 'EMPTY' : 'SUCCESS';
     await this.prisma.$transaction([
       this.prisma.discoveryRun.update({
         where: { id: run.id },
-        data: { status, finishedAt: now, jobsFound: postings.length, jobsMatched: matched.length, jobsNew: stored.newJobIds.length },
+        data: {
+          status,
+          finishedAt: now,
+          jobsFound: postings.length,
+          jobsMatched: matched.length,
+          jobsNew: stored.newJobIds.length,
+        },
       }),
       this.prisma.jobSource.update({ where: { id: source.id }, data: { lastRunAt: now, lastRunStatus: status } }),
     ]);
@@ -252,7 +294,9 @@ export class EmailService {
 
   // Ids of every user with a working connection — for the scheduled fan-out.
   async activeUserIds(): Promise<string[]> {
-    return (await this.prisma.gmailConnection.findMany({ where: { status: 'ACTIVE' }, select: { userId: true } })).map((c) => c.userId);
+    return (await this.prisma.gmailConnection.findMany({ where: { status: 'ACTIVE' }, select: { userId: true } })).map(
+      (c) => c.userId,
+    );
   }
 
   // The access token is minted per check and never stored. A revoked/expired grant (or a
@@ -262,7 +306,10 @@ export class EmailService {
     try {
       refreshToken = this.box!.open(sealed, userId);
     } catch {
-      await this.needsReconnect(userId, "The stored Google token can't be decrypted (was TOKEN_ENCRYPTION_KEY changed?) — reconnect Gmail");
+      await this.needsReconnect(
+        userId,
+        "The stored Google token can't be decrypted (was TOKEN_ENCRYPTION_KEY changed?) — reconnect Gmail",
+      );
       throw new PermanentEmailError('undecryptable token');
     }
     try {

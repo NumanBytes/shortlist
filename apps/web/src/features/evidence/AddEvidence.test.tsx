@@ -22,13 +22,22 @@ const item: Evidence = {
 function api() {
   const fetchMock = mockFetch();
   fetchMock.mockImplementation((url: string, init?: RequestInit) => {
-    const body = url === '/api/v1/skills' ? (init?.method === 'POST' ? created : [react]) : url.startsWith('/api/v1/evidence') ? { id: 'e-new' } : [];
+    const body =
+      url === '/api/v1/skills'
+        ? init?.method === 'POST'
+          ? created
+          : [react]
+        : url.startsWith('/api/v1/evidence')
+          ? { id: 'e-new' }
+          : [];
     return Promise.resolve(new Response(JSON.stringify(body)));
   });
   return fetchMock;
 }
 const sent = (fetchMock: ReturnType<typeof mockFetch>, method: string) =>
-  fetchMock.mock.calls.filter(([, init]) => init?.method === method).map(([url, init]) => ({ url, body: JSON.parse(init!.body as string) }));
+  fetchMock.mock.calls
+    .filter(([, init]) => init?.method === method)
+    .map(([url, init]) => ({ url, body: JSON.parse(init!.body as string) }));
 const sheet = (mode: EvidenceSheetMode, onSaved = vi.fn()) => {
   renderWithProviders(<EvidenceSheet mode={mode} onClose={vi.fn()} onSaved={onSaved} />);
   return onSaved;

@@ -41,7 +41,9 @@ try {
     for (const p of draft.content.projects) print(p.name, p.bullets);
     for (const d of draft.content.dropped) console.log(`\n  ✗ removed (${d.reason}): ${d.text}`);
     const avg = counts.reduce((a, b) => a + b, 0) / counts.length;
-    console.log(`\n${counts.length} bullets · average ${avg.toFixed(1)} words · longest ${Math.max(...counts)} · $${draft.cost.toFixed(4)} · not saved`);
+    console.log(
+      `\n${counts.length} bullets · average ${avg.toFixed(1)} words · longest ${Math.max(...counts)} · $${draft.cost.toFixed(4)} · not saved`,
+    );
   }
 } finally {
   await prisma.$disconnect();

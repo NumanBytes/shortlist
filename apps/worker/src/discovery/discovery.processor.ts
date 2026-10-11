@@ -1,6 +1,12 @@
 import { InjectQueue, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject, Logger, type OnModuleInit } from '@nestjs/common';
-import { ANALYSIS_QUEUE, DISCOVERY_QUEUE, DiscoveryJob, queueJobOptions, type DiscoverSourceData } from '@shortlist/shared';
+import {
+  ANALYSIS_QUEUE,
+  DISCOVERY_QUEUE,
+  DiscoveryJob,
+  queueJobOptions,
+  type DiscoverSourceData,
+} from '@shortlist/shared';
 import { Queue, UnrecoverableError, type Job } from 'bullmq';
 import { ENV } from '../config/config.module.js';
 import type { Env } from '../config/env.js';
@@ -42,7 +48,10 @@ export class DiscoveryProcessor extends WorkerHost implements OnModuleInit {
   // itself is retried, re-adding the same ids is a no-op instead of duplicate runs. A
   // source already queued or running (a "Find new jobs" tap) is joined, not run twice.
   private async fanOut(job: Job) {
-    const sources = await this.prisma.jobSource.findMany({ where: { isEnabled: true, type: { not: 'EMAIL_INBOX' } }, select: { id: true } });
+    const sources = await this.prisma.jobSource.findMany({
+      where: { isEnabled: true, type: { not: 'EMAIL_INBOX' } },
+      select: { id: true },
+    });
     await this.queue.addBulk(
       sources.map((s) => ({
         name: DiscoveryJob.Source,

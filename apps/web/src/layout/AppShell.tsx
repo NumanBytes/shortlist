@@ -14,7 +14,12 @@ import { Segmented, Sheet } from '../components/ui';
 
 const LINKS: { to: string; label: string; icon: ReactNode; end: boolean }[] = [
   { to: '/', label: 'Jobs', icon: <Briefcase className="size-6 sm:size-5" strokeWidth={1.75} />, end: false },
-  { to: '/evidence', label: 'Evidence', icon: <ShieldCheck className="size-6 sm:size-5" strokeWidth={1.75} />, end: false },
+  {
+    to: '/evidence',
+    label: 'Evidence',
+    icon: <ShieldCheck className="size-6 sm:size-5" strokeWidth={1.75} />,
+    end: false,
+  },
   { to: '/sources', label: 'Sources', icon: <Radar className="size-6 sm:size-5" strokeWidth={1.75} />, end: false },
 ];
 
@@ -38,7 +43,17 @@ function useJobsHref(): string {
   return isJobsPath(pathname) ? `/${search}` : last;
 }
 
-function NavItem({ link, mobile, badge, to }: { link: (typeof LINKS)[number]; mobile: boolean; badge?: number; to?: string }) {
+function NavItem({
+  link,
+  mobile,
+  badge,
+  to,
+}: {
+  link: (typeof LINKS)[number];
+  mobile: boolean;
+  badge?: number;
+  to?: string;
+}) {
   const { pathname } = useLocation();
   return (
     <NavLink
@@ -88,7 +103,9 @@ export function AccountButton() {
         onClick={() => setOpen(true)}
         className="grid size-11 shrink-0 place-items-center rounded-full focus-visible:outline-2 focus-visible:outline-accent"
       >
-        <span className="grid size-8 place-items-center rounded-full bg-accent-soft text-[13px] font-semibold text-accent-fg">{initials}</span>
+        <span className="grid size-8 place-items-center rounded-full bg-accent-soft text-[13px] font-semibold text-accent-fg">
+          {initials}
+        </span>
       </button>
       <AccountSheet open={open} onClose={() => setOpen(false)} initials={initials} />
     </>
@@ -105,7 +122,9 @@ function AccountSheet({ open, onClose, initials }: { open: boolean; onClose: () 
   return (
     <Sheet open={open} onClose={onClose} title="Account">
       <div className="flex items-center gap-3 pb-4">
-        <span className="grid size-11 place-items-center rounded-full bg-accent-soft text-[15px] font-semibold text-accent-fg">{initials}</span>
+        <span className="grid size-11 place-items-center rounded-full bg-accent-soft text-[15px] font-semibold text-accent-fg">
+          {initials}
+        </span>
         <div className="min-w-0">
           <p className="truncate font-semibold text-fg">{state.user.name}</p>
           <p className="truncate text-[13px] text-muted">{state.user.email}</p>
@@ -137,7 +156,9 @@ function AccountSheet({ open, onClose, initials }: { open: boolean; onClose: () 
             <Mail className="size-[18px]" />
           </span>
           <span className="flex-1">Gmail</span>
-          <span className="text-[13px] font-normal text-muted">{gmail.data?.connection ? 'Connected' : 'Not connected'}</span>
+          <span className="text-[13px] font-normal text-muted">
+            {gmail.data?.connection ? 'Connected' : 'Not connected'}
+          </span>
           <ChevronRight className="size-4 text-muted" />
         </Link>
         <button type="button" onClick={() => void logout()} className={`${row} text-danger-fg`}>
@@ -181,7 +202,10 @@ function TailoringPill() {
       to={`/jobs/${first.jobId}`}
       className="fixed bottom-[calc(72px+env(safe-area-inset-bottom))] left-1/2 z-30 flex h-11 max-w-[calc(100vw-32px)] -translate-x-1/2 animate-rise-in-sm items-center gap-2.5 rounded-full bg-fg py-0 pr-2.5 pl-4 text-[13px] font-medium text-bg shadow-[0_8px_24px_rgb(15_23_42/0.25)] sm:bottom-6 print:hidden"
     >
-      <span aria-hidden="true" className="size-3.5 shrink-0 animate-spin rounded-full border-2 border-toast-accent border-r-transparent" />
+      <span
+        aria-hidden="true"
+        className="size-3.5 shrink-0 animate-spin rounded-full border-2 border-toast-accent border-r-transparent"
+      />
       <span className="min-w-0 truncate">
         Tailoring resume · {first.company}
         {more > 0 && ` +${more}`} · <span className="tabular-nums">{elapsed(first.queuedAt, now)}</span>
@@ -228,14 +252,14 @@ export function AppShell() {
 
       {/* Phones: a frosted tab bar at the bottom, within thumb reach. */}
       {!isPushedScreen(pathname) && (
-      <nav
-        aria-label="Main"
-        className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-3 border-t border-border bg-glass px-3 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur-xl sm:hidden print:hidden"
-      >
-        {LINKS.map((l) => (
-          <NavItem key={l.to} link={l} mobile to={l.to === '/' ? jobsHref : undefined} badge={badge(l)} />
-        ))}
-      </nav>
+        <nav
+          aria-label="Main"
+          className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-3 border-t border-border bg-glass px-3 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur-xl sm:hidden print:hidden"
+        >
+          {LINKS.map((l) => (
+            <NavItem key={l.to} link={l} mobile to={l.to === '/' ? jobsHref : undefined} badge={badge(l)} />
+          ))}
+        </nav>
       )}
     </div>
   );

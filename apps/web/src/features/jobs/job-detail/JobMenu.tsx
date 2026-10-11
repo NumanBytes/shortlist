@@ -38,7 +38,13 @@ export function JobMenu({ job }: { job: JobDetail }) {
     onSelect: () =>
       setStatus.mutate(
         { id: job.id, status: skipped ? 'DISCOVERED' : 'SKIPPED' },
-        { onSuccess: () => toast({ text: skipped ? 'Moved back to New' : 'Skipped', action: { label: 'Undo', onClick: () => setStatus.mutate({ id: job.id, status: job.status }) } }) },
+        {
+          onSuccess: () =>
+            toast({
+              text: skipped ? 'Moved back to New' : 'Skipped',
+              action: { label: 'Undo', onClick: () => setStatus.mutate({ id: job.id, status: job.status }) },
+            }),
+        },
       ),
   });
   return <MoreMenu title={`${job.title} · ${job.company}`} actions={actions} />;

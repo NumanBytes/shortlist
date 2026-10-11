@@ -61,15 +61,27 @@ export function ResumePage() {
               () => toast({ text: "Couldn't copy" }),
             ),
         },
-        { label: 'Tailor again', icon: <RotateCw className="size-[18px]" />, onSelect: () => navigate(`/jobs/${jobId}`) },
-        { label: 'Open the job', icon: <Briefcase className="size-[18px]" />, onSelect: () => navigate(`/jobs/${jobId}`) },
+        {
+          label: 'Tailor again',
+          icon: <RotateCw className="size-[18px]" />,
+          onSelect: () => navigate(`/jobs/${jobId}`),
+        },
+        {
+          label: 'Open the job',
+          icon: <Briefcase className="size-[18px]" />,
+          onSelect: () => navigate(`/jobs/${jobId}`),
+        },
       ]}
     />
   );
 
   const nav = (
     <nav className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 print:hidden">
-      <PushLink to={`/jobs/${jobId}`} dir="back" className="-ml-1 flex min-h-11 min-w-0 items-center gap-0.5 text-[17px] font-medium text-accent-fg">
+      <PushLink
+        to={`/jobs/${jobId}`}
+        dir="back"
+        className="-ml-1 flex min-h-11 min-w-0 items-center gap-0.5 text-[17px] font-medium text-accent-fg"
+      >
         <ChevronLeft className="size-6 shrink-0" />
         <span className="truncate">{company ?? 'Job'}</span>
       </PushLink>
@@ -103,7 +115,11 @@ export function ResumePage() {
   const { dropped } = v.content;
 
   return (
-    <div {...edge.handlers} style={edge.style} className="mx-auto max-w-[8.5in] space-y-3 pb-28 sm:pb-6 print:space-y-0 print:p-0">
+    <div
+      {...edge.handlers}
+      style={edge.style}
+      className="mx-auto max-w-[8.5in] space-y-3 pb-28 sm:pb-6 print:space-y-0 print:p-0"
+    >
       {nav}
       <div className="flex items-center gap-2 print:hidden">
         <Badge className="font-semibold tracking-[0.04em]" tone={stale ? 'danger' : approved ? 'accent' : 'neutral'}>
@@ -173,7 +189,10 @@ export function ResumePage() {
               className="w-full"
               disabled={stale || approve.isPending}
               onClick={() =>
-                approve.mutate({ variantId: v.id, jobId }, { onSuccess: () => toast({ text: 'Resume approved — you can save it as a PDF' }) })
+                approve.mutate(
+                  { variantId: v.id, jobId },
+                  { onSuccess: () => toast({ text: 'Resume approved — you can save it as a PDF' }) },
+                )
               }
             >
               <Check className="size-5" /> {approve.isPending ? 'Approving…' : 'Approve'}
@@ -226,7 +245,15 @@ function FitToWidth({ children }: { children: ReactNode }) {
 
 // The evidence behind one bullet, in the user's own words (design pattern board). This is
 // the review: does the bullet say more than you did?
-function BulletSheet({ bullet, sources, onClose }: { bullet: ResumeBullet | null; sources: JobResume['sources']; onClose: () => void }) {
+function BulletSheet({
+  bullet,
+  sources,
+  onClose,
+}: {
+  bullet: ResumeBullet | null;
+  sources: JobResume['sources'];
+  onClose: () => void;
+}) {
   return (
     <Sheet
       open={bullet !== null}
@@ -249,7 +276,8 @@ function BulletSheet({ bullet, sources, onClose }: { bullet: ResumeBullet | null
             {bullet.text}”
           </p>
           <p className="text-xs text-muted">
-            Built from {bullet.evidenceIds.length} verified evidence {bullet.evidenceIds.length === 1 ? 'item' : 'items'} — your words:
+            Built from {bullet.evidenceIds.length} verified evidence{' '}
+            {bullet.evidenceIds.length === 1 ? 'item' : 'items'} — your words:
           </p>
           <ul className="space-y-2.5">
             {bullet.evidenceIds.map((id) => {
@@ -263,7 +291,11 @@ function BulletSheet({ bullet, sources, onClose }: { bullet: ResumeBullet | null
                         <Badge>{s.skillName}</Badge>
                         <Badge>{title(s.context)}</Badge>
                         <Badge>{title(s.depth)}</Badge>
-                        {s.isVerified ? <Badge tone="accent">Verified</Badge> : <Badge tone="danger">No longer verified</Badge>}
+                        {s.isVerified ? (
+                          <Badge tone="accent">Verified</Badge>
+                        ) : (
+                          <Badge tone="danger">No longer verified</Badge>
+                        )}
                         <span className="text-xs text-muted tabular-nums">{monthYear(s.lastUsed)}</span>
                       </div>
                     </>

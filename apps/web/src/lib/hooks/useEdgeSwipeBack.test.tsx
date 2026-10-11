@@ -10,7 +10,11 @@ function Screen({ onBack }: { onBack: () => void }) {
   );
 }
 const standalone = (on: boolean) =>
-  vi.stubGlobal('matchMedia', (q: string) => ({ matches: on && q.includes('standalone'), addEventListener: vi.fn(), removeEventListener: vi.fn() }));
+  vi.stubGlobal('matchMedia', (q: string) => ({
+    matches: on && q.includes('standalone'),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  }));
 const drag = (el: HTMLElement, fromX: number, toX: number) => {
   Object.defineProperty(el, 'offsetWidth', { value: 400, configurable: true });
   fireEvent.pointerDown(el, { button: 0, clientX: fromX, clientY: 300, pointerId: 1 });

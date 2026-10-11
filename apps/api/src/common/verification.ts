@@ -6,11 +6,7 @@ export const UNVERIFIED = { isVerified: false, verifiedAt: null } satisfies Pris
 
 // True if the PATCH actually changes any of `fields`. Compares by value: dates arrive
 // as fresh Date objects, and a form resubmitting unchanged values shouldn't count.
-export function claimChanged<T extends object>(
-  fields: readonly (keyof T)[],
-  input: Partial<T>,
-  existing: T,
-): boolean {
+export function claimChanged<T extends object>(fields: readonly (keyof T)[], input: Partial<T>, existing: T): boolean {
   return fields.some((f) => f in input && !sameValue(input[f], existing[f]));
 }
 

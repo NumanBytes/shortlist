@@ -1,4 +1,11 @@
-import { useEffect, useRef, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ButtonHTMLAttributes,
+  type InputHTMLAttributes,
+  type ReactNode,
+} from 'react';
 
 // Shared UI primitives, built only on the semantic tokens in index.css. Sizes follow the
 // mobile design (2026-10-04): 44px touch targets, 12px radius buttons, 16px cards.
@@ -70,9 +77,19 @@ const TONES: Record<Tone, string> = {
   accent: 'bg-accent-soft text-accent-fg',
 };
 
-export function Badge({ children, tone = 'neutral', className = '' }: { children: ReactNode; tone?: Tone; className?: string }) {
+export function Badge({
+  children,
+  tone = 'neutral',
+  className = '',
+}: {
+  children: ReactNode;
+  tone?: Tone;
+  className?: string;
+}) {
   return (
-    <span className={`inline-flex h-[22px] items-center gap-1 rounded-md px-2 text-xs leading-none font-medium whitespace-nowrap ${TONES[tone]} ${className}`}>
+    <span
+      className={`inline-flex h-[22px] items-center gap-1 rounded-md px-2 text-xs leading-none font-medium whitespace-nowrap ${TONES[tone]} ${className}`}
+    >
       {children}
     </span>
   );
@@ -84,11 +101,18 @@ export function Card({ children, className = '' }: { children: ReactNode; classN
 
 // Small uppercase heading above a group ("NEEDS ATTENTION · 2", "EXPERIENCE").
 export function SectionLabel({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <h2 className={`px-1 text-xs font-semibold tracking-[0.06em] text-muted uppercase ${className}`}>{children}</h2>;
+  return (
+    <h2 className={`px-1 text-xs font-semibold tracking-[0.06em] text-muted uppercase ${className}`}>{children}</h2>
+  );
 }
 
 export function Skeleton({ className = '' }: { className?: string }) {
-  return <div aria-hidden="true" className={`animate-pulse rounded-md bg-surface-2 motion-reduce:animate-none ${className}`} />;
+  return (
+    <div
+      aria-hidden="true"
+      className={`animate-pulse rounded-md bg-surface-2 motion-reduce:animate-none ${className}`}
+    />
+  );
 }
 
 // An on/off switch with real switch semantics for screen readers.
@@ -150,7 +174,9 @@ export function Segmented<T extends string>({
             aria-pressed={active}
             onClick={() => onChange(o.value)}
             className={`flex h-[38px] min-w-0 items-center justify-center gap-1 rounded-[9px] px-1 ${compact ? 'text-xs tracking-tight' : 'text-[13px]'} font-medium whitespace-nowrap transition ${FOCUS} ${
-              active ? 'bg-surface text-fg shadow-[0_1px_2px_rgb(15_23_42/0.08),0_0_0_1px_var(--border)]' : 'text-muted hover:text-fg'
+              active
+                ? 'bg-surface text-fg shadow-[0_1px_2px_rgb(15_23_42/0.08),0_0_0_1px_var(--border)]'
+                : 'text-muted hover:text-fg'
             }`}
           >
             <span className="truncate">{o.label}</span>
@@ -305,7 +331,8 @@ export function Sheet({
     setDragging(false);
     if (!g) return;
     const height = ref.current?.offsetHeight || 1;
-    const velocity = (e.clientY - g.lastY) / Math.max(1, e.timeStamp - g.lastT) || (e.clientY - g.y) / Math.max(1, e.timeStamp - g.t);
+    const velocity =
+      (e.clientY - g.lastY) / Math.max(1, e.timeStamp - g.lastT) || (e.clientY - g.y) / Math.max(1, e.timeStamp - g.t);
     // A flick counts only with some distance behind it, so a twitch never closes it.
     if (dragY > height * 0.3 || (velocity > 0.5 && dragY > 40)) {
       setFlung(true);
@@ -329,7 +356,11 @@ export function Sheet({
       onClick={(e) => e.target === e.currentTarget && onClose()}
       style={{
         transform: dragY ? `translateY(${dragY}px)` : undefined,
-        transition: dragging ? 'none' : flung ? `transform ${CLOSE_MS}ms ease-in` : 'transform 200ms cubic-bezier(.2,.8,.2,1)',
+        transition: dragging
+          ? 'none'
+          : flung
+            ? `transform ${CLOSE_MS}ms ease-in`
+            : 'transform 200ms cubic-bezier(.2,.8,.2,1)',
       }}
       className="m-0 mt-auto max-h-[92dvh] w-full max-w-none overflow-hidden rounded-t-[28px] bg-surface p-0 text-fg shadow-[0_-12px_40px_rgb(0_0_0/0.18)] backdrop:bg-scrim open:animate-sheet-up sm:m-auto sm:max-w-md sm:rounded-[28px] print:hidden"
     >

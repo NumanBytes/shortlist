@@ -94,7 +94,11 @@ const KEEP = {
 };
 // Transient failures (timeouts, 5xx) retry with backoff. Analysis waits longer between
 // attempts: its usual transient failure is the model API being overloaded.
-const retry = (delayMs: number) => ({ attempts: 3, backoff: { type: 'exponential' as const, delay: delayMs }, ...KEEP });
+const retry = (delayMs: number) => ({
+  attempts: 3,
+  backoff: { type: 'exponential' as const, delay: delayMs },
+  ...KEEP,
+});
 
 // Everything BullMQ needs to add one job besides its name and data.
 export const queueJobOptions = {

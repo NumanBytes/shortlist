@@ -72,7 +72,10 @@ export function FindNewJobs() {
     <div className="rounded-[14px] border border-border bg-surface">
       <div className="flex items-center gap-2 py-1 pr-1 pl-3.5">
         {busy ? (
-          <span aria-hidden="true" className="size-3.5 shrink-0 animate-spin rounded-full border-2 border-accent border-r-transparent" />
+          <span
+            aria-hidden="true"
+            className="size-3.5 shrink-0 animate-spin rounded-full border-2 border-accent border-r-transparent"
+          />
         ) : (
           <Clock className="size-4 shrink-0 text-muted" aria-hidden="true" />
         )}
@@ -94,7 +97,11 @@ export function FindNewJobs() {
         >
           {busy ? (
             <>
-              <span aria-hidden="true" className="size-3.5 animate-spin rounded-full border-2 border-current border-r-transparent" /> Checking
+              <span
+                aria-hidden="true"
+                className="size-3.5 animate-spin rounded-full border-2 border-current border-r-transparent"
+              />{' '}
+              Checking
             </>
           ) : cooling ? (
             `Available again ${timeUntil(s!.availableAt!, now)}`
@@ -117,7 +124,8 @@ export function FindNewJobs() {
 
 function summary(r: RunNowResult): string {
   const email = r.emailQueued ? ' and your Gmail alerts' : '';
-  if (r.queued.length) return `Checking ${r.queued.length} ${r.queued.length === 1 ? 'source' : 'sources'}${email} for new jobs`;
+  if (r.queued.length)
+    return `Checking ${r.queued.length} ${r.queued.length === 1 ? 'source' : 'sources'}${email} for new jobs`;
   if (r.emailQueued) return `Checking your Gmail alerts — every board was checked in the last ${r.cooldownHours}h`;
   return `Every source was checked in the last ${r.cooldownHours}h — try again later`;
 }

@@ -26,7 +26,9 @@ export class SecretBox {
     const cipher = createCipheriv(ALGORITHM, this.key, iv);
     cipher.setAAD(Buffer.from(context, 'utf8'));
     const ciphertext = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
-    return [VERSION, iv, cipher.getAuthTag(), ciphertext].map((p) => (typeof p === 'string' ? p : p.toString('base64url'))).join('.');
+    return [VERSION, iv, cipher.getAuthTag(), ciphertext]
+      .map((p) => (typeof p === 'string' ? p : p.toString('base64url')))
+      .join('.');
   }
 
   open(sealed: string, context: string): string {

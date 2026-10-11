@@ -11,7 +11,15 @@ const title = (s: string) => s.charAt(0) + s.slice(1).toLowerCase();
 // One piece of evidence (design board 4): the user's own words, where and how deeply, and
 // the verify action. Verification is never optimistic — "Verified" shows only after the
 // server confirms (Agents.md §6.3). Editing happens in the evidence sheet.
-export function EvidenceItem({ evidence, source, onEdit }: { evidence: Evidence; source?: string; onEdit: () => void }) {
+export function EvidenceItem({
+  evidence,
+  source,
+  onEdit,
+}: {
+  evidence: Evidence;
+  source?: string;
+  onEdit: () => void;
+}) {
   const verify = useVerifyEvidence();
   const unverify = useUnverifyEvidence();
   const busy = verify.isPending || unverify.isPending;

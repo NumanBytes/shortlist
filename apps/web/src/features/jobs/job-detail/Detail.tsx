@@ -30,7 +30,11 @@ export function Detail({ job }: { job: JobDetail }) {
   const location = prettyLocation(job.location);
   const posted = postedLabel(job);
   const m = job.match;
-  const mode = job.workMode ? (job.workMode === 'ONSITE' ? 'On-site' : job.workMode.charAt(0) + job.workMode.slice(1).toLowerCase()) : null;
+  const mode = job.workMode
+    ? job.workMode === 'ONSITE'
+      ? 'On-site'
+      : job.workMode.charAt(0) + job.workMode.slice(1).toLowerCase()
+    : null;
   const where = isAggregator(job) ? providerLabel(job.source) : `${job.jobSource?.name ?? job.company} careers`;
 
   return (
@@ -47,7 +51,9 @@ export function Detail({ job }: { job: JobDetail }) {
         ) : (
           <AnalysisState job={job} />
         )}
-        {job.analysisStatus === 'PENDING' && m && <p className="text-xs text-muted">Re-scoring with your newly verified skills…</p>}
+        {job.analysisStatus === 'PENDING' && m && (
+          <p className="text-xs text-muted">Re-scoring with your newly verified skills…</p>
+        )}
         <div>
           <h1 className="text-2xl leading-[30px] font-bold tracking-[-0.02em] text-fg">{job.title}</h1>
           <p className="mt-1 text-[15px] text-fg">
@@ -59,7 +65,9 @@ export function Detail({ job }: { job: JobDetail }) {
           <div className="flex flex-wrap gap-1.5">
             {mode && <Badge>{mode}</Badge>}
             {job.salary && <Badge>{job.salary}</Badge>}
-            {job.seniority && job.seniority !== 'UNKNOWN' && <Badge>{job.seniority.charAt(0) + job.seniority.slice(1).toLowerCase()}</Badge>}
+            {job.seniority && job.seniority !== 'UNKNOWN' && (
+              <Badge>{job.seniority.charAt(0) + job.seniority.slice(1).toLowerCase()}</Badge>
+            )}
           </div>
         )}
         <p className="text-xs text-muted">
@@ -101,18 +109,25 @@ export function Detail({ job }: { job: JobDetail }) {
 
       <details className="group overflow-hidden rounded-2xl border border-border bg-surface">
         <summary className="cursor-pointer list-none px-4 pt-3.5 pb-3 marker:hidden">
-          <span className="block text-[15px] font-semibold text-fg">{job.isPartial ? 'Alert summary' : 'Description'}</span>
-          <span className="mt-1 line-clamp-3 text-sm leading-relaxed whitespace-pre-line text-muted group-open:hidden">{job.rawJD || 'No description.'}</span>
+          <span className="block text-[15px] font-semibold text-fg">
+            {job.isPartial ? 'Alert summary' : 'Description'}
+          </span>
+          <span className="mt-1 line-clamp-3 text-sm leading-relaxed whitespace-pre-line text-muted group-open:hidden">
+            {job.rawJD || 'No description.'}
+          </span>
           <span className="mt-2 flex items-center justify-center gap-1 text-[15px] font-semibold text-accent-fg group-open:hidden">
             Read more <ChevronDown className="size-4" />
           </span>
         </summary>
-        <div className="max-h-[60vh] overflow-y-auto px-4 pb-4 text-sm leading-relaxed whitespace-pre-line text-muted">{job.rawJD || 'No description.'}</div>
+        <div className="max-h-[60vh] overflow-y-auto px-4 pb-4 text-sm leading-relaxed whitespace-pre-line text-muted">
+          {job.rawJD || 'No description.'}
+        </div>
       </details>
 
       <p className="flex gap-2 px-1 text-xs text-muted">
         <Info className="mt-px size-3.5 shrink-0" aria-hidden="true" />
-        Shortlist prepares everything. You apply yourself, on {isAggregator(job) ? 'the original posting' : `${job.company}'s site`}.
+        Shortlist prepares everything. You apply yourself, on{' '}
+        {isAggregator(job) ? 'the original posting' : `${job.company}'s site`}.
       </p>
     </>
   );
@@ -132,7 +147,13 @@ function AnalysisState({ job }: { job: JobDetail }) {
         {pending ? 'The match score appears here once the worker has analysed this job.' : job.analysisError}
       </p>
       {!pending && (
-        <Button className="mt-3" variant="secondary" size="sm" onClick={() => analyze.mutate(job.id)} disabled={analyze.isPending}>
+        <Button
+          className="mt-3"
+          variant="secondary"
+          size="sm"
+          onClick={() => analyze.mutate(job.id)}
+          disabled={analyze.isPending}
+        >
           <RotateCw className="size-4" /> {analyze.isPending ? 'Queuing…' : 'Retry'}
         </Button>
       )}

@@ -18,11 +18,27 @@ const recent = new Date('2026-09-01T00:00:00Z');
 const old = new Date('2022-01-01T00:00:00Z');
 
 const skills: ScoringSkill[] = [
-  { id: 'react', name: 'React', evidence: [{ context: 'COMMERCIAL', depth: 'PRODUCTION', lastUsed: recent, source: 'CloudCard Inc.' }] },
-  { id: 'ts', name: 'TypeScript', evidence: [{ context: 'COMMERCIAL', depth: 'PRODUCTION', lastUsed: recent, source: 'CloudCard Inc.' }] },
-  { id: 'node', name: 'Node.js', evidence: [{ context: 'PERSONAL', depth: 'WORKING', lastUsed: recent, source: null }] },
+  {
+    id: 'react',
+    name: 'React',
+    evidence: [{ context: 'COMMERCIAL', depth: 'PRODUCTION', lastUsed: recent, source: 'CloudCard Inc.' }],
+  },
+  {
+    id: 'ts',
+    name: 'TypeScript',
+    evidence: [{ context: 'COMMERCIAL', depth: 'PRODUCTION', lastUsed: recent, source: 'CloudCard Inc.' }],
+  },
+  {
+    id: 'node',
+    name: 'Node.js',
+    evidence: [{ context: 'PERSONAL', depth: 'WORKING', lastUsed: recent, source: null }],
+  },
   { id: 'python', name: 'Python', evidence: [{ context: 'ACADEMIC', depth: 'EXPOSURE', lastUsed: old, source: null }] },
-  { id: 'pg', name: 'PostgreSQL', evidence: [{ context: 'COMMERCIAL', depth: 'PRODUCTION', lastUsed: recent, source: 'CloudCard Inc.' }] },
+  {
+    id: 'pg',
+    name: 'PostgreSQL',
+    evidence: [{ context: 'COMMERCIAL', depth: 'PRODUCTION', lastUsed: recent, source: 'CloudCard Inc.' }],
+  },
 ];
 
 const req = (over: Partial<ScoringRequirement> & Pick<ScoringRequirement, 'skillName'>): ScoringRequirement => ({
@@ -35,7 +51,15 @@ const req = (over: Partial<ScoringRequirement> & Pick<ScoringRequirement, 'skill
 });
 
 const score = (requirements: ScoringRequirement[], extra: Partial<Parameters<typeof scoreJob>[0]> = {}) =>
-  scoreJob({ requirements, skills, userCommercialYears: 2.4, jobYearsRequired: null, redFlags: [], now: NOW, ...extra });
+  scoreJob({
+    requirements,
+    skills,
+    userCommercialYears: 2.4,
+    jobYearsRequired: null,
+    redFlags: [],
+    now: NOW,
+    ...extra,
+  });
 
 describe('evidenceStrength', () => {
   it('ranks commercial production above personal working above academic exposure', () => {
@@ -48,7 +72,9 @@ describe('evidenceStrength', () => {
 
   it('drops EXPOSURE older than two years to zero (§6.1) and decays other stale evidence', () => {
     expect(evidenceStrength({ context: 'ACADEMIC', depth: 'EXPOSURE', lastUsed: old, source: null }, NOW)).toBe(0);
-    expect(evidenceStrength({ context: 'COMMERCIAL', depth: 'PRODUCTION', lastUsed: old, source: null }, NOW)).toBeCloseTo(0.6);
+    expect(
+      evidenceStrength({ context: 'COMMERCIAL', depth: 'PRODUCTION', lastUsed: old, source: null }, NOW),
+    ).toBeCloseTo(0.6);
   });
 });
 
@@ -122,7 +148,9 @@ describe('scoreJob', () => {
   });
 
   it('a red flag blocks APPLY and is listed', () => {
-    const r = score([req({ skillName: 'React', matchedSkillIds: ['react'] })], { redFlags: ['asks for a registration fee'] });
+    const r = score([req({ skillName: 'React', matchedSkillIds: ['react'] })], {
+      redFlags: ['asks for a registration fee'],
+    });
     expect(r.verdict).toBe('STRETCH');
     expect(r.risks).toContain('Red flag: asks for a registration fee');
   });

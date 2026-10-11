@@ -19,7 +19,9 @@ interface RemoteOkJob {
 export const remoteok: Adapter<{ provider: 'remoteok' }> = async (_config, ctx) => {
   const items = await getJson<RemoteOkJob[]>('https://remoteok.com/api');
   // The legal notice has no id/position: not a job, so filtered out rather than reported.
-  const jobs = items.filter((j): j is Required<Pick<RemoteOkJob, 'id' | 'position' | 'url'>> & RemoteOkJob => Boolean(j.id && j.position && j.url));
+  const jobs = items.filter((j): j is Required<Pick<RemoteOkJob, 'id' | 'position' | 'url'>> & RemoteOkJob =>
+    Boolean(j.id && j.position && j.url),
+  );
   return mapPostings(jobs, ctx, (j): Posting => ({
     externalId: j.id,
     title: j.position.trim(),

@@ -46,7 +46,10 @@ export function ScoreRing({
       </svg>
       <span className="absolute inset-0 flex flex-col items-center justify-center leading-none">
         <span className="sr-only">Match score </span>
-        <span className="font-semibold tracking-tight text-fg tabular-nums" style={{ fontSize: size > 60 ? size * 0.32 : 14 }}>
+        <span
+          className="font-semibold tracking-tight text-fg tabular-nums"
+          style={{ fontSize: size > 60 ? size * 0.32 : 14 }}
+        >
           {score}
         </span>
         {outOf && <span className="mt-1 text-xs text-muted">of 100</span>}

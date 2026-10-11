@@ -60,7 +60,12 @@ const GROUPS: { label: string; statuses: JobStatus[] }[] = [
 function StatusSheet({ job, open, onClose }: { job: JobDetail; open: boolean; onClose: () => void }) {
   const setStatus = useSetJobStatus();
   const toast = useToast();
-  const LABEL: Partial<Record<JobStatus, string>> = { INTERESTED: 'Marked interested', APPLIED: 'Marked as applied', SKIPPED: 'Skipped', DISCOVERED: 'Moved back to New' };
+  const LABEL: Partial<Record<JobStatus, string>> = {
+    INTERESTED: 'Marked interested',
+    APPLIED: 'Marked as applied',
+    SKIPPED: 'Skipped',
+    DISCOVERED: 'Moved back to New',
+  };
   const move = (status: JobStatus) => {
     if (status === job.status) return onClose();
     setStatus.mutate(
@@ -77,7 +82,11 @@ function StatusSheet({ job, open, onClose }: { job: JobDetail; open: boolean; on
     );
   };
   const hint = (st: JobStatus) =>
-    st === 'APPLIED' ? (job.appliedAt ? `Applied ${new Date(job.appliedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : "Logs today's date") : null;
+    st === 'APPLIED'
+      ? job.appliedAt
+        ? `Applied ${new Date(job.appliedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
+        : "Logs today's date"
+      : null;
 
   return (
     <Sheet
@@ -86,7 +95,13 @@ function StatusSheet({ job, open, onClose }: { job: JobDetail; open: boolean; on
       title="Set status"
       footer={
         job.status !== 'DISCOVERED' && (
-          <Button size="lg" variant="ghost" className="w-full" onClick={() => move('DISCOVERED')} disabled={setStatus.isPending}>
+          <Button
+            size="lg"
+            variant="ghost"
+            className="w-full"
+            onClick={() => move('DISCOVERED')}
+            disabled={setStatus.isPending}
+          >
             Move back to New
           </Button>
         )
@@ -99,7 +114,11 @@ function StatusSheet({ job, open, onClose }: { job: JobDetail; open: boolean; on
             {job.company} · {job.title}
           </p>
         </div>
-        <button type="button" onClick={onClose} className="min-h-11 rounded-xl px-2 text-[15px] font-semibold text-accent-fg">
+        <button
+          type="button"
+          onClick={onClose}
+          className="min-h-11 rounded-xl px-2 text-[15px] font-semibold text-accent-fg"
+        >
           Done
         </button>
       </div>

@@ -14,7 +14,8 @@ export function Budget() {
   const u = usage.data;
   const cap = u.settings.monthlyBudgetUsd;
   const saveCap = (value: number) => {
-    if (Number.isFinite(value) && value >= 0 && value <= 1000 && value !== cap) update.mutate({ monthlyBudgetUsd: value });
+    if (Number.isFinite(value) && value >= 0 && value <= 1000 && value !== cap)
+      update.mutate({ monthlyBudgetUsd: value });
     setDraft(null);
   };
   const pct = Math.round((overlap ?? u.settings.resumeReuseMinOverlap) * 100);
@@ -26,7 +27,12 @@ export function Budget() {
           <p className="text-[13px] text-muted tabular-nums">${u.monthToDateUsd.toFixed(2)} used this month</p>
         </div>
         <div className="flex h-11 items-center overflow-hidden rounded-xl border border-border">
-          <button type="button" aria-label="Lower the cap by $1" onClick={() => saveCap(Math.max(0, cap - 1))} className="grid h-full w-11 place-items-center text-fg">
+          <button
+            type="button"
+            aria-label="Lower the cap by $1"
+            onClick={() => saveCap(Math.max(0, cap - 1))}
+            className="grid h-full w-11 place-items-center text-fg"
+          >
             <Minus className="size-4" />
           </button>
           <label className="sr-only" htmlFor="budget">
@@ -43,7 +49,12 @@ export function Budget() {
             onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
             className="h-full w-16 border-x border-border bg-transparent text-center text-[15px] font-semibold text-fg tabular-nums focus:outline-none"
           />
-          <button type="button" aria-label="Raise the cap by $1" onClick={() => saveCap(cap + 1)} className="grid h-full w-11 place-items-center text-fg">
+          <button
+            type="button"
+            aria-label="Raise the cap by $1"
+            onClick={() => saveCap(cap + 1)}
+            className="grid h-full w-11 place-items-center text-fg"
+          >
             <Plus className="size-4" />
           </button>
         </div>
@@ -68,7 +79,8 @@ export function Budget() {
           className="w-full accent-[var(--accent)]"
         />
         <p className="text-xs text-muted">
-          Offer an approved resume instead of tailoring when it matches a job at least this well. Lower saves money; higher fits better.
+          Offer an approved resume instead of tailoring when it matches a job at least this well. Lower saves money;
+          higher fits better.
         </p>
       </div>
       {update.isError && <p className="px-4 pb-3 text-xs text-danger-fg">{update.error.message}</p>}

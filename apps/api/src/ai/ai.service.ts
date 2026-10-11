@@ -36,7 +36,10 @@ export class AiService {
       }),
       this.prisma.job.groupBy({ by: ['analysisStatus'], where: { userId }, _count: true }),
       // Every purpose (scoring, tailoring, email reading): the "Today" tile on Sources.
-      this.prisma.aiUsage.aggregate({ where: { userId, createdAt: { gte: new Date(now.getTime() - DAY_MS) } }, _sum: { costUsd: true } }),
+      this.prisma.aiUsage.aggregate({
+        where: { userId, createdAt: { gte: new Date(now.getTime() - DAY_MS) } },
+        _sum: { costUsd: true },
+      }),
     ]);
     const jobs = Object.fromEntries(byStatus.map((g) => [g.analysisStatus, g._count]));
     return {
@@ -45,7 +48,12 @@ export class AiService {
       callsThisMonth: month._count,
       analysesLast24h,
       last24hUsd: Number(day._sum.costUsd ?? 0),
-      jobs: { pending: jobs.PENDING ?? 0, done: jobs.DONE ?? 0, deferred: jobs.DEFERRED ?? 0, failed: jobs.FAILED ?? 0 },
+      jobs: {
+        pending: jobs.PENDING ?? 0,
+        done: jobs.DONE ?? 0,
+        deferred: jobs.DEFERRED ?? 0,
+        failed: jobs.FAILED ?? 0,
+      },
     };
   }
 }

@@ -84,9 +84,17 @@ export class RateLimiter implements OnModuleDestroy {
     await withTimeout(this.redis.del(key), TIMEOUT_MS).catch(() => undefined);
   }
 
-  private async run(script: string, key: string, rule: RateRule, ok: (count: number) => boolean): Promise<RateDecision> {
+  private async run(
+    script: string,
+    key: string,
+    rule: RateRule,
+    ok: (count: number) => boolean,
+  ): Promise<RateDecision> {
     try {
-      const [count, ttlMs] = (await withTimeout(this.redis.eval(script, 1, key, rule.windowSeconds * 1000), TIMEOUT_MS)) as [number, number];
+      const [count, ttlMs] = (await withTimeout(
+        this.redis.eval(script, 1, key, rule.windowSeconds * 1000),
+        TIMEOUT_MS,
+      )) as [number, number];
       return { allowed: ok(count), count, retryAfterSeconds: Math.max(1, Math.ceil((ttlMs > 0 ? ttlMs : 0) / 1000)) };
     } catch (err) {
       this.logger.warn(`Rate limiter unavailable, allowing request: ${(err as Error).message}`);

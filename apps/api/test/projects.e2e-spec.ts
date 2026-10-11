@@ -28,12 +28,14 @@ describe('Projects (e2e)', () => {
   }
 
   async function verifiedEvidenceFor(projectId: string) {
-    const skill = await t.http()
+    const skill = await t
+      .http()
       .post('/api/v1/skills')
       .set(me.auth)
       .send({ name: `Skill ${crypto.randomUUID()}`, category: 'FRAMEWORK' })
       .expect(201);
-    const ev = await t.http()
+    const ev = await t
+      .http()
       .post('/api/v1/evidence')
       .set(me.auth)
       .send({
@@ -64,7 +66,8 @@ describe('Projects (e2e)', () => {
     const list = await t.http().get('/api/v1/projects').set(me.auth).expect(200);
     expect(list.body.map((p: { id: string }) => p.id)).toContain(project.id);
 
-    const updated = await t.http()
+    const updated = await t
+      .http()
       .patch(`/api/v1/projects/${project.id}`)
       .set(me.auth)
       .send({ liveUrl: 'https://getshortlist.com' })
@@ -85,7 +88,8 @@ describe('Projects (e2e)', () => {
 
   describe('validation', () => {
     it('only accepts http(s) URLs — no javascript: links', async () => {
-      await t.http()
+      await t
+        .http()
         .post('/api/v1/projects')
         .set(me.auth)
         .send({ name: 'XSS', liveUrl: 'javascript:alert(1)' })
@@ -94,7 +98,8 @@ describe('Projects (e2e)', () => {
     });
 
     it('rejects an end date before the start date, including across a patch', async () => {
-      await t.http()
+      await t
+        .http()
         .post('/api/v1/projects')
         .set(me.auth)
         .send({ name: 'Backwards', startDate: '2025-06-01', endDate: '2025-01-01' })
@@ -122,7 +127,8 @@ describe('Projects (e2e)', () => {
     it('changing only a URL keeps it verified', async () => {
       const project = await newProject();
       const ev = await verifiedEvidenceFor(project.id);
-      await t.http()
+      await t
+        .http()
         .patch(`/api/v1/projects/${project.id}`)
         .set(me.auth)
         .send({ repoUrl: 'https://github.com/NumanBytes/shortlist-v2' })

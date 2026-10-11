@@ -1,4 +1,9 @@
-import { CreateProjectSchema, CreateWorkExperienceSchema, UpdateProjectSchema, UpdateWorkExperienceSchema } from '@shortlist/shared';
+import {
+  CreateProjectSchema,
+  CreateWorkExperienceSchema,
+  UpdateProjectSchema,
+  UpdateWorkExperienceSchema,
+} from '@shortlist/shared';
 import { ShieldAlert, Trash2 } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { ApiError } from '../../lib/api';
@@ -11,12 +16,15 @@ const month = (iso: string | null | undefined) => (iso ? iso.slice(0, 7) : '');
 const toDate = (m: string) => (m ? `${m}-01` : null);
 const thisMonth = () => new Date().toISOString().slice(0, 7);
 const firstIssue = (e: { issues: { message: string }[] }) => e.issues[0]?.message ?? 'Check the fields';
-const apiMessage = (err: unknown) => (err instanceof ApiError ? (Object.values(err.fieldErrors)[0] ?? err.message) : 'Could not save');
+const apiMessage = (err: unknown) =>
+  err instanceof ApiError ? (Object.values(err.fieldErrors)[0] ?? err.message) : 'Could not save';
 
 // Only what changed, so an edit to a cosmetic field doesn't touch the claim fields (the
 // server compares by value too, but a smaller body is the clearer contract).
 function changed<T extends Record<string, unknown>>(next: T, prev: Record<string, unknown>): Partial<T> {
-  return Object.fromEntries(Object.entries(next).filter(([k, v]) => JSON.stringify(v) !== JSON.stringify(prev[k] ?? null))) as Partial<T>;
+  return Object.fromEntries(
+    Object.entries(next).filter(([k, v]) => JSON.stringify(v) !== JSON.stringify(prev[k] ?? null)),
+  ) as Partial<T>;
 }
 
 function ClaimNote({ what }: { what: string }) {
@@ -28,7 +36,17 @@ function ClaimNote({ what }: { what: string }) {
   );
 }
 
-function DeleteButton({ label, warning, onDelete, busy }: { label: string; warning: string; onDelete: () => void; busy: boolean }) {
+function DeleteButton({
+  label,
+  warning,
+  onDelete,
+  busy,
+}: {
+  label: string;
+  warning: string;
+  onDelete: () => void;
+  busy: boolean;
+}) {
   const [confirming, setConfirming] = useState(false);
   if (!confirming)
     return (
@@ -82,7 +100,11 @@ export function RoleForm({ role, onDone }: { role?: WorkExperience; onDone: () =
     if (!whole.success) return setError(firstIssue(whole.error));
     try {
       if (role) {
-        const diff = changed(body, { ...role, startDate: toDate(month(role.startDate)), endDate: toDate(month(role.endDate)) });
+        const diff = changed(body, {
+          ...role,
+          startDate: toDate(month(role.startDate)),
+          endDate: toDate(month(role.endDate)),
+        });
         if (Object.keys(diff).length === 0) return onDone();
         const parsed = UpdateWorkExperienceSchema.safeParse(diff);
         if (!parsed.success) return setError(firstIssue(parsed.error));
@@ -99,15 +121,37 @@ export function RoleForm({ role, onDone }: { role?: WorkExperience; onDone: () =
   return (
     <form onSubmit={submit} noValidate className="space-y-3" aria-label={role ? 'Edit role' : 'Add role'}>
       <p className="text-[17px] font-semibold text-fg">{role ? 'Edit role' : 'Add role'}</p>
-      <TextField id="role-title" label="Title" value={v.title} onChange={(e) => setV({ ...v, title: e.target.value })} />
-      <TextField id="role-company" label="Company" value={v.company} onChange={(e) => setV({ ...v, company: e.target.value })} />
-      <TextField id="role-location" label="Location (optional)" value={v.location} onChange={(e) => setV({ ...v, location: e.target.value })} />
+      <TextField
+        id="role-title"
+        label="Title"
+        value={v.title}
+        onChange={(e) => setV({ ...v, title: e.target.value })}
+      />
+      <TextField
+        id="role-company"
+        label="Company"
+        value={v.company}
+        onChange={(e) => setV({ ...v, company: e.target.value })}
+      />
+      <TextField
+        id="role-location"
+        label="Location (optional)"
+        value={v.location}
+        onChange={(e) => setV({ ...v, location: e.target.value })}
+      />
       <div className="grid grid-cols-2 gap-2.5">
         <div className="space-y-1.5">
           <label htmlFor="role-start" className={LABEL}>
             Started
           </label>
-          <input id="role-start" type="month" max={thisMonth()} value={v.start} onChange={(e) => setV({ ...v, start: e.target.value })} className={`${INPUT} h-12 px-2.5 text-[15px]`} />
+          <input
+            id="role-start"
+            type="month"
+            max={thisMonth()}
+            value={v.start}
+            onChange={(e) => setV({ ...v, start: e.target.value })}
+            className={`${INPUT} h-12 px-2.5 text-[15px]`}
+          />
         </div>
         <div className="space-y-1.5">
           <label htmlFor="role-end" className={LABEL}>
@@ -180,7 +224,11 @@ export function ProjectForm({ project, onDone }: { project?: Project; onDone: ()
     if (!whole.success) return setError(firstIssue(whole.error));
     try {
       if (project) {
-        const diff = changed(body, { ...project, startDate: toDate(month(project.startDate)), endDate: toDate(month(project.endDate)) });
+        const diff = changed(body, {
+          ...project,
+          startDate: toDate(month(project.startDate)),
+          endDate: toDate(month(project.endDate)),
+        });
         if (Object.keys(diff).length === 0) return onDone();
         const parsed = UpdateProjectSchema.safeParse(diff);
         if (!parsed.success) return setError(firstIssue(parsed.error));
@@ -214,7 +262,12 @@ export function ProjectForm({ project, onDone }: { project?: Project; onDone: ()
         <label htmlFor="project-role" className={LABEL}>
           Done as part of
         </label>
-        <select id="project-role" value={v.workExperienceId} onChange={(e) => setV({ ...v, workExperienceId: e.target.value })} className={`${INPUT} h-12 px-2.5 text-[15px]`}>
+        <select
+          id="project-role"
+          value={v.workExperienceId}
+          onChange={(e) => setV({ ...v, workExperienceId: e.target.value })}
+          className={`${INPUT} h-12 px-2.5 text-[15px]`}
+        >
           <option value="">A personal project</option>
           {(roles.data ?? []).map((r) => (
             <option key={r.id} value={r.id}>
@@ -228,21 +281,51 @@ export function ProjectForm({ project, onDone }: { project?: Project; onDone: ()
           <label htmlFor="project-start" className={LABEL}>
             Started (optional)
           </label>
-          <input id="project-start" type="month" max={thisMonth()} value={v.start} onChange={(e) => setV({ ...v, start: e.target.value })} className={`${INPUT} h-12 px-2.5 text-[15px]`} />
+          <input
+            id="project-start"
+            type="month"
+            max={thisMonth()}
+            value={v.start}
+            onChange={(e) => setV({ ...v, start: e.target.value })}
+            className={`${INPUT} h-12 px-2.5 text-[15px]`}
+          />
         </div>
         <div className="space-y-1.5">
           <label htmlFor="project-end" className={LABEL}>
             Ended (optional)
           </label>
-          <input id="project-end" type="month" max={thisMonth()} value={v.end} onChange={(e) => setV({ ...v, end: e.target.value })} className={`${INPUT} h-12 px-2.5 text-[15px]`} />
+          <input
+            id="project-end"
+            type="month"
+            max={thisMonth()}
+            value={v.end}
+            onChange={(e) => setV({ ...v, end: e.target.value })}
+            className={`${INPUT} h-12 px-2.5 text-[15px]`}
+          />
         </div>
       </div>
       <div className="flex items-center justify-between rounded-xl border border-border px-3.5 py-2.5">
         <span className="text-[15px] text-fg">It shipped to real users</span>
-        <Switch checked={v.isShipped} onChange={(isShipped) => setV({ ...v, isShipped })} label="It shipped to real users" />
+        <Switch
+          checked={v.isShipped}
+          onChange={(isShipped) => setV({ ...v, isShipped })}
+          label="It shipped to real users"
+        />
       </div>
-      <TextField id="project-live" label="Live URL (optional)" inputMode="url" value={v.liveUrl} onChange={(e) => setV({ ...v, liveUrl: e.target.value })} />
-      <TextField id="project-repo" label="Repository URL (optional)" inputMode="url" value={v.repoUrl} onChange={(e) => setV({ ...v, repoUrl: e.target.value })} />
+      <TextField
+        id="project-live"
+        label="Live URL (optional)"
+        inputMode="url"
+        value={v.liveUrl}
+        onChange={(e) => setV({ ...v, liveUrl: e.target.value })}
+      />
+      <TextField
+        id="project-repo"
+        label="Repository URL (optional)"
+        inputMode="url"
+        value={v.repoUrl}
+        onChange={(e) => setV({ ...v, repoUrl: e.target.value })}
+      />
       {project && <ClaimNote what="the name, description, dates, role or whether it shipped" />}
       {error && <p className="text-sm text-danger-fg">{error}</p>}
       <Button type="submit" size="lg" className="w-full" disabled={save.isPending}>

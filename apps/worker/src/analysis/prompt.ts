@@ -60,7 +60,9 @@ export function buildAnalysisPrompt(job: PromptJob, skills: PromptSkill[]) {
     `Company: ${job.company}`,
     `Location: ${job.location ?? 'not stated'}`,
     ...(job.isPartial
-      ? ['Note: only a job-alert summary is available, not the full posting. List only requirements the summary states or the title names directly (e.g. "React Developer" → React); do not guess the rest.']
+      ? [
+          'Note: only a job-alert summary is available, not the full posting. List only requirements the summary states or the title names directly (e.g. "React Developer" → React); do not guess the rest.',
+        ]
       : []),
     '',
     description || '(no description)',

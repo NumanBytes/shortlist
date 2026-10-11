@@ -4,7 +4,13 @@ import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { elapsed } from '../../lib/format';
 import { PushLink } from '../../components/PushLink';
-import { TAILOR_POLL_LIMIT_MS, resumeKeys, useCancelTailoring, useJobResume, usePrepareResume } from '../../lib/queries';
+import {
+  TAILOR_POLL_LIMIT_MS,
+  resumeKeys,
+  useCancelTailoring,
+  useJobResume,
+  usePrepareResume,
+} from '../../lib/queries';
 import type { JobDetail, JobResume } from '../../lib/types';
 import { useNow } from '../../lib/hooks/useNow';
 import { Badge, Button, Card, Sheet, buttonStyles } from '../../components/ui';
@@ -46,7 +52,17 @@ export function ResumeSection({ job }: { job: JobDetail }) {
 }
 
 // A tinted message box inside the card: warnings, failures, the stalled state.
-function Callout({ tone, icon, title, children }: { tone: 'stretch' | 'danger'; icon: ReactNode; title: ReactNode; children?: ReactNode }) {
+function Callout({
+  tone,
+  icon,
+  title,
+  children,
+}: {
+  tone: 'stretch' | 'danger';
+  icon: ReactNode;
+  title: ReactNode;
+  children?: ReactNode;
+}) {
   const tones = { stretch: 'bg-stretch-bg', danger: 'bg-danger-bg' };
   const iconTone = { stretch: 'text-stretch-fg', danger: 'text-danger-fg' };
   return (
@@ -88,8 +104,13 @@ export function TailoringProgress({ jobId, resume }: { jobId: string; resume: Jo
     return (
       <div className="space-y-1">
         <output className="block">
-          <Callout tone="stretch" icon={<AlertTriangle className="size-[18px]" />} title="Still waiting — the background worker isn't running.">
-            Queued {time} ago, so tailoring hasn't started. Nothing has been charged. It starts by itself once the worker is back.
+          <Callout
+            tone="stretch"
+            icon={<AlertTriangle className="size-[18px]" />}
+            title="Still waiting — the background worker isn't running."
+          >
+            Queued {time} ago, so tailoring hasn't started. Nothing has been charged. It starts by itself once the
+            worker is back.
           </Callout>
         </output>
         {cancelButton}
@@ -100,12 +121,19 @@ export function TailoringProgress({ jobId, resume }: { jobId: string; resume: Jo
     return (
       <div className="space-y-2.5">
         <output className="block">
-          <Callout tone="stretch" icon={<AlertTriangle className="size-[18px]" />} title={`Still waiting after ${time}`}>
+          <Callout
+            tone="stretch"
+            icon={<AlertTriangle className="size-[18px]" />}
+            title={`Still waiting after ${time}`}
+          >
             Far longer than tailoring takes. Something is stuck.
           </Callout>
         </output>
         <div className="grid grid-cols-2 gap-2">
-          <Button variant="secondary" onClick={() => void queryClient.invalidateQueries({ queryKey: resumeKeys.job(jobId) })}>
+          <Button
+            variant="secondary"
+            onClick={() => void queryClient.invalidateQueries({ queryKey: resumeKeys.job(jobId) })}
+          >
             <RotateCw className="size-4" /> Check again
           </Button>
           <Button variant="ghost" onClick={() => cancel.mutate(jobId)} disabled={cancel.isPending}>
@@ -118,23 +146,26 @@ export function TailoringProgress({ jobId, resume }: { jobId: string; resume: Jo
   }
   return (
     <div className="space-y-2">
-    <output className="block space-y-2.5">
-      <span className="flex items-center gap-2.5">
-        <span aria-hidden="true" className="size-4 shrink-0 animate-spin rounded-full border-2 border-accent border-r-transparent" />
-        <span className="flex-1 font-semibold text-fg">Tailoring from your verified evidence</span>
-        <span className="text-[13px] text-muted tabular-nums">{time}</span>
-      </span>
-      {/* Indeterminate: it moves, but claims no percentage it doesn't know. */}
-      <span aria-hidden="true" className="relative block h-1.5 overflow-hidden rounded-full bg-surface-2">
-        <span className="absolute inset-y-0 w-1/3 animate-[indeterminate_1.4s_ease-in-out_infinite] rounded-full bg-accent motion-reduce:animate-none" />
-      </span>
-      <span className="block text-xs text-muted">
-        {waited > SLOW_MS
-          ? 'Taking longer than usual — Claude may be busy; it retries on its own.'
-          : 'Usually under a minute. Runs on the server — you can leave this page.'}
-      </span>
-    </output>
-    {cancelButton}
+      <output className="block space-y-2.5">
+        <span className="flex items-center gap-2.5">
+          <span
+            aria-hidden="true"
+            className="size-4 shrink-0 animate-spin rounded-full border-2 border-accent border-r-transparent"
+          />
+          <span className="flex-1 font-semibold text-fg">Tailoring from your verified evidence</span>
+          <span className="text-[13px] text-muted tabular-nums">{time}</span>
+        </span>
+        {/* Indeterminate: it moves, but claims no percentage it doesn't know. */}
+        <span aria-hidden="true" className="relative block h-1.5 overflow-hidden rounded-full bg-surface-2">
+          <span className="absolute inset-y-0 w-1/3 animate-[indeterminate_1.4s_ease-in-out_infinite] rounded-full bg-accent motion-reduce:animate-none" />
+        </span>
+        <span className="block text-xs text-muted">
+          {waited > SLOW_MS
+            ? 'Taking longer than usual — Claude may be busy; it retries on its own.'
+            : 'Usually under a minute. Runs on the server — you can leave this page.'}
+        </span>
+      </output>
+      {cancelButton}
     </div>
   );
 }
@@ -142,7 +173,11 @@ export function TailoringProgress({ jobId, resume }: { jobId: string; resume: Jo
 function VariantBadge({ resume }: { resume: JobResume }) {
   const v = resume.variant!;
   if (v.stale.length) return <Badge tone="danger">Out of date</Badge>;
-  return v.status === 'APPROVED' ? <Badge tone="accent">Approved</Badge> : <Badge tone="stretch">Draft — review it</Badge>;
+  return v.status === 'APPROVED' ? (
+    <Badge tone="accent">Approved</Badge>
+  ) : (
+    <Badge tone="stretch">Draft — review it</Badge>
+  );
 }
 
 function Body({ job, resume }: { job: JobDetail; resume: JobResume }) {
@@ -154,9 +189,17 @@ function Body({ job, resume }: { job: JobDetail; resume: JobResume }) {
   const pending = resume.status === 'PENDING' && <TailoringProgress jobId={job.id} resume={resume} />;
   const problem =
     resume.status === 'FAILED' ? (
-      <Callout tone="danger" icon={<CircleX className="size-[18px]" />} title={`Tailoring failed: ${resume.error ?? 'unknown error'}`} />
+      <Callout
+        tone="danger"
+        icon={<CircleX className="size-[18px]" />}
+        title={`Tailoring failed: ${resume.error ?? 'unknown error'}`}
+      />
     ) : resume.status === 'DEFERRED' ? (
-      <Callout tone="stretch" icon={<Clock className="size-[18px]" />} title={`Tailoring deferred: ${resume.error ?? ''}`}>
+      <Callout
+        tone="stretch"
+        icon={<Clock className="size-[18px]" />}
+        title={`Tailoring deferred: ${resume.error ?? ''}`}
+      >
         It runs once there's budget again —{' '}
         <Link to="/profile" className="font-medium text-accent-fg underline-offset-2 hover:underline">
           change the monthly cap
@@ -179,12 +222,18 @@ function Body({ job, resume }: { job: JobDetail; resume: JobResume }) {
         {problem}
         {(pending || problem) && <p className="text-xs text-muted">Your current resume for this job is still below.</p>}
         {stale ? (
-          <Callout tone="stretch" icon={<RefreshCw className="size-[18px]" />} title="Evidence it uses has changed — tailor again before sending">
+          <Callout
+            tone="stretch"
+            icon={<RefreshCw className="size-[18px]" />}
+            title="Evidence it uses has changed — tailor again before sending"
+          >
             {v.stale.join(' · ')}
           </Callout>
         ) : (
           <div>
-            <p className="font-semibold text-fg">{approved ? `Approved ${v.approvedAt ? shortDate(v.approvedAt) : ''}` : 'Resume ready to review'}</p>
+            <p className="font-semibold text-fg">
+              {approved ? `Approved ${v.approvedAt ? shortDate(v.approvedAt) : ''}` : 'Resume ready to review'}
+            </p>
             <p className="text-[13px] text-muted">
               {resume.reused && current
                 ? `Reusing a resume you approved — ${Math.round((resume.overlap ?? 0) * 100)}% of this job's requirements.`
@@ -194,11 +243,20 @@ function Body({ job, resume }: { job: JobDetail; resume: JobResume }) {
           </div>
         )}
         <div className="grid grid-cols-2 gap-2">
-          <PushLink to={`/jobs/${job.id}/resume`} dir="forward" className={`${buttonStyles(stale ? 'secondary' : 'primary')} ${resume.status !== 'PENDING' && resume.canTailor ? '' : 'col-span-2'}`}>
+          <PushLink
+            to={`/jobs/${job.id}/resume`}
+            dir="forward"
+            className={`${buttonStyles(stale ? 'secondary' : 'primary')} ${resume.status !== 'PENDING' && resume.canTailor ? '' : 'col-span-2'}`}
+          >
             <FileText className="size-4" /> {approved ? 'Open & save PDF' : 'Review'}
           </PushLink>
           {resume.status !== 'PENDING' && resume.canTailor && (
-            <TailorAgain onConfirm={tailor} busy={busy} needsConfirm={!stale} approvedAt={v.approvedAt ?? v.generatedAt} />
+            <TailorAgain
+              onConfirm={tailor}
+              busy={busy}
+              needsConfirm={!stale}
+              approvedAt={v.approvedAt ?? v.generatedAt}
+            />
           )}
         </div>
         {error}
@@ -214,7 +272,10 @@ function Body({ job, resume }: { job: JobDetail; resume: JobResume }) {
       {resume.reuse.map((r) => (
         <div key={r.variantId} className="space-y-3">
           <div className="flex items-center gap-3 rounded-[14px] bg-surface-2 p-3">
-            <span aria-hidden="true" className="grid h-11 w-9 shrink-0 place-items-center rounded-md border border-border bg-surface">
+            <span
+              aria-hidden="true"
+              className="grid h-11 w-9 shrink-0 place-items-center rounded-md border border-border bg-surface"
+            >
               <FileText className="size-4 text-muted" />
             </span>
             <div className="min-w-0">
@@ -237,15 +298,28 @@ function Body({ job, resume }: { job: JobDetail; resume: JobResume }) {
       ))}
       {resume.canTailor ? (
         <div className="space-y-2">
-          <Button onClick={tailor} disabled={busy} variant={resume.reuse.length ? 'secondary' : 'primary'} className="w-full">
+          <Button
+            onClick={tailor}
+            disabled={busy}
+            variant={resume.reuse.length ? 'secondary' : 'primary'}
+            className="w-full"
+          >
             <Sparkles className="size-4" />
-            {busy ? 'Queuing…' : resume.reuse.length ? 'Tailor fresh' : resume.status === 'NONE' ? 'Tailor a resume' : 'Try again'}
+            {busy
+              ? 'Queuing…'
+              : resume.reuse.length
+                ? 'Tailor fresh'
+                : resume.status === 'NONE'
+                  ? 'Tailor a resume'
+                  : 'Try again'}
             <span className="font-normal opacity-80">~$0.03</span>
           </Button>
           <p className="text-xs text-muted">Uses only your verified evidence. Takes about a minute.</p>
         </div>
       ) : resume.needsDescription ? (
-        <p className="text-muted">The alert only had a summary. Paste the full description above, and a resume can be tailored to it.</p>
+        <p className="text-muted">
+          The alert only had a summary. Paste the full description above, and a resume can be tailored to it.
+        </p>
       ) : (
         <p className="text-muted">Tailoring uses this job's requirements, so it can start once scoring finishes.</p>
       )}
@@ -257,7 +331,17 @@ function Body({ job, resume }: { job: JobDetail; resume: JobResume }) {
 // Re-tailoring costs money and replaces a resume you may already have reviewed, so it
 // asks first (the design's confirm sheet) — unless the resume is out of date and must be
 // redone anyway.
-function TailorAgain({ onConfirm, busy, needsConfirm, approvedAt }: { onConfirm: () => void; busy: boolean; needsConfirm: boolean; approvedAt: string }) {
+function TailorAgain({
+  onConfirm,
+  busy,
+  needsConfirm,
+  approvedAt,
+}: {
+  onConfirm: () => void;
+  busy: boolean;
+  needsConfirm: boolean;
+  approvedAt: string;
+}) {
   const [confirming, setConfirming] = useState(false);
   return (
     <>
@@ -292,7 +376,8 @@ function TailorAgain({ onConfirm, busy, needsConfirm, approvedAt }: { onConfirm:
         </div>
         <p className="mt-3 text-[17px] font-semibold text-fg">Tailor again?</p>
         <p className="mt-1 text-[15px] text-muted">
-          This replaces the resume from {shortDate(approvedAt)} and needs a fresh review. It costs about $0.03 and takes a minute.
+          This replaces the resume from {shortDate(approvedAt)} and needs a fresh review. It costs about $0.03 and takes
+          a minute.
         </p>
       </Sheet>
     </>

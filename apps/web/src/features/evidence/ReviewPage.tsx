@@ -66,7 +66,9 @@ export function ReviewPage() {
             value={verified}
             className="block h-1.5 w-full appearance-none overflow-hidden rounded-full bg-surface-2 [&::-moz-progress-bar]:rounded-full [&::-moz-progress-bar]:bg-accent [&::-webkit-progress-bar]:bg-surface-2 [&::-webkit-progress-value]:rounded-full [&::-webkit-progress-value]:bg-accent"
           />
-          <p className="text-xs text-muted">Resumes only use evidence you've verified. Verify an item only if it's true as worded.</p>
+          <p className="text-xs text-muted">
+            Resumes only use evidence you've verified. Verify an item only if it's true as worded.
+          </p>
         </Card>
       )}
 
@@ -86,7 +88,9 @@ export function ReviewPage() {
           <p>Everything added starts unverified.</p>
         </div>
       )}
-      {skills.isSuccess && all.length > 0 && shown.length === 0 && <EmptyState icon={<PartyPopper className="size-6" />} title="Everything is verified" />}
+      {skills.isSuccess && all.length > 0 && shown.length === 0 && (
+        <EmptyState icon={<PartyPopper className="size-6" />} title="Everything is verified" />
+      )}
 
       <div className="space-y-2.5">
         {shown.map((skill) => (
@@ -138,8 +142,16 @@ function SkillGroup({
   const pending = skill.evidence.length - verified;
   const learning = skill.evidence.every((e) => e.depth === 'EXPOSURE');
   return (
-    <section aria-label={`${skill.name} evidence`} className="overflow-hidden rounded-2xl border border-border bg-surface">
-      <button type="button" aria-expanded={open} onClick={onToggle} className="flex min-h-13 w-full items-center gap-2.5 pr-2 pl-4 text-left">
+    <section
+      aria-label={`${skill.name} evidence`}
+      className="overflow-hidden rounded-2xl border border-border bg-surface"
+    >
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={onToggle}
+        className="flex min-h-13 w-full items-center gap-2.5 pr-2 pl-4 text-left"
+      >
         <span className="flex-1 text-[15px] font-semibold text-fg">
           {skill.name}
           {learning && <span className="text-xs font-medium text-muted"> · learning</span>}

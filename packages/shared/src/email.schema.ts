@@ -51,6 +51,8 @@ export const EMAIL_EXTRACTION_JSON_SCHEMA = {
 
 // "Paste full description" (docs/email-alerts.md §10.5): the user supplies what the alert left out.
 export const PasteDescriptionSchema = z
-  .object({ description: z.string().trim().min(200, 'Paste the whole job description (at least 200 characters)').max(50_000) })
+  .object({
+    description: z.string().trim().min(200, 'Paste the whole job description (at least 200 characters)').max(50_000),
+  })
   .strict();
 export type PasteDescriptionInput = z.infer<typeof PasteDescriptionSchema>;

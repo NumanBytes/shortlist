@@ -4,7 +4,15 @@ import type { Project, WorkExperience } from '../../lib/types';
 import { mockFetch, renderWithProviders } from '../../test/render';
 import { ProjectForm, RoleForm } from './CareerForms';
 
-const role: WorkExperience = { id: 'r1', company: 'CloudCard Inc.', title: 'Software Engineer', startDate: '2024-05-01T00:00:00.000Z', endDate: null, isCurrent: true, location: 'Lahore' };
+const role: WorkExperience = {
+  id: 'r1',
+  company: 'CloudCard Inc.',
+  title: 'Software Engineer',
+  startDate: '2024-05-01T00:00:00.000Z',
+  endDate: null,
+  isCurrent: true,
+  location: 'Lahore',
+};
 const project: Project = {
   id: 'p1',
   name: 'Bank Portal',
@@ -18,7 +26,9 @@ const project: Project = {
 };
 const api = () => mockFetch(undefined, (url) => (url.endsWith('/work-experiences') ? [role] : { id: 'x' }));
 const sent = (f: ReturnType<typeof mockFetch>, method: string) =>
-  f.mock.calls.filter(([, i]) => i?.method === method).map(([url, i]) => ({ url, body: i?.body ? JSON.parse(i.body as string) : undefined }));
+  f.mock.calls
+    .filter(([, i]) => i?.method === method)
+    .map(([url, i]) => ({ url, body: i?.body ? JSON.parse(i.body as string) : undefined }));
 
 describe('RoleForm', { timeout: 20_000 }, () => {
   it('edits only what changed, and warns that claim changes un-verify evidence', async () => {
@@ -30,7 +40,9 @@ describe('RoleForm', { timeout: 20_000 }, () => {
     await userEvent.type(screen.getByLabelText('Title'), 'Senior Engineer');
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(done).toHaveBeenCalled());
-    expect(sent(fetchMock, 'PATCH')).toEqual([{ url: '/api/v1/work-experiences/r1', body: { title: 'Senior Engineer' } }]);
+    expect(sent(fetchMock, 'PATCH')).toEqual([
+      { url: '/api/v1/work-experiences/r1', body: { title: 'Senior Engineer' } },
+    ]);
   });
 
   it("a current role can't also have an end date; a past one needs one", async () => {
@@ -52,7 +64,9 @@ describe('RoleForm', { timeout: 20_000 }, () => {
     expect(screen.getByText(/becomes unverified/)).toBeInTheDocument();
     expect(sent(fetchMock, 'DELETE')).toHaveLength(0);
     await userEvent.click(screen.getByRole('button', { name: 'Delete' }));
-    await waitFor(() => expect(sent(fetchMock, 'DELETE')).toEqual([{ url: '/api/v1/work-experiences/r1', body: undefined }]));
+    await waitFor(() =>
+      expect(sent(fetchMock, 'DELETE')).toEqual([{ url: '/api/v1/work-experiences/r1', body: undefined }]),
+    );
   });
 });
 
@@ -63,7 +77,9 @@ describe('ProjectForm', { timeout: 20_000 }, () => {
     await screen.findByRole('option', { name: /Software Engineer, CloudCard/ });
     await userEvent.selectOptions(screen.getByLabelText('Done as part of'), '');
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
-    await waitFor(() => expect(sent(fetchMock, 'PATCH')).toEqual([{ url: '/api/v1/projects/p1', body: { workExperienceId: null } }]));
+    await waitFor(() =>
+      expect(sent(fetchMock, 'PATCH')).toEqual([{ url: '/api/v1/projects/p1', body: { workExperienceId: null } }]),
+    );
   });
 
   it('refuses a non-http link before sending', async () => {

@@ -64,7 +64,11 @@ describe('Auth rate limits (e2e)', () => {
 
   it('limits sign-ups per IP', async () => {
     const register = (ip: string) =>
-      t.http().post('/api/v1/auth/register').set('X-Forwarded-For', ip).send({ email: uniqueEmail(), password: TEST_PASSWORD, name: 'Rate Test' });
+      t
+        .http()
+        .post('/api/v1/auth/register')
+        .set('X-Forwarded-For', ip)
+        .send({ email: uniqueEmail(), password: TEST_PASSWORD, name: 'Rate Test' });
     const ok = [await register('192.0.2.9').expect(201), await register('192.0.2.9').expect(201)];
     const created = ok.map((r) => r.body.user.id as string);
     const refused = await register('192.0.2.9').expect(429);

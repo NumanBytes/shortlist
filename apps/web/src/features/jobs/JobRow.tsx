@@ -15,7 +15,11 @@ import { Badge, IconButton } from '../../components/ui';
 import { VerdictBadge } from '../../components/VerdictBadge';
 
 const PIPELINE: JobStatus[] = ['APPLIED', 'ASSESSMENT', 'INTERVIEWING', 'OFFER', 'REJECTED', 'WITHDRAWN'];
-const MOVED: Partial<Record<JobStatus, string>> = { INTERESTED: 'Moved to Interested', SKIPPED: 'Skipped', DISCOVERED: 'Moved back to New' };
+const MOVED: Partial<Record<JobStatus, string>> = {
+  INTERESTED: 'Moved to Interested',
+  SKIPPED: 'Skipped',
+  DISCOVERED: 'Moved back to New',
+};
 
 // One job in the list: the score and what/where on top; source and quick actions in a
 // footer row, so the row is only as tall as its content.
@@ -51,16 +55,41 @@ export function JobRow({ job, selected }: { job: JobListItem; selected: boolean 
 
   // What each swipe does here: New → right Interested, left Skip; Interested → left back
   // to New; Skipped → right back to New. Applied jobs don't swipe.
-  const actions: Partial<Record<SwipeDir, { status: JobStatus; label: string; icon: ReactNode; tone: string }>> = applied
-    ? {}
-    : job.status === 'SKIPPED'
-      ? { right: { status: 'DISCOVERED', label: 'Back to New', icon: <Undo2 className="size-5" />, tone: 'bg-accent text-on-accent' } }
-      : interested
-        ? { left: { status: 'DISCOVERED', label: 'Back to New', icon: <Undo2 className="size-5" />, tone: 'bg-skip-bg text-skip-fg' } }
-        : {
-            right: { status: 'INTERESTED', label: 'Interested', icon: <Star className="size-5 fill-current" />, tone: 'bg-accent text-on-accent' },
-            left: { status: 'SKIPPED', label: 'Skip', icon: <X className="size-5" />, tone: 'bg-skip-bg text-skip-fg' },
-          };
+  const actions: Partial<Record<SwipeDir, { status: JobStatus; label: string; icon: ReactNode; tone: string }>> =
+    applied
+      ? {}
+      : job.status === 'SKIPPED'
+        ? {
+            right: {
+              status: 'DISCOVERED',
+              label: 'Back to New',
+              icon: <Undo2 className="size-5" />,
+              tone: 'bg-accent text-on-accent',
+            },
+          }
+        : interested
+          ? {
+              left: {
+                status: 'DISCOVERED',
+                label: 'Back to New',
+                icon: <Undo2 className="size-5" />,
+                tone: 'bg-skip-bg text-skip-fg',
+              },
+            }
+          : {
+              right: {
+                status: 'INTERESTED',
+                label: 'Interested',
+                icon: <Star className="size-5 fill-current" />,
+                tone: 'bg-accent text-on-accent',
+              },
+              left: {
+                status: 'SKIPPED',
+                label: 'Skip',
+                icon: <X className="size-5" />,
+                tone: 'bg-skip-bg text-skip-fg',
+              },
+            };
   const { row, ...swipe } = useSwipeRow({
     id: job.id,
     allowed: { right: !!actions.right, left: !!actions.left },
@@ -95,18 +124,32 @@ export function JobRow({ job, selected }: { job: JobListItem; selected: boolean 
           // Name this card's ring for the shared-element transition, and fetch the job so the
           // detail's ring is on screen for the browser's "new" snapshot.
           onClick={() => nameSharedRing(ringRef.current, job.id)}
-          before={() => queryClient.prefetchQuery({ queryKey: jobKeys.detail(job.id), queryFn: () => api(`/jobs/${job.id}`) })}
+          before={() =>
+            queryClient.prefetchQuery({ queryKey: jobKeys.detail(job.id), queryFn: () => api(`/jobs/${job.id}`) })
+          }
           aria-current={selected ? 'page' : undefined}
           draggable={false}
           className="flex gap-3 rounded-t-2xl px-3.5 pt-3.5 focus-visible:outline-2 focus-visible:outline-accent"
         >
-          {job.match ? <ScoreRing score={job.match.overallScore} verdict={job.match.verdict} ringRef={ringRef} /> : <PendingRing />}
+          {job.match ? (
+            <ScoreRing score={job.match.overallScore} verdict={job.match.verdict} ringRef={ringRef} />
+          ) : (
+            <PendingRing />
+          )}
           <div className="flex min-w-0 flex-1 flex-col gap-[3px]">
-            <h3 className="line-clamp-2 text-base leading-[21px] font-semibold tracking-[-0.01em] text-fg">{job.title}</h3>
+            <h3 className="line-clamp-2 text-base leading-[21px] font-semibold tracking-[-0.01em] text-fg">
+              {job.title}
+            </h3>
             <p className="truncate text-[13px] text-muted">{meta}</p>
             <div className="flex flex-wrap gap-1.5 pt-1.5">
               {job.match && <VerdictBadge verdict={job.match.verdict} />}
-              {showMode && <Badge>{job.workMode === 'ONSITE' ? 'On-site' : job.workMode!.charAt(0) + job.workMode!.slice(1).toLowerCase()}</Badge>}
+              {showMode && (
+                <Badge>
+                  {job.workMode === 'ONSITE'
+                    ? 'On-site'
+                    : job.workMode!.charAt(0) + job.workMode!.slice(1).toLowerCase()}
+                </Badge>
+              )}
               {/* From an alert email: scored from a summary only (docs/email-alerts.md §10.5). */}
               {job.isPartial && (
                 <Badge>
@@ -146,7 +189,11 @@ export function JobRow({ job, selected }: { job: JobListItem; selected: boolean 
               </a>
             )}
             {applied ? (
-              <span className="inline-flex size-11 items-center justify-center text-apply" title="Applied" aria-label="Applied">
+              <span
+                className="inline-flex size-11 items-center justify-center text-apply"
+                title="Applied"
+                aria-label="Applied"
+              >
                 <CheckCircle2 className="size-5" />
               </span>
             ) : job.status === 'SKIPPED' ? (

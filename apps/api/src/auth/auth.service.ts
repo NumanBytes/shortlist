@@ -1,10 +1,4 @@
-import {
-  ConflictException,
-  Inject,
-  Injectable,
-  UnauthorizedException,
-  type OnModuleInit,
-} from '@nestjs/common';
+import { ConflictException, Inject, Injectable, UnauthorizedException, type OnModuleInit } from '@nestjs/common';
 import type { LoginInput, RegisterInput } from '@shortlist/shared';
 import { Prisma } from '@shortlist/db';
 import bcrypt from 'bcrypt';

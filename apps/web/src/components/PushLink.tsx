@@ -20,7 +20,9 @@ export function PushLink({
     e.preventDefault();
     if (!before) return pushNavigate(navigate, to, dir);
     // Wait at most 250 ms: a slow network gets the push without the ring, never a stall.
-    void Promise.race([before().catch(() => undefined), new Promise((r) => setTimeout(r, 250))]).then(() => pushNavigate(navigate, to, dir));
+    void Promise.race([before().catch(() => undefined), new Promise((r) => setTimeout(r, 250))]).then(() =>
+      pushNavigate(navigate, to, dir),
+    );
   };
   return <Link to={to} onClick={handle} {...props} />;
 }

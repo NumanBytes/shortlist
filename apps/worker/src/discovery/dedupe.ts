@@ -8,7 +8,8 @@ import { createHash } from 'node:crypto';
 // vs "Pakistan" vs "Remote - APAC") to match reliably, and the same title at the same
 // company in two cities is one decision for the user, not two.
 
-const COMPANY_SUFFIXES = /\b(inc|llc|ltd|limited|pvt|private|plc|gmbh|corp|corporation|co|company|technologies|technology|tech)\b/g;
+const COMPANY_SUFFIXES =
+  /\b(inc|llc|ltd|limited|pvt|private|plc|gmbh|corp|corporation|co|company|technologies|technology|tech)\b/g;
 
 export function normalize(s: string): string {
   return s
@@ -25,5 +26,7 @@ export function normalizeCompany(s: string): string {
 }
 
 export function dedupeHash(company: string, title: string): string {
-  return createHash('sha256').update(`${normalizeCompany(company)}|${normalize(title)}`).digest('hex');
+  return createHash('sha256')
+    .update(`${normalizeCompany(company)}|${normalize(title)}`)
+    .digest('hex');
 }

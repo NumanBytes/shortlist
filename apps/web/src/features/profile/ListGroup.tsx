@@ -3,7 +3,19 @@ import type { ReactNode } from 'react';
 import { SectionLabel } from '../../components/ui';
 
 // A grouped list in a card (design board 6): icon tile, title, subtitle, optional chevron.
-export function Row({ icon, title, sub, onClick, trailing }: { icon: ReactNode; title: string; sub?: string; onClick?: () => void; trailing?: ReactNode }) {
+export function Row({
+  icon,
+  title,
+  sub,
+  onClick,
+  trailing,
+}: {
+  icon: ReactNode;
+  title: string;
+  sub?: string;
+  onClick?: () => void;
+  trailing?: ReactNode;
+}) {
   const body = (
     <>
       <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-surface-2 text-muted">{icon}</span>
@@ -29,14 +41,20 @@ export function Group({ label, children }: { label: string; children: ReactNode 
   return (
     <section className="space-y-2 pt-2" aria-label={label}>
       <SectionLabel>{label}</SectionLabel>
-      <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-surface">{children}</div>
+      <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-surface">
+        {children}
+      </div>
     </section>
   );
 }
 
 export function AddRow({ onClick, children }: { onClick: () => void; children: ReactNode }) {
   return (
-    <button type="button" onClick={onClick} className="flex min-h-12 w-full items-center gap-2 px-4 text-[15px] font-semibold text-accent-fg">
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex min-h-12 w-full items-center gap-2 px-4 text-[15px] font-semibold text-accent-fg"
+    >
       <Plus className="size-4" /> {children}
     </button>
   );

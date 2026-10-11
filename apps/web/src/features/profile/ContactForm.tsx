@@ -8,7 +8,12 @@ import type { PublicUser } from '../../lib/types';
 
 const FIELDS = [
   { key: 'name', label: 'Full name', autoComplete: 'name' },
-  { key: 'headline', label: 'Headline', autoComplete: 'off', placeholder: 'e.g. Software Engineer — React & TypeScript' },
+  {
+    key: 'headline',
+    label: 'Headline',
+    autoComplete: 'off',
+    placeholder: 'e.g. Software Engineer — React & TypeScript',
+  },
   { key: 'location', label: 'Location', autoComplete: 'address-level2', placeholder: 'Lahore, Pakistan' },
   { key: 'phone', label: 'Phone', autoComplete: 'tel', placeholder: '+92 300 0000000' },
   { key: 'linkedinUrl', label: 'LinkedIn URL', autoComplete: 'url', placeholder: 'https://linkedin.com/in/…' },
@@ -32,7 +37,9 @@ export function ContactForm({ profile: p, onDone }: { profile: PublicUser; onDon
   async function save(e: FormEvent) {
     e.preventDefault();
     // Empty optional fields are cleared (null); the name is required.
-    const body = Object.fromEntries(FIELDS.map(({ key }) => [key, values[key].trim() === '' && key !== 'name' ? null : values[key]]));
+    const body = Object.fromEntries(
+      FIELDS.map(({ key }) => [key, values[key].trim() === '' && key !== 'name' ? null : values[key]]),
+    );
     const parsed = UpdateProfileSchema.safeParse(body);
     if (!parsed.success) {
       setErrors(Object.fromEntries(parsed.error.issues.map((i) => [String(i.path[0]), i.message])));

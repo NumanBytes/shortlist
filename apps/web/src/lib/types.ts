@@ -237,7 +237,17 @@ export interface JobResume {
     stale: string[];
     content: ResumeContent;
   } | null;
-  sources: Record<string, { skillName: string; whatIDid: string; isVerified: boolean; context: EvidenceContext; depth: EvidenceDepth; lastUsed: string }>;
+  sources: Record<
+    string,
+    {
+      skillName: string;
+      whatIDid: string;
+      isVerified: boolean;
+      context: EvidenceContext;
+      depth: EvidenceDepth;
+      lastUsed: string;
+    }
+  >;
   reuse: { variantId: string; overlap: number; approvedAt: string | null; usedFor: string[] }[];
 }
 

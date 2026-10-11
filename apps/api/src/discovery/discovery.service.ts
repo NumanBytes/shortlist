@@ -81,7 +81,12 @@ export class DiscoveryService {
       `manual-${Date.now()}`,
     );
     // Best effort: the inbox is also checked every two hours on its own schedule.
-    const emailQueued = gmail?.status === 'ACTIVE' && (await this.queue.enqueueEmailCheck(userId).then(() => true, () => false));
+    const emailQueued =
+      gmail?.status === 'ACTIVE' &&
+      (await this.queue.enqueueEmailCheck(userId).then(
+        () => true,
+        () => false,
+      ));
     return {
       queued: due.map((s) => s.name),
       skipped: sources.filter((s) => !due.includes(s)).map((s) => s.name),
@@ -102,7 +107,11 @@ export class DiscoveryService {
       }),
       this.prisma.discoveryRun.count({
         // A run row older than this is a crashed attempt, not one still going.
-        where: { status: 'RUNNING', startedAt: { gte: new Date(Date.now() - RUNNING_WINDOW_MS) }, jobSource: { userId } },
+        where: {
+          status: 'RUNNING',
+          startedAt: { gte: new Date(Date.now() - RUNNING_WINDOW_MS) },
+          jobSource: { userId },
+        },
       }),
       this.queue.workerOnline(),
       this.queue.nextNightlyDiscovery(),

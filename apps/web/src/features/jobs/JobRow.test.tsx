@@ -5,8 +5,12 @@ import { job } from '../../test/fixtures';
 import { mockFetch, renderWithProviders } from '../../test/render';
 import { JobRow } from './JobRow';
 
-
-const row = (j: JobListItem = job) => renderWithProviders(<ul><JobRow job={j} selected={false} /></ul>);
+const row = (j: JobListItem = job) =>
+  renderWithProviders(
+    <ul>
+      <JobRow job={j} selected={false} />
+    </ul>,
+  );
 
 describe('JobRow', () => {
   it('leads with the match score and links to the job detail', () => {

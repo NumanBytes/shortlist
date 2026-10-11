@@ -29,7 +29,11 @@ const user = await prisma.user.findUniqueOrThrow({ where: { email: email.toLower
 if (!user.gmail) throw new Error('Gmail is not connected for this account — connect it on the Sources page first');
 
 const box = new SecretBox(env.TOKEN_ENCRYPTION_KEY);
-const oauth = new HttpGoogleOAuth({ clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET, redirectUri: '' });
+const oauth = new HttpGoogleOAuth({
+  clientId: env.GOOGLE_CLIENT_ID,
+  clientSecret: env.GOOGLE_CLIENT_SECRET,
+  redirectUri: '',
+});
 const gmail = new HttpGmailApi();
 const token = await oauth.refreshAccessToken(box.open(user.gmail.refreshTokenEnc, user.id));
 

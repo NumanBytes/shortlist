@@ -47,7 +47,10 @@ export const workable: Adapter<{ provider: 'workable'; account: string }> = asyn
     description: null,
     loadDescription: async () => {
       const d = await getJson<WorkableDetail>(`https://apply.workable.com/api/v2/accounts/${acct}/jobs/${j.shortcode}`);
-      return [d.description, d.requirements, d.benefits].filter(Boolean).map((h) => htmlToText(h!)).join('\n\n');
+      return [d.description, d.requirements, d.benefits]
+        .filter(Boolean)
+        .map((h) => htmlToText(h!))
+        .join('\n\n');
     },
   }));
 };

@@ -17,7 +17,12 @@ interface LeverPosting {
   additionalPlain?: string;
 }
 
-const WORKPLACE: Record<string, WorkMode> = { remote: 'REMOTE', hybrid: 'HYBRID', onsite: 'ONSITE', 'on-site': 'ONSITE' };
+const WORKPLACE: Record<string, WorkMode> = {
+  remote: 'REMOTE',
+  hybrid: 'HYBRID',
+  onsite: 'ONSITE',
+  'on-site': 'ONSITE',
+};
 
 export const lever: Adapter<{ provider: 'lever'; site: string }> = async ({ site }, ctx) => {
   const postings = await getJson<LeverPosting[]>(

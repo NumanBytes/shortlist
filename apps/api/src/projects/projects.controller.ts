@@ -1,15 +1,4 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  HttpCode,
-  HttpStatus,
-  Param,
-  ParseUUIDPipe,
-  Patch,
-  Post,
-} from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
 import {
   CreateProjectSchema,
   UpdateProjectSchema,
@@ -35,10 +24,7 @@ export class ProjectsController {
   }
 
   @Post()
-  create(
-    @CurrentUser() user: AuthUser,
-    @Body(new ZodValidationPipe(CreateProjectSchema)) body: CreateProjectInput,
-  ) {
+  create(@CurrentUser() user: AuthUser, @Body(new ZodValidationPipe(CreateProjectSchema)) body: CreateProjectInput) {
     return this.service.create(user.id, body);
   }
 

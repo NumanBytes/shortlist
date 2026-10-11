@@ -35,7 +35,14 @@ const DETAIL_SELECT = {
   yearsRequired: true,
   analyzedAt: true,
   requirements: {
-    select: { skillName: true, importance: true, isCore: true, yearsRequired: true, matchedSkillIds: true, relatedSkillIds: true },
+    select: {
+      skillName: true,
+      importance: true,
+      isCore: true,
+      yearsRequired: true,
+      matchedSkillIds: true,
+      relatedSkillIds: true,
+    },
     orderBy: [{ isCore: 'desc' }, { importance: 'asc' }],
   },
   match: {
@@ -67,7 +74,12 @@ export class JobsService {
       ...(query.sourceId ? { jobSourceId: query.sourceId } : {}),
     };
     if (query.sort === 'recent') {
-      return this.prisma.job.findMany({ where, select: LIST_SELECT, orderBy: { discoveredAt: 'desc' }, take: LIST_LIMIT });
+      return this.prisma.job.findMany({
+        where,
+        select: LIST_SELECT,
+        orderBy: { discoveredAt: 'desc' },
+        take: LIST_LIMIT,
+      });
     }
     // Best match first across ALL scored jobs, then unscored ones (newest first) to fill
     // the page. Two queries because Prisma can't order a relation field NULLS LAST, and
@@ -134,7 +146,12 @@ export class JobsService {
     if (!job.isPartial) throw new ConflictException('This job already has its full description');
     await this.prisma.job.update({
       where: { id },
-      data: { rawJD: description, isPartial: false, analysisStatus: 'PENDING', analysisError: 'Description pasted — scoring again' },
+      data: {
+        rawJD: description,
+        isPartial: false,
+        analysisStatus: 'PENDING',
+        analysisError: 'Description pasted — scoring again',
+      },
     });
     // Best effort: if the queue is down, the nightly sweep scores it.
     await this.queues.enqueueAnalysis(id, `pasted-${Date.now()}`).catch(() => undefined);

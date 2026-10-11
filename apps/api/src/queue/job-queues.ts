@@ -69,19 +69,31 @@ export class JobQueues implements OnModuleDestroy {
 
   enqueueAnalysis(jobId: string, batchId: string): Promise<void> {
     return this.bounded(
-      this.analysis.add(AnalysisJob.Job, { jobId } satisfies AnalyzeJobData, queueJobOptions.analyzeJob(jobId, batchId)),
+      this.analysis.add(
+        AnalysisJob.Job,
+        { jobId } satisfies AnalyzeJobData,
+        queueJobOptions.analyzeJob(jobId, batchId),
+      ),
     );
   }
 
   enqueueTailoring(jobId: string): Promise<void> {
     return this.bounded(
-      this.resume.add(ResumeJob.Tailor, { jobId } satisfies TailorResumeData, queueJobOptions.tailorResume(jobId, String(Date.now()))),
+      this.resume.add(
+        ResumeJob.Tailor,
+        { jobId } satisfies TailorResumeData,
+        queueJobOptions.tailorResume(jobId, String(Date.now())),
+      ),
     );
   }
 
   enqueueEmailCheck(userId: string): Promise<void> {
     return this.bounded(
-      this.email.add(EmailJob.Check, { userId } satisfies CheckEmailData, queueJobOptions.checkEmail(userId, String(Date.now()))),
+      this.email.add(
+        EmailJob.Check,
+        { userId } satisfies CheckEmailData,
+        queueJobOptions.checkEmail(userId, String(Date.now())),
+      ),
     );
   }
 
@@ -142,7 +154,9 @@ export class JobQueues implements OnModuleDestroy {
   }
 
   async onModuleDestroy() {
-    await Promise.all([this.discovery, this.analysis, this.resume, this.email].map((q) => q.close().catch(() => undefined)));
+    await Promise.all(
+      [this.discovery, this.analysis, this.resume, this.email].map((q) => q.close().catch(() => undefined)),
+    );
     this.connection.disconnect();
   }
 }

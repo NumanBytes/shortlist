@@ -125,7 +125,9 @@ interface Counts {
 
 function report(email: string, c: Counts, dry: boolean) {
   console.log(`${dry ? 'Dry run — would create' : 'Created'} for ${email}:`);
-  console.log(`  ${c.workExperiences} work experiences, ${c.projects} projects, ${c.skills} skills, ${c.evidence} evidence`);
+  console.log(
+    `  ${c.workExperiences} work experiences, ${c.projects} projects, ${c.skills} skills, ${c.evidence} evidence`,
+  );
   console.log(`  ${c.skipped} already present (left untouched)`);
   if (!dry && c.evidence > 0) {
     console.log('\nAll new evidence is UNVERIFIED. Review each item (GET /api/v1/skills), reword it');

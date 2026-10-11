@@ -1,8 +1,21 @@
-import { CreateSkillEvidenceSchema, CreateSkillSchema, SkillCategory, UpdateSkillEvidenceSchema, type CreateSkillEvidenceInput } from '@shortlist/shared';
+import {
+  CreateSkillEvidenceSchema,
+  CreateSkillSchema,
+  SkillCategory,
+  UpdateSkillEvidenceSchema,
+  type CreateSkillEvidenceInput,
+} from '@shortlist/shared';
 import { ShieldCheck } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { ApiError } from '../../lib/api';
-import { useCreateEvidence, useCreateSkill, useProjects, useSkills, useUpdateEvidence, useWorkExperiences } from '../../lib/queries';
+import {
+  useCreateEvidence,
+  useCreateSkill,
+  useProjects,
+  useSkills,
+  useUpdateEvidence,
+  useWorkExperiences,
+} from '../../lib/queries';
 import type { Evidence, Skill } from '../../lib/types';
 import { Button, INPUT, Segmented, Sheet } from '../../components/ui';
 
@@ -58,15 +71,48 @@ export type EvidenceSheetMode =
 // to a skill, or edit an item. Truthfulness (Agents.md §6): new evidence is always saved
 // unverified (no request body can carry isVerified); an edit sends only what changed and
 // un-verifies the item; everything is checked with the API's own schemas first.
-export function EvidenceSheet({ mode, onClose, onSaved }: { mode: EvidenceSheetMode | null; onClose: () => void; onSaved: () => void }) {
+export function EvidenceSheet({
+  mode,
+  onClose,
+  onSaved,
+}: {
+  mode: EvidenceSheetMode | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
   return (
-    <Sheet open={mode !== null} onClose={onClose} title={mode?.kind === 'edit' ? 'Edit evidence' : mode?.kind === 'add' ? `Add evidence for ${mode.skill.name}` : 'Add skill'}>
-      {mode && <EvidenceForm key={mode.kind === 'edit' ? mode.evidence.id : mode.kind} mode={mode} onClose={onClose} onSaved={onSaved} />}
+    <Sheet
+      open={mode !== null}
+      onClose={onClose}
+      title={
+        mode?.kind === 'edit'
+          ? 'Edit evidence'
+          : mode?.kind === 'add'
+            ? `Add evidence for ${mode.skill.name}`
+            : 'Add skill'
+      }
+    >
+      {mode && (
+        <EvidenceForm
+          key={mode.kind === 'edit' ? mode.evidence.id : mode.kind}
+          mode={mode}
+          onClose={onClose}
+          onSaved={onSaved}
+        />
+      )}
     </Sheet>
   );
 }
 
-function EvidenceForm({ mode, onClose, onSaved }: { mode: EvidenceSheetMode; onClose: () => void; onSaved: () => void }) {
+function EvidenceForm({
+  mode,
+  onClose,
+  onSaved,
+}: {
+  mode: EvidenceSheetMode;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
   const skills = useSkills();
   const roles = useWorkExperiences();
   const projects = useProjects();
@@ -78,14 +124,22 @@ function EvidenceForm({ mode, onClose, onSaved }: { mode: EvidenceSheetMode; onC
   const [category, setCategory] = useState<Skill['category']>('FRAMEWORK');
   const [draft, setDraft] = useState<Draft>(() =>
     editing
-      ? { whatIDid: editing.whatIDid, context: editing.context, depth: editing.depth, lastUsed: editing.lastUsed.slice(0, 7), link: linkOf(editing) }
+      ? {
+          whatIDid: editing.whatIDid,
+          context: editing.context,
+          depth: editing.depth,
+          lastUsed: editing.lastUsed.slice(0, 7),
+          link: linkOf(editing),
+        }
       : { whatIDid: '', context: 'COMMERCIAL', depth: 'WORKING', lastUsed: thisMonth(), link: '' },
   );
   const [error, setError] = useState<string>();
   const busy = createSkill.isPending || createEvidence.isPending || update.isPending;
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) => setDraft((d) => ({ ...d, [key]: value }));
   const existing =
-    mode.kind === 'new-skill' ? (skills.data ?? []).find((s) => s.name.trim().toLowerCase() === name.trim().toLowerCase()) : undefined;
+    mode.kind === 'new-skill'
+      ? (skills.data ?? []).find((s) => s.name.trim().toLowerCase() === name.trim().toLowerCase())
+      : undefined;
   const title = mode.kind === 'edit' ? 'Edit evidence' : mode.kind === 'add' ? mode.skill.name : 'Add skill';
 
   const createBody = (skillId: string) =>
@@ -150,7 +204,13 @@ function EvidenceForm({ mode, onClose, onSaved }: { mode: EvidenceSheetMode; onC
             <label htmlFor="ev-skill" className={FIELD_LABEL}>
               Skill
             </label>
-            <input id="ev-skill" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Docker" className={`${INPUT} h-12`} />
+            <input
+              id="ev-skill"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Docker"
+              className={`${INPUT} h-12`}
+            />
           </div>
           <div className="space-y-1.5">
             {/* Not in the design: every skill is stored with a category, so it's asked here. */}
@@ -171,11 +231,17 @@ function EvidenceForm({ mode, onClose, onSaved }: { mode: EvidenceSheetMode; onC
               ))}
             </select>
           </div>
-          {existing && <p className="col-span-2 text-xs text-muted">You already have {existing.name} — this adds evidence to it.</p>}
+          {existing && (
+            <p className="col-span-2 text-xs text-muted">
+              You already have {existing.name} — this adds evidence to it.
+            </p>
+          )}
         </div>
       )}
 
-      {mode.kind === 'new-skill' && <p className="pt-1 text-xs font-semibold tracking-[0.06em] text-muted uppercase">First evidence</p>}
+      {mode.kind === 'new-skill' && (
+        <p className="pt-1 text-xs font-semibold tracking-[0.06em] text-muted uppercase">First evidence</p>
+      )}
 
       <div className="space-y-1.5">
         <label htmlFor="ev-what" className={FIELD_LABEL}>
@@ -193,11 +259,21 @@ function EvidenceForm({ mode, onClose, onSaved }: { mode: EvidenceSheetMode; onC
 
       <div className="space-y-1.5">
         <p className={FIELD_LABEL}>Context</p>
-        <Segmented label="Context" value={draft.context} onChange={(v) => set('context', v)} options={CONTEXTS.map(({ value, label }) => ({ value, label }))} />
+        <Segmented
+          label="Context"
+          value={draft.context}
+          onChange={(v) => set('context', v)}
+          options={CONTEXTS.map(({ value, label }) => ({ value, label }))}
+        />
       </div>
       <div className="space-y-1.5">
         <p className={FIELD_LABEL}>Depth</p>
-        <Segmented label="Depth" value={draft.depth} onChange={(v) => set('depth', v)} options={DEPTHS.map(({ value, label }) => ({ value, label }))} />
+        <Segmented
+          label="Depth"
+          value={draft.depth}
+          onChange={(v) => set('depth', v)}
+          options={DEPTHS.map(({ value, label }) => ({ value, label }))}
+        />
         <p className="px-1 text-xs text-muted">{DEPTHS.find((d) => d.value === draft.depth)?.hint}</p>
       </div>
 
@@ -206,7 +282,12 @@ function EvidenceForm({ mode, onClose, onSaved }: { mode: EvidenceSheetMode; onC
           <label htmlFor="ev-link" className={FIELD_LABEL}>
             Role or project
           </label>
-          <select id="ev-link" value={draft.link} onChange={(e) => set('link', e.target.value)} className={`${INPUT} h-12 px-2.5 text-[15px]`}>
+          <select
+            id="ev-link"
+            value={draft.link}
+            onChange={(e) => set('link', e.target.value)}
+            className={`${INPUT} h-12 px-2.5 text-[15px]`}
+          >
             <option value="">Not linked</option>
             {(roles.data ?? []).length > 0 && (
               <optgroup label="Roles">

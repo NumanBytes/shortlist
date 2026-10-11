@@ -25,7 +25,15 @@ const connected = (over: Partial<NonNullable<GmailStatus['connection']>> = {}): 
     deferred: 0,
     failed: 0,
     portals: [
-      { portal: 'indeed', sourceId: 's-indeed', label: 'Indeed', emails: 3, jobsFound: 22, parserWarnings: 1, lastRun: { status: 'SUCCESS', jobsNew: 6, finishedAt: new Date().toISOString() } },
+      {
+        portal: 'indeed',
+        sourceId: 's-indeed',
+        label: 'Indeed',
+        emails: 3,
+        jobsFound: 22,
+        parserWarnings: 1,
+        lastRun: { status: 'SUCCESS', jobsNew: 6, finishedAt: new Date().toISOString() },
+      },
     ],
   },
 });
@@ -46,7 +54,9 @@ describe('GmailCard', () => {
   it('states the read-only limits, then sends the browser to Google', async () => {
     const assign = vi.fn();
     vi.stubGlobal('location', { href: window.location.href, origin: window.location.origin, assign });
-    const fetch = mockFetch({}, (url) => (url.endsWith('/gmail/connect') ? { url: 'https://accounts.google.com/o/oauth2/v2/auth?x=1' } : notConnected));
+    const fetch = mockFetch({}, (url) =>
+      url.endsWith('/gmail/connect') ? { url: 'https://accounts.google.com/o/oauth2/v2/auth?x=1' } : notConnected,
+    );
     renderWithProviders(<GmailCard />);
     expect(await screen.findByText(/Read-only: Shortlist can’t send, delete or change mail/)).toBeInTheDocument();
     expect(screen.getByText(/Reads only messages with your “Shortlist” label/)).toBeInTheDocument();
@@ -69,7 +79,13 @@ describe('GmailCard', () => {
   });
 
   it('asks to reconnect when Google revoked access, and shows why', async () => {
-    mockFetch(connected({ status: 'NEEDS_RECONNECT', lastError: 'Google access was revoked or expired — reconnect Gmail', lastCheckStatus: 'FAILED' }));
+    mockFetch(
+      connected({
+        status: 'NEEDS_RECONNECT',
+        lastError: 'Google access was revoked or expired — reconnect Gmail',
+        lastCheckStatus: 'FAILED',
+      }),
+    );
     renderWithProviders(<GmailCard />);
     expect(await screen.findByText(/revoked or expired/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Reconnect Gmail/ })).toBeInTheDocument();

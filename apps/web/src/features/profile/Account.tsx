@@ -17,11 +17,17 @@ export function Account() {
         </span>
         <span className="min-w-0 flex-1">
           <span className="block text-[15px] font-semibold text-fg">Gmail</span>
-          <span className="block truncate text-[13px] text-muted">{c ? `Connected · label “${c.labelName}”` : 'Not connected'}</span>
+          <span className="block truncate text-[13px] text-muted">
+            {c ? `Connected · label “${c.labelName}”` : 'Not connected'}
+          </span>
         </span>
         <ChevronRight className="size-4 text-muted" />
       </Link>
-      <button type="button" onClick={() => void logout()} className="flex min-h-14 w-full items-center gap-3 px-4 text-left text-[15px] font-semibold text-danger-fg">
+      <button
+        type="button"
+        onClick={() => void logout()}
+        className="flex min-h-14 w-full items-center gap-3 px-4 text-left text-[15px] font-semibold text-danger-fg"
+      >
         <span className="grid size-9 place-items-center rounded-[10px] bg-danger-bg">
           <LogOut className="size-[18px]" />
         </span>

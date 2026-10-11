@@ -197,7 +197,8 @@ export function useRunSource() {
 export function useSetSourceAddress() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, address }: { id: string; address: string }) => api(`/discovery/sources/${id}/address`, { method: 'PATCH', body: { address } }),
+    mutationFn: ({ id, address }: { id: string; address: string }) =>
+      api(`/discovery/sources/${id}/address`, { method: 'PATCH', body: { address } }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: jobKeys.sources });
       void queryClient.invalidateQueries({ queryKey: jobKeys.discoveryStatus });
@@ -245,7 +246,8 @@ export const useSaveRole = () =>
   useCareerMutation(({ id, body }: { id?: string; body: CreateWorkExperienceInput | UpdateWorkExperienceInput }) =>
     id ? api(`/work-experiences/${id}`, { method: 'PATCH', body }) : api('/work-experiences', { method: 'POST', body }),
   );
-export const useDeleteRole = () => useCareerMutation((id: string) => api(`/work-experiences/${id}`, { method: 'DELETE' }));
+export const useDeleteRole = () =>
+  useCareerMutation((id: string) => api(`/work-experiences/${id}`, { method: 'DELETE' }));
 export const useSaveProject = () =>
   useCareerMutation(({ id, body }: { id?: string; body: CreateProjectInput | UpdateProjectInput }) =>
     id ? api(`/projects/${id}`, { method: 'PATCH', body }) : api('/projects', { method: 'POST', body }),
@@ -265,13 +267,16 @@ export function useUpdateProfile() {
   });
 }
 
-export const useEducation = () => useQuery({ queryKey: profileKeys.education, queryFn: () => api<Education[]>('/education') });
+export const useEducation = () =>
+  useQuery({ queryKey: profileKeys.education, queryFn: () => api<Education[]>('/education') });
 
 export function useSaveEducation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, body }: { id?: string; body: CreateEducationInput | UpdateEducationInput }) =>
-      id ? api<Education>(`/education/${id}`, { method: 'PATCH', body }) : api<Education>('/education', { method: 'POST', body }),
+      id
+        ? api<Education>(`/education/${id}`, { method: 'PATCH', body })
+        : api<Education>('/education', { method: 'POST', body }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: profileKeys.education }),
   });
 }
@@ -336,7 +341,8 @@ export function usePrepareResume() {
 export function useApproveResume() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ variantId }: { variantId: string; jobId: string }) => api(`/resumes/${variantId}/approve`, { method: 'POST' }),
+    mutationFn: ({ variantId }: { variantId: string; jobId: string }) =>
+      api(`/resumes/${variantId}/approve`, { method: 'POST' }),
     onSuccess: (_, { jobId }) => queryClient.invalidateQueries({ queryKey: resumeKeys.job(jobId) }),
   });
 }
@@ -354,7 +360,8 @@ export const useGmail = (pollUntilCount = 0) =>
   });
 
 // Returns Google's consent URL; the caller navigates there (a full-page redirect, not a popup).
-export const useConnectGmail = () => useMutation({ mutationFn: () => api<{ url: string }>('/gmail/connect', { method: 'POST' }) });
+export const useConnectGmail = () =>
+  useMutation({ mutationFn: () => api<{ url: string }>('/gmail/connect', { method: 'POST' }) });
 
 export function useCheckGmail() {
   const queryClient = useQueryClient();

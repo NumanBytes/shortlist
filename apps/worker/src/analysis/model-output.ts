@@ -24,5 +24,8 @@ export function parseModelOutput<S extends z.ZodType>(
   if (result.success) return { ok: true, value: result.data };
   // Say WHERE it failed ("experience.0.bullets.2.evidence.1"): "too big" alone isn't actionable.
   const issue = result.error.issues[0];
-  return { ok: false, reason: `Model output failed validation at ${issue?.path.join('.') || '(root)'}: ${issue?.message ?? 'unknown'}` };
+  return {
+    ok: false,
+    reason: `Model output failed validation at ${issue?.path.join('.') || '(root)'}: ${issue?.message ?? 'unknown'}`,
+  };
 }

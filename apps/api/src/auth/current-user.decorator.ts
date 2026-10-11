@@ -9,6 +9,5 @@ export type AuthenticatedRequest = Request & { user: AuthUser };
 
 // Usage: `me(@CurrentUser() user: AuthUser)`. Populated by AuthGuard.
 export const CurrentUser = createParamDecorator(
-  (_data: unknown, ctx: ExecutionContext): AuthUser =>
-    ctx.switchToHttp().getRequest<AuthenticatedRequest>().user,
+  (_data: unknown, ctx: ExecutionContext): AuthUser => ctx.switchToHttp().getRequest<AuthenticatedRequest>().user,
 );

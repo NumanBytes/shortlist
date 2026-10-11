@@ -41,7 +41,11 @@ const output = (user: string) =>
       {
         role: 'R1',
         bullets: [
-          { label: 'Frontend', text: 'Built frontend features in React that shipped to production.', evidence: [eRef(user, 'React')] },
+          {
+            label: 'Frontend',
+            text: 'Built frontend features in React that shipped to production.',
+            evidence: [eRef(user, 'React')],
+          },
           { label: null, text: 'Built frontend features with GraphQL.', evidence: [eRef(user, 'React')] }, // uncited GraphQL
         ],
       },
@@ -57,7 +61,13 @@ async function setup() {
   });
   createdUsers.push(user.id);
   const role = await prisma.workExperience.create({
-    data: { userId: user.id, company: 'CloudCard Inc.', title: 'Software Engineer', startDate: new Date('2024-05-01'), isCurrent: true },
+    data: {
+      userId: user.id,
+      company: 'CloudCard Inc.',
+      title: 'Software Engineer',
+      startDate: new Date('2024-05-01'),
+      isCurrent: true,
+    },
   });
   const skill = (name: string, verified: boolean) =>
     prisma.skill.create({
@@ -102,7 +112,10 @@ async function setup() {
   return { user, job, react, ts };
 }
 
-const service = (writer = new FakeWriter()) => ({ svc: new ResumeService(prisma, new BudgetGuard(prisma), writer), writer });
+const service = (writer = new FakeWriter()) => ({
+  svc: new ResumeService(prisma, new BudgetGuard(prisma), writer),
+  writer,
+});
 
 beforeAll(() => prisma.$connect());
 afterAll(async () => {
@@ -130,7 +143,11 @@ describe('ResumeService.tailor', () => {
     expect([...v.evidenceIds].sort()).toEqual([react.evidence[0]!.id, ts.evidence[0]!.id].sort());
     const content = ResumeContentSchema.parse(v.content);
     expect(content.experience[0]!.bullets).toEqual([
-      { label: 'Frontend', text: 'Built frontend features in React that shipped to production.', evidenceIds: [react.evidence[0]!.id] },
+      {
+        label: 'Frontend',
+        text: 'Built frontend features in React that shipped to production.',
+        evidenceIds: [react.evidence[0]!.id],
+      },
     ]);
     expect(content.dropped[0]!.reason).toBe('mentions GraphQL without citing evidence for it');
 
@@ -149,13 +166,17 @@ describe('ResumeService.tailor', () => {
     const item = react.evidence[0]!;
     writer.during = async () => {
       await new Promise((r) => setTimeout(r, 20));
-      await prisma.skillEvidence.update({ where: { id: item.id }, data: { whatIDid: 'Used React a little.', isVerified: false } });
+      await prisma.skillEvidence.update({
+        where: { id: item.id },
+        data: { whatIDid: 'Used React a little.', isVerified: false },
+      });
       await prisma.skillEvidence.update({ where: { id: item.id }, data: { isVerified: true, verifiedAt: new Date() } });
     };
 
     await svc.tailor(job.id);
 
-    const v = (await prisma.jobResume.findUniqueOrThrow({ where: { jobId: job.id }, include: { variant: true } })).variant!;
+    const v = (await prisma.jobResume.findUniqueOrThrow({ where: { jobId: job.id }, include: { variant: true } }))
+      .variant!;
     const edited = await prisma.skillEvidence.findUniqueOrThrow({ where: { id: item.id } });
     expect(v.evidenceIds).toContain(item.id);
     // The staleness rule (API) is updatedAt > generatedAt — it must hold here.
@@ -176,7 +197,9 @@ describe('ResumeService.tailor', () => {
     const { svc, writer } = service();
     expect(await svc.tailor(job.id)).toMatchObject({ status: 'DEFERRED' });
     expect(writer.prompts).toHaveLength(0);
-    expect(await prisma.jobResume.findUniqueOrThrow({ where: { jobId: job.id } })).toMatchObject({ status: 'DEFERRED' });
+    expect(await prisma.jobResume.findUniqueOrThrow({ where: { jobId: job.id } })).toMatchObject({
+      status: 'DEFERRED',
+    });
   });
 
   it('defers when out of credit', async () => {

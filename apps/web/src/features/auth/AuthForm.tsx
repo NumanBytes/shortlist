@@ -23,7 +23,8 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
 
   // Returns a ready-to-run submit, or null (after showing field errors) if invalid.
   function withParsed<T>(
-    result: { success: true; data: T } | { success: false; error: { issues: { path: PropertyKey[]; message: string }[] } },
+    result:
+      { success: true; data: T } | { success: false; error: { issues: { path: PropertyKey[]; message: string }[] } },
     action: (data: T) => Promise<void>,
   ): (() => Promise<void>) | null {
     if (!result.success) {
@@ -59,7 +60,9 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
     <div className="mx-auto flex min-h-dvh max-w-sm flex-col px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:justify-center sm:gap-10">
       <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center sm:flex-none">
         <Logo size="lg" />
-        <p className="max-w-[17rem] text-[15px] text-muted">Jobs that fit your real skills. Resumes that stay true. You hit submit.</p>
+        <p className="max-w-[17rem] text-[15px] text-muted">
+          Jobs that fit your real skills. Resumes that stay true. You hit submit.
+        </p>
       </div>
       <form onSubmit={onSubmit} noValidate className="space-y-4">
         <nav aria-label="Sign in or register" className="grid grid-cols-2 gap-0.5 rounded-xl bg-surface-2 p-[3px]">
@@ -80,8 +83,26 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
           ))}
         </nav>
         <h1 className="sr-only">{isRegister ? 'Create your account' : 'Sign in'}</h1>
-        {isRegister && <TextField id="name" label="Name" autoComplete="name" value={fields.name} onChange={set('name')} error={errors.name} />}
-        <TextField id="email" label="Email" type="email" autoComplete="email" value={fields.email} onChange={set('email')} error={errors.email} className="h-[52px]" />
+        {isRegister && (
+          <TextField
+            id="name"
+            label="Name"
+            autoComplete="name"
+            value={fields.name}
+            onChange={set('name')}
+            error={errors.name}
+          />
+        )}
+        <TextField
+          id="email"
+          label="Email"
+          type="email"
+          autoComplete="email"
+          value={fields.email}
+          onChange={set('email')}
+          error={errors.email}
+          className="h-[52px]"
+        />
         <div className="space-y-1.5">
           <label htmlFor="password" className="block text-[13px] font-medium text-muted">
             Password

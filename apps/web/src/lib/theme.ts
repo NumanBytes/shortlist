@@ -21,8 +21,10 @@ export function applyTheme(choice: ThemeChoice) {
   if (choice === 'system') root.removeAttribute('data-theme');
   else root.setAttribute('data-theme', choice);
   // The phone's status-bar colour follows the app, not just the system.
-  const dark = choice === 'dark' || (choice === 'system' && window.matchMedia?.('(prefers-color-scheme: dark)').matches);
-  for (const m of document.querySelectorAll('meta[name="theme-color"]')) m.setAttribute('content', dark ? '#0a0e16' : '#f5f6f8');
+  const dark =
+    choice === 'dark' || (choice === 'system' && window.matchMedia?.('(prefers-color-scheme: dark)').matches);
+  for (const m of document.querySelectorAll('meta[name="theme-color"]'))
+    m.setAttribute('content', dark ? '#0a0e16' : '#f5f6f8');
 }
 
 export function setTheme(choice: ThemeChoice) {

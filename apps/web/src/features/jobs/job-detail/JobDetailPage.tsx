@@ -24,13 +24,21 @@ export function JobDetailPage() {
   return (
     <article {...edge.handlers} style={edge.style} className="space-y-3 pb-20 lg:pb-4" aria-label="Job details">
       <div className="flex items-center justify-between">
-        <PushLink to={back} dir="back" className="-ml-1 inline-flex min-h-11 items-center gap-1 text-[17px] font-medium text-accent-fg lg:invisible">
+        <PushLink
+          to={back}
+          dir="back"
+          className="-ml-1 inline-flex min-h-11 items-center gap-1 text-[17px] font-medium text-accent-fg lg:invisible"
+        >
           <ChevronLeft className="size-5" /> Jobs
         </PushLink>
         {detail.data && <JobMenu job={detail.data} />}
       </div>
       {detail.isPending && <DetailSkeleton />}
-      {detail.isError && <EmptyState icon={<AlertTriangle className="size-6" />} title="Couldn't load this job">{detail.error.message}</EmptyState>}
+      {detail.isError && (
+        <EmptyState icon={<AlertTriangle className="size-6" />} title="Couldn't load this job">
+          {detail.error.message}
+        </EmptyState>
+      )}
       {detail.isSuccess && <Detail job={detail.data} />}
     </article>
   );

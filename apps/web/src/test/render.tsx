@@ -5,7 +5,10 @@ import { MemoryRouter, Route, Routes } from 'react-router';
 import { ToastProvider } from '../components/Toast';
 
 // Renders a component inside the providers it needs (React Query + router).
-export function renderWithProviders(ui: ReactElement, { path = '/', route = '/' }: { path?: string; route?: string } = {}) {
+export function renderWithProviders(
+  ui: ReactElement,
+  { path = '/', route = '/' }: { path?: string; route?: string } = {},
+) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>

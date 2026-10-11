@@ -1,6 +1,20 @@
-import { ConflictException, Inject, Injectable, Logger, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
+import {
+  ConflictException,
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { emailSourceKey } from '@shortlist/shared';
-import { GMAIL_READONLY_SCOPE, SecretBox, authorizationUrl, pkcePair, type GmailApi, type GoogleOAuth } from '@shortlist/shared/node';
+import {
+  GMAIL_READONLY_SCOPE,
+  SecretBox,
+  authorizationUrl,
+  pkcePair,
+  type GmailApi,
+  type GoogleOAuth,
+} from '@shortlist/shared/node';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { ENV } from '../config/config.module.js';
 import type { Env } from '../config/env.js';
@@ -17,7 +31,8 @@ const sha256 = (v: string) => createHash('sha256').update(v).digest('hex');
 const random = () => randomBytes(32).toString('base64url');
 
 // Why a connect attempt ended, as shown to the user on the Sources page.
-export type ConnectOutcome = 'connected' | 'denied' | 'expired' | 'mismatch' | 'scope' | 'no_refresh_token' | 'google_error';
+export type ConnectOutcome =
+  'connected' | 'denied' | 'expired' | 'mismatch' | 'scope' | 'no_refresh_token' | 'google_error';
 
 // Connecting Gmail read-only (docs/email-alerts.md §10.3). The API runs the OAuth handshake and
 // stores the encrypted refresh token; the worker does all the reading.
@@ -58,13 +73,27 @@ export class GmailService {
         },
       }),
       this.prisma.emailMessage.groupBy({ by: ['status'], where: recent, _count: true }),
-      this.prisma.emailMessage.groupBy({ by: ['portal'], where: { ...recent, status: 'PARSED' }, _count: true, _sum: { jobsFound: true } }),
+      this.prisma.emailMessage.groupBy({
+        by: ['portal'],
+        where: { ...recent, status: 'PARSED' },
+        _count: true,
+        _sum: { jobsFound: true },
+      }),
       // A code parser that found nothing (or threw) and handed the email to the model: the
       // portal probably changed its email layout (docs/email-alerts.md §10.4).
       this.prisma.emailMessage.groupBy({ by: ['portal'], where: { ...recent, parserFailed: true }, _count: true }),
       this.prisma.jobSource.findMany({
         where: { userId, type: 'EMAIL_INBOX', lastRunAt: { not: null } },
-        select: { id: true, key: true, name: true, discoveryRuns: { orderBy: { startedAt: 'desc' }, take: 1, select: { status: true, jobsNew: true, finishedAt: true } } },
+        select: {
+          id: true,
+          key: true,
+          name: true,
+          discoveryRuns: {
+            orderBy: { startedAt: 'desc' },
+            take: 1,
+            select: { status: true, jobsNew: true, finishedAt: true },
+          },
+        },
       }),
     ]);
     const counts = Object.fromEntries(byStatus.map((g) => [g.status, g._count]));
@@ -108,7 +137,13 @@ export class GmailService {
       // Old unfinished attempts are useless; don't let them pile up.
       this.prisma.oAuthState.deleteMany({ where: { OR: [{ userId }, { expiresAt: { lt: new Date() } }] } }),
       this.prisma.oAuthState.create({
-        data: { userId, stateHash: sha256(state), nonceHash: sha256(nonce), codeVerifier: verifier, expiresAt: new Date(Date.now() + STATE_TTL_MS) },
+        data: {
+          userId,
+          stateHash: sha256(state),
+          nonceHash: sha256(nonce),
+          codeVerifier: verifier,
+          expiresAt: new Date(Date.now() + STATE_TTL_MS),
+        },
       }),
     ]);
     const url = authorizationUrl(
@@ -144,8 +179,18 @@ export class GmailService {
       if (!tokens.refreshToken) return 'no_refresh_token';
       const { emailAddress } = await this.gmail.profile(tokens.accessToken);
       const sealed = this.box!.seal(tokens.refreshToken, row.userId);
-      const data = { emailAddress, refreshTokenEnc: sealed, status: 'ACTIVE' as const, lastError: null, connectedAt: new Date() };
-      await this.prisma.gmailConnection.upsert({ where: { userId: row.userId }, create: { userId: row.userId, ...data }, update: data });
+      const data = {
+        emailAddress,
+        refreshTokenEnc: sealed,
+        status: 'ACTIVE' as const,
+        lastError: null,
+        connectedAt: new Date(),
+      };
+      await this.prisma.gmailConnection.upsert({
+        where: { userId: row.userId },
+        create: { userId: row.userId, ...data },
+        update: data,
+      });
     } catch (err) {
       this.logger.warn(`Gmail connect failed: ${(err as Error).message}`);
       return 'google_error';

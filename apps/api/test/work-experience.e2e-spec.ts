@@ -15,7 +15,12 @@ describe('Work experience (e2e)', () => {
     await t.close();
   });
 
-  const cloudCard = { company: 'CloudCard Inc.', title: 'Frontend Developer', startDate: '2024-05-01', isCurrent: true };
+  const cloudCard = {
+    company: 'CloudCard Inc.',
+    title: 'Frontend Developer',
+    startDate: '2024-05-01',
+    isCurrent: true,
+  };
 
   async function newJob(body: Record<string, unknown> = cloudCard, who: TestUser = me) {
     const res = await t.http().post('/api/v1/work-experiences').set(who.auth).send(body).expect(201);
@@ -24,12 +29,14 @@ describe('Work experience (e2e)', () => {
 
   // Creates a skill + evidence linked to the job, verified.
   async function verifiedEvidenceFor(workExperienceId: string) {
-    const skill = await t.http()
+    const skill = await t
+      .http()
       .post('/api/v1/skills')
       .set(me.auth)
       .send({ name: `Skill ${crypto.randomUUID()}`, category: 'FRAMEWORK' })
       .expect(201);
-    const ev = await t.http()
+    const ev = await t
+      .http()
       .post('/api/v1/evidence')
       .set(me.auth)
       .send({
@@ -79,7 +86,8 @@ describe('Work experience (e2e)', () => {
     });
 
     it('rejects an end date on a current role', async () => {
-      await t.http()
+      await t
+        .http()
         .post('/api/v1/work-experiences')
         .set(me.auth)
         .send({ ...cloudCard, endDate: '2025-01-01' })
@@ -87,7 +95,8 @@ describe('Work experience (e2e)', () => {
     });
 
     it('rejects an end date before the start date', async () => {
-      await t.http()
+      await t
+        .http()
         .post('/api/v1/work-experiences')
         .set(me.auth)
         .send({ ...cloudCard, isCurrent: false, endDate: '2023-01-01' })
@@ -95,7 +104,8 @@ describe('Work experience (e2e)', () => {
     });
 
     it('rejects a start date in the future', async () => {
-      await t.http()
+      await t
+        .http()
         .post('/api/v1/work-experiences')
         .set(me.auth)
         .send({ ...cloudCard, startDate: '2999-01-01' })
@@ -107,7 +117,8 @@ describe('Work experience (e2e)', () => {
       // Marking it current while the stored end date remains is inconsistent...
       await t.http().patch(`/api/v1/work-experiences/${job.id}`).set(me.auth).send({ isCurrent: true }).expect(400);
       // ...but doing both in one patch is fine.
-      await t.http()
+      await t
+        .http()
         .patch(`/api/v1/work-experiences/${job.id}`)
         .set(me.auth)
         .send({ isCurrent: true, endDate: null })
@@ -126,7 +137,8 @@ describe('Work experience (e2e)', () => {
     it('changing the dates un-verifies linked evidence', async () => {
       const job = await newJob();
       const ev = await verifiedEvidenceFor(job.id);
-      await t.http()
+      await t
+        .http()
         .patch(`/api/v1/work-experiences/${job.id}`)
         .set(me.auth)
         .send({ startDate: '2020-01-01' })

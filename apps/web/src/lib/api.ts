@@ -51,9 +51,7 @@ export function refreshSession(): Promise<AuthResponse | null> {
 }
 
 function withRefreshLock<T>(fn: () => Promise<T>): Promise<T> {
-  return typeof navigator !== 'undefined' && navigator.locks
-    ? navigator.locks.request('shortlist-refresh', fn)
-    : fn();
+  return typeof navigator !== 'undefined' && navigator.locks ? navigator.locks.request('shortlist-refresh', fn) : fn();
 }
 
 async function doRefresh(): Promise<AuthResponse | null> {

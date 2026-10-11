@@ -12,8 +12,8 @@ import type { Education, PublicUser, ResumeBullet, ResumeContent } from '../../l
 // Experience and Projects use a large "●"; Skills a small "•". A blank line separates
 // sections and projects.
 
-
-const monthYear = (iso: string) => new Date(iso).toLocaleString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+const monthYear = (iso: string) =>
+  new Date(iso).toLocaleString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
 const bare = (url: string) => url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
 
 const LINE = 'mt-[15.5pt]'; // one blank line, as between the CV's sections and projects
@@ -51,7 +51,15 @@ const LIST = 'ml-[18pt] list-none';
 // (the review sheet). A <button> prints as plain text, so the PDF is unchanged. It must be
 // `block`: an inline-block button's baseline is its LAST line, which dropped the "●" marker
 // to the bullet's last line in the PDF (caught by printing the real review page).
-function Bullets({ bullets, onTap, selected }: { bullets: ResumeBullet[]; onTap?: (b: ResumeBullet) => void; selected?: ResumeBullet | null }) {
+function Bullets({
+  bullets,
+  onTap,
+  selected,
+}: {
+  bullets: ResumeBullet[];
+  onTap?: (b: ResumeBullet) => void;
+  selected?: ResumeBullet | null;
+}) {
   return (
     <ul className={LIST}>
       {bullets.map((b, i) => {

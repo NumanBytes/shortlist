@@ -5,10 +5,18 @@ import { PageHeader } from '../../layout/AppShell';
 import { GmailCard } from './GmailCard';
 import { Badge, Button, Card, SectionLabel, Sheet, Skeleton, Switch, TextField } from '../../components/ui';
 import { providerLabel, timeAgo } from '../../lib/format';
-import { useAiUsage, useDiscoveryStatus, useRunSource, useSetSourceAddress, useSetSourceEnabled, useSources } from '../../lib/queries';
+import {
+  useAiUsage,
+  useDiscoveryStatus,
+  useRunSource,
+  useSetSourceAddress,
+  useSetSourceEnabled,
+  useSources,
+} from '../../lib/queries';
 import type { DiscoverySource } from '../../lib/types';
 
-const needsAttention = (s: DiscoverySource) => s.isEnabled && (s.lastRun?.status === 'FAILED' || s.lastRun?.status === 'EMPTY');
+const needsAttention = (s: DiscoverySource) =>
+  s.isEnabled && (s.lastRun?.status === 'FAILED' || s.lastRun?.status === 'EMPTY');
 const money = (n: number) => `$${n.toFixed(2)}`;
 
 // What AI costs (docs/ai-scoring.md §12.3) — the budget itself is changed on Profile.
@@ -30,7 +38,10 @@ function SpendTiles() {
           </Link>
         </div>
         <p className="text-[26px] leading-8 font-bold tracking-[-0.03em] text-fg tabular-nums">
-          {money(u.monthToDateUsd)} <span className="text-[13px] font-medium tracking-normal text-muted">of {money(u.settings.monthlyBudgetUsd)}</span>
+          {money(u.monthToDateUsd)}{' '}
+          <span className="text-[13px] font-medium tracking-normal text-muted">
+            of {money(u.settings.monthlyBudgetUsd)}
+          </span>
         </p>
         <progress
           aria-label="Monthly budget used"
@@ -46,11 +57,15 @@ function SpendTiles() {
       <div className="grid grid-cols-2 gap-2.5">
         <Card className="space-y-1 px-4 py-3.5">
           <p className="text-[13px] text-muted">Today</p>
-          <p className="text-[26px] leading-8 font-bold tracking-[-0.03em] text-fg tabular-nums">{money(u.last24hUsd)}</p>
+          <p className="text-[26px] leading-8 font-bold tracking-[-0.03em] text-fg tabular-nums">
+            {money(u.last24hUsd)}
+          </p>
         </Card>
         <Card className="space-y-1 px-4 py-3.5">
           <p className="text-[13px] text-muted">Jobs this week</p>
-          <p className="text-[26px] leading-8 font-bold tracking-[-0.03em] text-fg tabular-nums">{status.data?.jobsThisWeek ?? '–'}</p>
+          <p className="text-[26px] leading-8 font-bold tracking-[-0.03em] text-fg tabular-nums">
+            {status.data?.jobsThisWeek ?? '–'}
+          </p>
         </Card>
       </div>
     </div>
@@ -89,10 +104,17 @@ function AttentionRow({ source }: { source: DiscoverySource }) {
       {failed ? (
         <p className="rounded-lg bg-surface-2 px-2.5 py-2 font-mono text-xs break-words text-fg">{run.errorMessage}</p>
       ) : (
-        <p className="text-[13px] text-muted">The board returned no postings at all — check it still exists, or turn it off.</p>
+        <p className="text-[13px] text-muted">
+          The board returned no postings at all — check it still exists, or turn it off.
+        </p>
       )}
       <div className="flex items-center gap-2">
-        <Button variant="secondary" size="sm" onClick={() => retry.mutate(source.id)} disabled={retry.isPending || retry.isSuccess}>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => retry.mutate(source.id)}
+          disabled={retry.isPending || retry.isSuccess}
+        >
           <RotateCw className="size-4" /> {retry.isSuccess ? 'Queued' : 'Retry'}
         </Button>
         {source.board !== null && (
@@ -127,8 +149,8 @@ function AddressForm({ source, onDone }: { source: DiscoverySource; onDone: () =
     >
       <p className="text-[17px] font-semibold text-fg">Edit address</p>
       <p className="text-[13px] text-muted">
-        {source.name} on {providerLabel(source.provider)} — now <span className="font-mono text-fg">{source.board}</span>. Paste the
-        board's new link, or just its name.
+        {source.name} on {providerLabel(source.provider)} — now{' '}
+        <span className="font-mono text-fg">{source.board}</span>. Paste the board's new link, or just its name.
       </p>
       <TextField
         id="board-address"
@@ -187,7 +209,8 @@ export function SourcesPage() {
       {sources.isError && <p className="text-danger-fg">Couldn't load sources: {sources.error.message}</p>}
       {sources.isSuccess && sources.data.length === 0 && (
         <p className="text-sm text-muted">
-          No sources yet. Seed them with <code className="rounded bg-surface-2 px-1">pnpm --filter @shortlist/db db:seed:sources</code>.
+          No sources yet. Seed them with{' '}
+          <code className="rounded bg-surface-2 px-1">pnpm --filter @shortlist/db db:seed:sources</code>.
         </p>
       )}
 
@@ -221,7 +244,12 @@ export function SourcesPage() {
 
       {planned.length > 0 && (
         <section>
-          <Button variant="ghost" aria-expanded={showPlanned} onClick={() => setShowPlanned((v) => !v)} className="w-full font-medium">
+          <Button
+            variant="ghost"
+            aria-expanded={showPlanned}
+            onClick={() => setShowPlanned((v) => !v)}
+            className="w-full font-medium"
+          >
             {showPlanned ? 'Hide' : 'Show'} {planned.length} recorded for later
             <ChevronDown className={`size-4 transition ${showPlanned ? 'rotate-180' : ''}`} />
           </Button>

@@ -30,7 +30,11 @@ function renderItem(e: Evidence = evidence, onEdit = vi.fn()) {
 }
 
 function mockFetch(body: unknown) {
-  const fn = vi.fn(() => Promise.resolve(new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } })));
+  const fn = vi.fn(() =>
+    Promise.resolve(
+      new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } }),
+    ),
+  );
   vi.stubGlobal('fetch', fn);
   return fn;
 }

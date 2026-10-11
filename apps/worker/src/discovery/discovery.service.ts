@@ -102,7 +102,15 @@ export class DiscoveryService {
       this.logger.log(
         `${source.name}: ${status} — ${postings.length} found, ${matched.length} matched, ${jobsNew} new`,
       );
-      return { runId: run.id, status, jobsFound: postings.length, jobsMatched: matched.length, jobsNew, newJobIds, rejections };
+      return {
+        runId: run.id,
+        status,
+        jobsFound: postings.length,
+        jobsMatched: matched.length,
+        jobsNew,
+        newJobIds,
+        rejections,
+      };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       await this.finish(run.id, source.id, 'FAILED', { errorMessage: message.slice(0, 1000) });
@@ -116,9 +124,13 @@ export class DiscoveryService {
     if (implemented.success) return implemented.data;
     const planned = PlannedSourceConfigSchema.safeParse(raw);
     if (planned.success) {
-      throw new PermanentSourceError(`No adapter for provider "${planned.data.provider}" yet (planned for a later milestone)`);
+      throw new PermanentSourceError(
+        `No adapter for provider "${planned.data.provider}" yet (planned for a later milestone)`,
+      );
     }
-    throw new PermanentSourceError(`Invalid source config: ${implemented.error.issues.map((i) => i.message).join('; ')}`);
+    throw new PermanentSourceError(
+      `Invalid source config: ${implemented.error.issues.map((i) => i.message).join('; ')}`,
+    );
   }
 
   private async finish(

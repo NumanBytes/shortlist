@@ -101,7 +101,13 @@ function JobsList({ selectedId }: { selectedId?: string }) {
 
   const c = counts.data;
   const tabCount = (t: Tab) =>
-    !c ? undefined : t === 'applied' ? PIPELINE.reduce((n, st) => n + (c[st] ?? 0), 0) : t === 'all' ? Object.values(c).reduce((a, b) => a + (b ?? 0), 0) : (c[TAB_STATUS[t]!] ?? 0);
+    !c
+      ? undefined
+      : t === 'applied'
+        ? PIPELINE.reduce((n, st) => n + (c[st] ?? 0), 0)
+        : t === 'all'
+          ? Object.values(c).reduce((a, b) => a + (b ?? 0), 0)
+          : (c[TAB_STATUS[t]!] ?? 0);
   const interested = tabCount('interested') ?? 0;
 
   return (
@@ -142,10 +148,20 @@ function JobsList({ selectedId }: { selectedId?: string }) {
             <Chip pressed={s.verdict === 'all'} onClick={() => s.setVerdict('all')} count={all.length}>
               All
             </Chip>
-            <Chip pressed={s.verdict === 'APPLY'} onClick={() => s.setVerdict('APPLY')} count={count('APPLY')} dot="apply">
+            <Chip
+              pressed={s.verdict === 'APPLY'}
+              onClick={() => s.setVerdict('APPLY')}
+              count={count('APPLY')}
+              dot="apply"
+            >
               Apply
             </Chip>
-            <Chip pressed={s.verdict === 'STRETCH'} onClick={() => s.setVerdict('STRETCH')} count={count('STRETCH')} dot="stretch">
+            <Chip
+              pressed={s.verdict === 'STRETCH'}
+              onClick={() => s.setVerdict('STRETCH')}
+              count={count('STRETCH')}
+              dot="stretch"
+            >
               Stretch
             </Chip>
             <Chip pressed={s.verdict === 'SKIP'} onClick={() => s.setVerdict('SKIP')} count={count('SKIP')} dot="skip">
@@ -211,7 +227,8 @@ function JobsList({ selectedId }: { selectedId?: string }) {
             onClick={() => setShowWeaker((v) => !v)}
             className="w-full font-medium"
           >
-            {showWeaker ? 'Hide' : 'Show'} <span className="tabular-nums">{weaker.length}</span> weaker {weaker.length === 1 ? 'match' : 'matches'}
+            {showWeaker ? 'Hide' : 'Show'} <span className="tabular-nums">{weaker.length}</span> weaker{' '}
+            {weaker.length === 1 ? 'match' : 'matches'}
             <ChevronDown className={`size-4 transition ${showWeaker ? 'rotate-180' : ''}`} />
           </Button>
           {showWeaker && (

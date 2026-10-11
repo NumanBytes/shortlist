@@ -62,7 +62,11 @@ export class AnalysisProcessor extends WorkerHost implements OnModuleInit {
         take: room,
         select: { id: true },
       });
-      await enqueueAnalyses(this.queue, pending.map((p) => p.id), `sweep-${job.id}`);
+      await enqueueAnalyses(
+        this.queue,
+        pending.map((p) => p.id),
+        `sweep-${job.id}`,
+      );
       queued += pending.length;
     }
     this.logger.log(`Analysis sweep: ${queued} queued, ${rescored} re-scored`);

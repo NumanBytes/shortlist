@@ -46,7 +46,12 @@ describe('Google OAuth helpers', () => {
   });
 
   it('asks for read-only Gmail and nothing else, with PKCE and a refresh token', () => {
-    const url = new URL(authorizationUrl({ clientId: 'cid', clientSecret: 'x', redirectUri: 'http://localhost:5173/api/v1/gmail/callback' }, { state: 's', codeChallenge: 'c' }));
+    const url = new URL(
+      authorizationUrl(
+        { clientId: 'cid', clientSecret: 'x', redirectUri: 'http://localhost:5173/api/v1/gmail/callback' },
+        { state: 's', codeChallenge: 'c' },
+      ),
+    );
     const q = url.searchParams;
     expect(q.get('scope')).toBe(GMAIL_READONLY_SCOPE);
     expect(q.get('code_challenge_method')).toBe('S256');
@@ -62,7 +67,9 @@ describe('Google OAuth helpers', () => {
   });
 
   it('extracts the sender address', () => {
-    expect(senderAddress('LinkedIn Job Alerts <JobAlerts-NoReply@linkedin.com>')).toBe('jobalerts-noreply@linkedin.com');
+    expect(senderAddress('LinkedIn Job Alerts <JobAlerts-NoReply@linkedin.com>')).toBe(
+      'jobalerts-noreply@linkedin.com',
+    );
     expect(senderAddress('alert@indeed.com')).toBe('alert@indeed.com');
     expect(senderAddress(null)).toBeNull();
   });

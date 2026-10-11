@@ -14,12 +14,21 @@ const ARM = 0.35;
 const EXIT_MS = 180;
 const COLLAPSE_MS = 200;
 
-const reducedMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+const reducedMotion = () =>
+  typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 // Rows the user brought back with Undo: when one re-mounts, it slides back in (200 ms).
 export const returningRows = new Map<string, SwipeDir>();
 
-export function useSwipeRow({ id, allowed, onCommit }: { id: string; allowed: Partial<Record<SwipeDir, boolean>>; onCommit: (dir: SwipeDir) => Promise<unknown> }) {
+export function useSwipeRow({
+  id,
+  allowed,
+  onCommit,
+}: {
+  id: string;
+  allowed: Partial<Record<SwipeDir, boolean>>;
+  onCommit: (dir: SwipeDir) => Promise<unknown>;
+}) {
   const [dx, setDx] = useState(0);
   const [phase, setPhase] = useState<'idle' | 'drag' | 'settle' | 'exit' | 'collapse'>('idle');
   const [height, setHeight] = useState<number | null>(null);
@@ -52,13 +61,16 @@ export function useSwipeRow({ id, allowed, onCommit }: { id: string; allowed: Pa
     later(
       () => {
         setPhase('collapse');
-        later(() => {
-          action(d).catch(() => {
-            setPhase('settle');
-            setDx(0);
-            setHeight(null);
-          });
-        }, reduced ? 0 : COLLAPSE_MS);
+        later(
+          () => {
+            action(d).catch(() => {
+              setPhase('settle');
+              setDx(0);
+              setHeight(null);
+            });
+          },
+          reduced ? 0 : COLLAPSE_MS,
+        );
       },
       reduced ? 150 : EXIT_MS,
     );
@@ -139,7 +151,13 @@ export function useSwipeRow({ id, allowed, onCommit }: { id: string; allowed: Pa
   };
   const rowStyle: CSSProperties =
     phase === 'collapse'
-      ? { height: 0, marginTop: 0, opacity: 0, overflow: 'hidden', transition: `height ${COLLAPSE_MS}ms ${EASE}, margin ${COLLAPSE_MS}ms ${EASE}, opacity ${COLLAPSE_MS}ms` }
+      ? {
+          height: 0,
+          marginTop: 0,
+          opacity: 0,
+          overflow: 'hidden',
+          transition: `height ${COLLAPSE_MS}ms ${EASE}, margin ${COLLAPSE_MS}ms ${EASE}, opacity ${COLLAPSE_MS}ms`,
+        }
       : height !== null && phase === 'exit'
         ? { height }
         : {};

@@ -91,7 +91,9 @@ export async function storeJobs(prisma: PrismaService, ctx: StoreContext, items:
     // A salary from any source beats none.
     ...existing
       .filter((j) => !j.salary && byHash.get(j.dedupeHash)!.posting.salary)
-      .map((j) => prisma.job.update({ where: { id: j.id }, data: { salary: byHash.get(j.dedupeHash)!.posting.salary } })),
+      .map((j) =>
+        prisma.job.update({ where: { id: j.id }, data: { salary: byHash.get(j.dedupeHash)!.posting.salary } }),
+      ),
   ]);
   return { newJobIds: created.map((j) => j.id), completedJobIds: completions.map((j) => j.id) };
 }

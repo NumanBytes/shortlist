@@ -21,10 +21,9 @@ export const CreateSkillEvidenceSchema = z
     // isVerified is intentionally omitted — it can never be set from a request body.
   })
   .strict()
-  .refine(
-    (data) => !(data.workExperienceId && data.projectId),
-    { message: 'Evidence cannot be linked to both a work experience and a project' },
-  );
+  .refine((data) => !(data.workExperienceId && data.projectId), {
+    message: 'Evidence cannot be linked to both a work experience and a project',
+  });
 
 export type CreateSkillEvidenceInput = z.infer<typeof CreateSkillEvidenceSchema>;
 
@@ -40,9 +39,8 @@ export const UpdateSkillEvidenceSchema = z
   })
   .strict()
   .refine(nonEmptyUpdate, { message: NON_EMPTY_UPDATE_MESSAGE })
-  .refine(
-    (data) => !(data.workExperienceId && data.projectId),
-    { message: 'Evidence cannot be linked to both a work experience and a project' },
-  );
+  .refine((data) => !(data.workExperienceId && data.projectId), {
+    message: 'Evidence cannot be linked to both a work experience and a project',
+  });
 
 export type UpdateSkillEvidenceInput = z.infer<typeof UpdateSkillEvidenceSchema>;

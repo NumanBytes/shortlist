@@ -57,7 +57,14 @@ export class AnthropicJobAnalyzer implements JobAnalyzer {
 // transient. Shared by every model call the worker makes (analysis, tailoring).
 export async function structuredCall(
   client: Anthropic | null,
-  opts: { model: string; maxTokens: number; system: string; user: string; schema: Record<string, unknown>; timeoutMs?: number },
+  opts: {
+    model: string;
+    maxTokens: number;
+    system: string;
+    user: string;
+    schema: Record<string, unknown>;
+    timeoutMs?: number;
+  },
 ): Promise<AnalyzerResult> {
   if (!client) throw new PermanentAnalyzerError('ANTHROPIC_API_KEY is not set');
   try {

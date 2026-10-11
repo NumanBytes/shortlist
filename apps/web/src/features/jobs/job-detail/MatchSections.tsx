@@ -20,27 +20,44 @@ function parseStrength(s: string) {
 }
 
 // A card with a header row: icon, title, and a count on the right ("4 matched").
-function Section({ id, icon, title, meta, children }: { id: string; icon: ReactNode; title: string; meta?: string; children: ReactNode }) {
+function Section({
+  id,
+  icon,
+  title,
+  meta,
+  children,
+}: {
+  id: string;
+  icon: ReactNode;
+  title: string;
+  meta?: string;
+  children: ReactNode;
+}) {
   return (
-  <section aria-labelledby={id} className="overflow-hidden rounded-2xl border border-border bg-surface">
-    <div className="flex items-center gap-2.5 px-4 pt-3.5 pb-3">
-      <span className="text-muted" aria-hidden="true">
-        {icon}
-      </span>
-      <h2 id={id} className="flex-1 text-[15px] font-semibold text-fg">
-        {title}
-      </h2>
-      {meta && <span className="text-xs text-muted">{meta}</span>}
-    </div>
-    {children}
-  </section>
+    <section aria-labelledby={id} className="overflow-hidden rounded-2xl border border-border bg-surface">
+      <div className="flex items-center gap-2.5 px-4 pt-3.5 pb-3">
+        <span className="text-muted" aria-hidden="true">
+          {icon}
+        </span>
+        <h2 id={id} className="flex-1 text-[15px] font-semibold text-fg">
+          {title}
+        </h2>
+        {meta && <span className="text-xs text-muted">{meta}</span>}
+      </div>
+      {children}
+    </section>
   );
 }
 
 export function Strengths({ strengths }: { strengths: string[] }) {
   if (strengths.length === 0) return null;
   return (
-    <Section id="fits" icon={<CircleCheck className="size-5 text-accent" strokeWidth={1.75} />} title="Why it fits" meta={`${strengths.length} matched`}>
+    <Section
+      id="fits"
+      icon={<CircleCheck className="size-5 text-accent" strokeWidth={1.75} />}
+      title="Why it fits"
+      meta={`${strengths.length} matched`}
+    >
       <ul className="divide-y divide-border border-t border-border">
         {strengths.map((s) => {
           const p = parseStrength(s);
@@ -63,7 +80,12 @@ export function Strengths({ strengths }: { strengths: string[] }) {
 export function Gaps({ gaps }: { gaps: Gap[] }) {
   if (gaps.length === 0) return null;
   return (
-    <Section id="gaps" icon={<AlertTriangle className="size-5 text-stretch" strokeWidth={1.75} />} title="Gaps" meta={`${gaps.length} missing`}>
+    <Section
+      id="gaps"
+      icon={<AlertTriangle className="size-5 text-stretch" strokeWidth={1.75} />}
+      title="Gaps"
+      meta={`${gaps.length} missing`}
+    >
       <ul className="divide-y divide-border border-t border-border">
         {gaps.map((g) => (
           <li key={g.skillName} className="px-4 py-3 text-sm">
@@ -75,7 +97,10 @@ export function Gaps({ gaps }: { gaps: Gap[] }) {
           </li>
         ))}
       </ul>
-      <Link to="/evidence" className="block border-t border-border px-4 py-3.5 text-[15px] font-semibold text-accent-fg">
+      <Link
+        to="/evidence"
+        className="block border-t border-border px-4 py-3.5 text-[15px] font-semibold text-accent-fg"
+      >
         Have experience here? Add evidence
       </Link>
     </Section>

@@ -21,13 +21,24 @@ export type TailorOutcome =
 export class PermanentTailorError extends Error {
   // The model's raw answer when it failed validation — printed by preview:resume to
   // diagnose it; never stored (it's a whole resume's worth of text).
-  constructor(message: string, readonly rawOutput?: string) {
+  constructor(
+    message: string,
+    readonly rawOutput?: string,
+  ) {
     super(message);
   }
 }
 
 type Draft =
-  | { status: 'READY'; content: ResumeContent; evidenceIds: string[]; model: string; readAt: Date; cost: number; bullets: number }
+  | {
+      status: 'READY';
+      content: ResumeContent;
+      evidenceIds: string[];
+      model: string;
+      readAt: Date;
+      cost: number;
+      bullets: number;
+    }
   | { status: 'DEFERRED' | 'FAILED'; reason: string };
 
 @Injectable()
@@ -53,7 +64,8 @@ export class ResumeService {
       if (err instanceof PermanentTailorError) await this.fail(jobId, err.message);
       throw err; // permanent: no retry (processor); transient: the queue retries
     }
-    if (draft.status !== 'READY') return draft.status === 'DEFERRED' ? this.defer(jobId, draft.reason) : this.fail(jobId, draft.reason);
+    if (draft.status !== 'READY')
+      return draft.status === 'DEFERRED' ? this.defer(jobId, draft.reason) : this.fail(jobId, draft.reason);
 
     const { content, evidenceIds, model, readAt, cost } = draft;
     const variant = await this.prisma.$transaction(async (tx) => {
@@ -67,14 +79,23 @@ export class ResumeService {
           generatedAt: readAt,
         },
       });
-      await tx.jobResume.update({ where: { jobId }, data: { status: 'READY', error: null, variantId: v.id, reused: false, overlap: null } });
+      await tx.jobResume.update({
+        where: { jobId },
+        data: { status: 'READY', error: null, variantId: v.id, reused: false, overlap: null },
+      });
       return v;
     });
 
     this.logger.log(
       `Resume for ${job.title} @ ${job.company}: ${draft.bullets} bullets, ${content.dropped.length} dropped ($${cost.toFixed(4)})`,
     );
-    return { status: 'READY', variantId: variant.id, bullets: draft.bullets, dropped: content.dropped.length, costUsd: cost };
+    return {
+      status: 'READY',
+      variantId: variant.id,
+      bullets: draft.bullets,
+      dropped: content.dropped.length,
+      costUsd: cost,
+    };
   }
 
   // Writes a resume for the job WITHOUT storing it or touching the job's resume status —
@@ -106,7 +127,8 @@ export class ResumeService {
     // that item's updatedAt would predate the resume, which would look current (code review).
     const readAt = new Date();
     const material = await this.material(job.userId);
-    if (material.evidence.length === 0) return { status: 'FAILED', reason: 'No verified evidence yet — verify your skills first' };
+    if (material.evidence.length === 0)
+      return { status: 'FAILED', reason: 'No verified evidence yet — verify your skills first' };
 
     const prompt = buildResumePrompt({ job, requirements: job.requirements, ...material });
     let result;
@@ -122,7 +144,15 @@ export class ResumeService {
     const cost = costUsd(result.model, result.usage);
     const parsed = parseModelOutput(result.text, result.stopReason, ResumeOutputSchema, 'write this resume');
     await this.prisma.aiUsage.create({
-      data: { userId: job.userId, jobId: job.id, purpose: 'TAILOR_RESUME', model: result.model, ...result.usage, costUsd: cost, succeeded: parsed.ok },
+      data: {
+        userId: job.userId,
+        jobId: job.id,
+        purpose: 'TAILOR_RESUME',
+        model: result.model,
+        ...result.usage,
+        costUsd: cost,
+        succeeded: parsed.ok,
+      },
     });
     if (!parsed.ok) throw new PermanentTailorError(parsed.reason, result.text); // same input would fail again and cost again
 
@@ -134,7 +164,8 @@ export class ResumeService {
       requirementAliases: job.requirements.map((r) => ({ name: r.skillName, skillIds: r.matchedSkillIds })),
     });
     const bullets = [...content.experience, ...content.projects].reduce((n, sec) => n + sec.bullets.length, 0);
-    if (bullets === 0) return { status: 'FAILED', reason: 'None of the generated bullets passed the truthfulness checks — try again' };
+    if (bullets === 0)
+      return { status: 'FAILED', reason: 'None of the generated bullets passed the truthfulness checks — try again' };
     return { status: 'READY', content, evidenceIds, model: result.model, readAt, cost, bullets };
   }
 
@@ -171,7 +202,10 @@ export class ResumeService {
   }
 
   async fail(jobId: string, reason: string): Promise<TailorOutcome> {
-    await this.prisma.jobResume.updateMany({ where: { jobId }, data: { status: 'FAILED', error: reason.slice(0, 1000) } });
+    await this.prisma.jobResume.updateMany({
+      where: { jobId },
+      data: { status: 'FAILED', error: reason.slice(0, 1000) },
+    });
     return { status: 'FAILED', reason };
   }
 }

@@ -22,7 +22,11 @@ function setup() {
       : url.endsWith('/discovery/sources')
         ? []
         : url.endsWith('/gmail')
-          ? { configured: false, connection: null, last30Days: { alerts: 0, notAlerts: 0, deferred: 0, failed: 0, portals: [] } }
+          ? {
+              configured: false,
+              connection: null,
+              last30Days: { alerts: 0, notAlerts: 0, deferred: 0, failed: 0, portals: [] },
+            }
           : {};
     return new Response(JSON.stringify(init.method === 'PATCH' ? usage.settings : body), { status: 200 });
   });

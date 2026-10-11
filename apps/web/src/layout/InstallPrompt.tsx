@@ -16,8 +16,12 @@ interface InstallEvent extends Event {
 }
 
 const standalone = () =>
-  window.matchMedia?.('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
-const isIosSafari = () => /iP(hone|ad|od)/.test(navigator.userAgent) && /Safari/.test(navigator.userAgent) && !/CriOS|FxiOS/.test(navigator.userAgent);
+  window.matchMedia?.('(display-mode: standalone)').matches ||
+  (navigator as Navigator & { standalone?: boolean }).standalone === true;
+const isIosSafari = () =>
+  /iP(hone|ad|od)/.test(navigator.userAgent) &&
+  /Safari/.test(navigator.userAgent) &&
+  !/CriOS|FxiOS/.test(navigator.userAgent);
 const dismissed = () => {
   try {
     return localStorage.getItem(KEY) === '1';
@@ -72,12 +76,17 @@ export function InstallPrompt({ delayMs = 4000 }: { delayMs?: number }) {
       {!event && (
         <ol className="mt-4 space-y-3 text-[15px] text-fg">
           <li className="flex items-center gap-3">
-            <span className="grid size-7 shrink-0 place-items-center rounded-full bg-surface-2 text-[13px] font-semibold">1</span>
+            <span className="grid size-7 shrink-0 place-items-center rounded-full bg-surface-2 text-[13px] font-semibold">
+              1
+            </span>
             Tap <Share className="size-5 text-accent-fg" aria-label="Share" /> in Safari's toolbar
           </li>
           <li className="flex items-center gap-3">
-            <span className="grid size-7 shrink-0 place-items-center rounded-full bg-surface-2 text-[13px] font-semibold">2</span>
-            Choose <b className="font-semibold">Add to Home Screen</b> <SquarePlus className="size-5 text-accent-fg" aria-hidden="true" />
+            <span className="grid size-7 shrink-0 place-items-center rounded-full bg-surface-2 text-[13px] font-semibold">
+              2
+            </span>
+            Choose <b className="font-semibold">Add to Home Screen</b>{' '}
+            <SquarePlus className="size-5 text-accent-fg" aria-hidden="true" />
           </li>
         </ol>
       )}

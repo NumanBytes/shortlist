@@ -51,7 +51,11 @@ export type UpdateAiSettingsInput = z.infer<typeof UpdateAiSettingsSchema>;
 
 // $4.50 of the initial $5 credit, leaving headroom for manual runs; the Console's
 // prepaid balance (auto-reload off) is the hard stop behind this.
-export const DEFAULT_AI_SETTINGS: AiSettingsInput = { maxAnalysesPerDay: 40, monthlyBudgetUsd: 4.5, resumeReuseMinOverlap: 0.85 };
+export const DEFAULT_AI_SETTINGS: AiSettingsInput = {
+  maxAnalysesPerDay: 40,
+  monthlyBudgetUsd: 4.5,
+  resumeReuseMinOverlap: 0.85,
+};
 
 // Prisma row (Decimals as objects) → settings, defaulting for a user without a row.
 export function aiSettingsFromRow(

@@ -5,9 +5,30 @@ import { mockFetch, renderWithProviders } from '../../test/render';
 import { job as listJob } from '../../test/fixtures';
 import { ResumeSection } from './ResumeSection';
 
-const job: JobDetail = { ...listJob, status: 'INTERESTED', rawJD: '', seniority: null, yearsRequired: null, analyzedAt: null, requirements: [], match: null };
+const job: JobDetail = {
+  ...listJob,
+  status: 'INTERESTED',
+  rawJD: '',
+  seniority: null,
+  yearsRequired: null,
+  analyzedAt: null,
+  requirements: [],
+  match: null,
+};
 
-const none: JobResume = { status: 'NONE', error: null, queuedAt: null, workerOnline: null, reused: false, overlap: null, canTailor: true, needsDescription: false, variant: null, sources: {}, reuse: [] };
+const none: JobResume = {
+  status: 'NONE',
+  error: null,
+  queuedAt: null,
+  workerOnline: null,
+  reused: false,
+  overlap: null,
+  canTailor: true,
+  needsDescription: false,
+  variant: null,
+  sources: {},
+  reuse: [],
+};
 const ready = (over: Partial<NonNullable<JobResume['variant']>> = {}): JobResume => ({
   ...none,
   status: 'READY',
@@ -19,7 +40,18 @@ const ready = (over: Partial<NonNullable<JobResume['variant']>> = {}): JobResume
     approvedAt: null,
     stale: [],
     content: {
-      experience: [{ workExperienceId: 'r', title: 'Software Engineer', company: 'CloudCard', location: null, startDate: '2024-05-01', endDate: null, isCurrent: true, bullets: [{ label: null, text: 'Used React.', evidenceIds: ['e1'] }] }],
+      experience: [
+        {
+          workExperienceId: 'r',
+          title: 'Software Engineer',
+          company: 'CloudCard',
+          location: null,
+          startDate: '2024-05-01',
+          endDate: null,
+          isCurrent: true,
+          bullets: [{ label: null, text: 'Used React.', evidenceIds: ['e1'] }],
+        },
+      ],
       projects: [],
       skillGroups: [],
       dropped: [{ where: 'CloudCard', text: 'Led 12 people.', reason: 'adds "12"' }],
@@ -49,7 +81,10 @@ describe('ResumeSection', () => {
   });
 
   it('offers an approved resume for reuse', async () => {
-    const fetch = mockFetch({ ...none, reuse: [{ variantId: 'v9', overlap: 0.92, approvedAt: null, usedFor: ['Frontend Engineer at Kwanso'] }] });
+    const fetch = mockFetch({
+      ...none,
+      reuse: [{ variantId: 'v9', overlap: 0.92, approvedAt: null, usedFor: ['Frontend Engineer at Kwanso'] }],
+    });
     renderWithProviders(<ResumeSection job={job} />);
     expect(await screen.findByText(/92% match/)).toBeInTheDocument();
     expect(screen.getByText(/Used for Frontend Engineer at Kwanso/)).toBeInTheDocument();
@@ -86,7 +121,8 @@ describe('ResumeSection', () => {
     ['DEFERRED', /Tailoring deferred: Monthly AI budget reached/],
     ['PENDING', /Tailoring from your verified evidence/],
   ] as const)('keeps the existing resume reachable when a new attempt is %s', async (status, message) => {
-    const error = status === 'FAILED' ? "Couldn't reach Claude" : status === 'DEFERRED' ? 'Monthly AI budget reached' : null;
+    const error =
+      status === 'FAILED' ? "Couldn't reach Claude" : status === 'DEFERRED' ? 'Monthly AI budget reached' : null;
     mockFetch({ ...ready({ status: 'APPROVED' }), status, error });
     renderWithProviders(<ResumeSection job={job} />);
     expect(await screen.findByText(message)).toBeInTheDocument();
@@ -134,10 +170,12 @@ describe('ResumeSection while tailoring — never an endless spinner', () => {
     expect(screen.getByText(/you can leave this page/i)).toBeInTheDocument();
   });
 
-  it("says plainly when no worker is running, and that nothing was charged", async () => {
+  it('says plainly when no worker is running, and that nothing was charged', async () => {
     mockFetch(pending({ workerOnline: false }));
     renderWithProviders(<ResumeSection job={job} />);
-    expect(await screen.findByRole('status')).toHaveTextContent(/background worker isn't running.*Nothing has been charged/);
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      /background worker isn't running.*Nothing has been charged/,
+    );
   });
 
   it('gives up waiting after far too long and offers to check again', async () => {
