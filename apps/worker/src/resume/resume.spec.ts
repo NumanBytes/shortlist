@@ -245,7 +245,7 @@ describe('assembleResume — skills', () => {
   });
 });
 
-describe('reuse overlap (Agents.md §13.2)', () => {
+describe('reuse overlap (docs/resume.md §13.2)', () => {
   const profile = requirementProfile([{ skillName: 'React.js' }, { skillName: 'TypeScript' }, { skillName: 'REST APIs' }, { skillName: 'AWS / GCP' }]);
 
   it('normalizes names and splits alternatives', () => {
@@ -280,7 +280,7 @@ describe('buildResumePrompt', () => {
     expect(prompt.user).toMatch(/S\d+: NestJS — learning/);
   });
 
-  // Matched to the user's CV (Agents.md §13.1): its Experience bullets average 12 words; the
+  // Matched to the user's CV (docs/resume.md §13.1): its Experience bullets average 12 words; the
   // first real run averaged 20 (up to 35), repeated the company name and said what the
   // candidate didn't do ("without owning the services").
   it('asks for short, single-topic bullets that state what was done', () => {

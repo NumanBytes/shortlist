@@ -1,0 +1,59 @@
+# Development workflow
+
+How the repo is worked on: conventions, testing, migrations.
+
+> Part of the Shortlist docs. Start with [Agents.md](../Agents.md): the product rules and a
+> map of every file. Section numbers are shared across files.
+
+## 15. Development workflow and conventions
+
+### 15.1 Git and GitHub
+
+- Repository: `github.com/NumanBytes/shortlist` (private). Default branch `main`.
+- **Feature branches, merged by pull request.** `main` stays deployable; each step of the
+  roadmap is a short-lived branch (`feat/…`, `fix/…`, `docs/…`) with a PR describing what
+  and why. No long-lived `develop` branch (overhead for a solo developer). PRs also serve
+  as a portfolio record of engineering decisions.
+- Large features are split into **stacked PRs** (e.g. worker, then UI); when the lower one
+  merges, GitHub retargets the upper one.
+- The repo auto-deletes merged branches.
+- **No Claude attribution** in commit messages or PR descriptions (no `Co-Authored-By:
+  Claude`, no "Generated with Claude Code") — the user removed it once and asked never to
+  add it again.
+
+### 15.2 Environment files
+
+`packages/db/.env` is read by the Prisma CLI; `apps/api/.env` and `apps/worker/.env` are
+loaded at boot with Node's `process.loadEnvFile()` (no dotenv). Every process validates its
+env with Zod at startup and refuses to start on bad config. Secrets are never committed;
+`.env.example` files document every variable.
+
+### 15.3 Testing strategy
+
+- **API:** unit tests next to the source (`*.spec.ts`); e2e tests (`test/*.e2e-spec.ts`)
+  with Supertest against the real database. Use `createTestApp()` — it tracks the users it
+  creates and deletes only those (files run in parallel, so never bulk-delete by domain).
+  One test per truthfulness rule.
+- **Worker:** adapter tests serve **recorded real responses** (`test/fixtures/`) via a
+  stubbed `fetch` — never the network; recapture a fixture when an adapter changes.
+  Integration tests run `DiscoveryService` against the real database with fake adapters.
+- **Web:** Vitest + jsdom + Testing Library, `fetch` stubbed.
+- **Live verification:** significant features are also run end to end — real sources, a
+  headless browser at phone size against the real API/worker — with temporary accounts
+  deleted afterwards.
+
+- **E2E tests use their own Redis database (15)** — `createTestApp()` sets it, and specs
+  that open Redis directly use `TEST_REDIS_URL`. A development worker listens on database
+  0; when both shared it, the worker grabbed jobs the tests had just queued (failing every
+  "is it queued?" check) and tried to run test users' fake sources (2026-10-04).
+
+### 15.4 Database migrations
+
+- Normal changes: `prisma migrate dev --name …` (or `--create-only` then edit the SQL for
+  constraints Prisma can't express).
+- When Prisma demands an interactive confirmation in a non-interactive environment,
+  generate the SQL by diffing the **live schema, read-only** (`migrate diff
+  --from-schema-datasource … --to-schema-datamodel … --script`), review it, save it as a
+  migration, and apply with `migrate deploy`.
+- **Never** pass the dev database as `--shadow-database-url`, and never run `migrate
+  reset` against data you care about ([§1.3](../Agents.md)).

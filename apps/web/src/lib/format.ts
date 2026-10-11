@@ -31,7 +31,7 @@ export function prettyLocation(location: string | null): string | null {
     .join(', ');
 }
 
-// Posting age only means something on aggregators (Agents.md §9.6): a company board's
+// Posting age only means something on aggregators (docs/discovery.md §9.6): a company board's
 // publish date can be years old for a role that is still open, so don't show it there.
 export function postedLabel(job: Pick<JobListItem, 'source' | 'postedAt' | 'jobSource'>): string | null {
   if (!job.postedAt || !isAggregator(job)) return null;
@@ -58,7 +58,7 @@ export function timeUntil(iso: string, now = Date.now()): string {
 }
 
 // The resume as plain text — for application forms that want it pasted, not uploaded.
-// Same content and order as the printed page (Agents.md §13.1).
+// Same content and order as the printed page (docs/resume.md §13.1).
 export function resumeText(
   content: { experience: { title: string; company: string; startDate: string; endDate: string | null; isCurrent: boolean; bullets: { label: string | null; text: string }[] }[]; projects: { name: string; bullets: { label: string | null; text: string }[] }[]; skillGroups: { label: string; skills: { name: string }[] }[] },
   profile: { name: string; email: string; phone: string | null; location: string | null; linkedinUrl: string | null; githubUrl: string | null },

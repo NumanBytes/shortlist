@@ -118,7 +118,7 @@ describe('defaults, tuned from the first live run', () => {
   });
 });
 
-// Alert-email jobs have only a title and a one-line summary (Agents.md §10.5). Titles from
+// Alert-email jobs have only a title and a one-line summary (docs/email-alerts.md §10.5). Titles from
 // the first real Gmail check (2026-10-03), where stage A alone let all of these through.
 describe('summary screen — alert jobs with no description', () => {
   const summary = (title: string, snippet = '') => filter.screenSummary(posting({ title }), snippet).pass;

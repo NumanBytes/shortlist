@@ -20,7 +20,7 @@ const minutes = (s: number) => {
 // Emails are hashed into the key: Redis then never holds a list of addresses people tried.
 const accountKey = (email: string) => createHash('sha256').update(email.trim().toLowerCase()).digest('hex').slice(0, 32);
 
-// The auth endpoints' rules (Agents.md §8.1), in one place:
+// The auth endpoints' rules (docs/security.md §8.1), in one place:
 // - login: every attempt counts against the IP; FAILED attempts count against the account.
 //   An exhausted account is refused before the password is even checked — that's what
 //   stops guessing. The key is the email as typed, so an unknown email behaves exactly

@@ -95,7 +95,7 @@ export class JobQueues implements OnModuleDestroy {
     }
   }
 
-  // "Cancel" on a tailoring run (Agents.md §13.1). A job still waiting (or in retry
+  // "Cancel" on a tailoring run (docs/resume.md §13.1). A job still waiting (or in retry
   // backoff) is removed, so the model is never called. One the worker has started can't be
   // recalled — its Claude call is already in flight — so say so instead of pretending.
   async cancelTailoring(jobId: string): Promise<'removed' | 'running' | 'none'> {
@@ -130,7 +130,7 @@ export class JobQueues implements OnModuleDestroy {
     return beat === undefined ? null : beat !== null;
   }
 
-  // When the nightly discovery fires next (the scheduler lives in Redis, Agents.md §9.8).
+  // When the nightly discovery fires next (the scheduler lives in Redis, docs/discovery.md §9.8).
   async nextNightlyDiscovery(): Promise<Date | null> {
     const scheduler = await this.read(this.discovery.getJobScheduler(NIGHTLY_DISCOVERY_SCHEDULER_ID));
     return scheduler?.next ? new Date(scheduler.next) : null;

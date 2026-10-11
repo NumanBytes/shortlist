@@ -1,7 +1,7 @@
 # Deploying Shortlist on one server
 
 Everything runs on a single rented Linux server (a VPS) with Docker Compose
-(Agents.md §4, "Deployment"). This guide assumes no prior server experience.
+(docs/architecture.md §4, "Deployment"). This guide assumes no prior server experience.
 
 ```
 phone ──HTTPS──► Caddy ─┬─ the web app (static files)
@@ -23,7 +23,7 @@ phone ──HTTPS──► Caddy ─┬─ the web app (static files)
 ## 1. Rent the server
 
 Two ways, same result: an Ubuntu LTS server with **2 GB RAM or more**, a fixed public IPv4
-address, and your SSH key. Everything after step 1 works on either (Agents.md §4).
+address, and your SSH key. Everything after step 1 works on either (docs/architecture.md §4).
 
 - **1A. AWS EC2 `t4g.small`**: free on AWS's free plan (credits for 6 months), and
   practice with AWS itself. Plan the move to 1B before the plan ends ("Moving to another

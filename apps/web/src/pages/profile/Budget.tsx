@@ -4,7 +4,7 @@ import { useAiUsage, useUpdateAiSettings } from '../../lib/queries';
 import { Group } from './ListGroup';
 
 // The monthly AI cap (a stepper; the middle is editable) and the resume-reuse threshold
-// (Agents.md §12.3, §13.2). Both save straight away; the server confirms.
+// (docs/ai-scoring.md §12.3, docs/resume.md §13.2). Both save straight away; the server confirms.
 export function Budget() {
   const usage = useAiUsage();
   const update = useUpdateAiSettings();

@@ -2,7 +2,7 @@ import { createHash, randomBytes } from 'node:crypto';
 
 // Google OAuth 2.0 (authorization-code flow with PKCE) and the few Gmail REST calls
 // Shortlist needs — hand-rolled with fetch rather than the googleapis SDK, so every request
-// is visible (Agents.md §10.3). Read-only scope; nothing here can send or change mail.
+// is visible (docs/email-alerts.md §10.3). Read-only scope; nothing here can send or change mail.
 
 export const GMAIL_READONLY_SCOPE = 'https://www.googleapis.com/auth/gmail.readonly';
 

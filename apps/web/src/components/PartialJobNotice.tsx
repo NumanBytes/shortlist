@@ -6,7 +6,7 @@ import { usePasteDescription } from '../lib/queries';
 import type { JobDetail } from '../lib/types';
 import { Button, Card } from './ui';
 
-// A job read from an alert email has only the alert's summary (Agents.md §10.5). Shortlist
+// A job read from an alert email has only the alert's summary (docs/email-alerts.md §10.5). Shortlist
 // can't fetch the posting — the portals forbid scraping — so the user pastes it, once, and
 // only for jobs worth it: the paste form appears once the job is marked Interested.
 export function PartialJobNotice({ job }: { job: JobDetail }) {

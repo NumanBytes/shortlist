@@ -126,7 +126,7 @@ export class JobsService {
     return { queued: true };
   }
 
-  // "Paste full description" (Agents.md §10.5): an alert gave only a summary; the user pastes
+  // "Paste full description" (docs/email-alerts.md §10.5): an alert gave only a summary; the user pastes
   // the posting, and the job is scored again from the real text.
   async pasteDescription(userId: string, id: string, description: string) {
     const job = await this.prisma.job.findFirst({ where: { id, userId }, select: { isPartial: true } });

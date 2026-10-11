@@ -12,7 +12,7 @@ const EnvSchema = z.object({
   // How many sources are fetched in parallel. Each source's own requests are sequential.
   WORKER_CONCURRENCY: z.coerce.number().int().min(1).max(20).default(3),
 
-  // Claude API key — lives ONLY in the worker's env (Agents.md §4). Optional: without
+  // Claude API key — lives ONLY in the worker's env (docs/architecture.md §4). Optional: without
   // it, jobs are still discovered but analysis is deferred, never failed.
   ANTHROPIC_API_KEY: z.string().startsWith('sk-ant-', 'ANTHROPIC_API_KEY must start with sk-ant-').optional(),
   // Nightly sweep: analyse pending/deferred jobs and re-score after evidence changes.
@@ -21,7 +21,7 @@ const EnvSchema = z.object({
   // can overshoot the daily cap before the guard sees it.
   ANALYSIS_CONCURRENCY: z.coerce.number().int().min(1).max(10).default(2),
 
-  // Gmail job alerts (Agents.md §10). Optional as a group, like ANTHROPIC_API_KEY: without
+  // Gmail job alerts (docs/email-alerts.md §10). Optional as a group, like ANTHROPIC_API_KEY: without
   // them, email checks report "not configured" instead of failing. Same values as the API.
   GOOGLE_CLIENT_ID: z.string().min(1).optional(),
   GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),

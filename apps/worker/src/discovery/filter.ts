@@ -1,7 +1,7 @@
 import type { DiscoveryPreferencesInput } from '@shortlist/shared';
 import type { Posting } from './types.js';
 
-// The cheap rule filter (Agents.md §5): plain code, no model calls. It exists to turn
+// The cheap rule filter (docs/architecture.md §5): plain code, no model calls. It exists to turn
 // hundreds of raw postings into the few worth spending AI money on, so it errs on the
 // side of dropping — every rejection carries a reason, for tuning.
 

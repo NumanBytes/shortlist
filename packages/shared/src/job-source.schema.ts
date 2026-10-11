@@ -46,7 +46,7 @@ export const PlannedSourceConfigSchema = z
 
 export const JobSourceConfigSchema = z.union([ImplementedSourceConfigSchema, PlannedSourceConfigSchema]);
 
-// The JobSource key for one portal's alert emails (Agents.md §10.4), e.g. "rozee.pk" →
+// The JobSource key for one portal's alert emails (docs/email-alerts.md §10.4), e.g. "rozee.pk" →
 // "email_alerts:rozee-pk". The worker files emails under it and the API looks it up, so
 // both must build it the same way. Seeded rows use the same slugs.
 export const emailSourceKey = (portal: string) => `email_alerts:${portal.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`;
@@ -55,7 +55,7 @@ export type ImplementedSourceConfig = z.infer<typeof ImplementedSourceConfigSche
 export type JobSourceConfig = z.infer<typeof JobSourceConfigSchema>;
 export type SourceProvider = ImplementedSourceConfig['provider'];
 
-// "Edit URL" on a failing company board (Agents.md §9.5): the user pastes the board's
+// "Edit URL" on a failing company board (docs/discovery.md §9.5): the user pastes the board's
 // link — or just its name — and we keep only the part the adapter needs. Aggregators have
 // fixed APIs, so only these four have an address to edit.
 const BOARD_HOSTS = {

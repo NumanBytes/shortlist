@@ -11,7 +11,7 @@ import type { DiscoverySource } from '../lib/types';
 const needsAttention = (s: DiscoverySource) => s.isEnabled && (s.lastRun?.status === 'FAILED' || s.lastRun?.status === 'EMPTY');
 const money = (n: number) => `$${n.toFixed(2)}`;
 
-// What AI costs (Agents.md §12.3) — the budget itself is changed on Profile.
+// What AI costs (docs/ai-scoring.md §12.3) — the budget itself is changed on Profile.
 function SpendTiles() {
   const usage = useAiUsage();
   const status = useDiscoveryStatus();
@@ -69,7 +69,7 @@ export function JobsLink({ sourceId, count }: { sourceId: string; count: number 
 }
 
 // A source that failed or came back empty — shown as such, never confused with "no jobs
-// today" (Agents.md §9.5), with a retry for that source alone.
+// today" (docs/discovery.md §9.5), with a retry for that source alone.
 function AttentionRow({ source }: { source: DiscoverySource }) {
   const retry = useRunSource();
   const [editing, setEditing] = useState(false);

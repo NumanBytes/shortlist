@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 #
-# One Dockerfile for the monorepo (Agents.md §4, "Deployment"). Two final images:
+# One Dockerfile for the monorepo (docs/architecture.md §4, "Deployment"). Two final images:
 #   server — the API, the worker AND the migration step: same code, different command
 #   web    — Caddy serving the built React app and forwarding /api to the API
 # Built by deploy/docker-compose.yml; see deploy/README.md.

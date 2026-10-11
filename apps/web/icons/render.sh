@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Renders the PWA/home-screen PNGs in public/ from public/favicon.svg, the single source of
-# the mark (docs/web-design.md, "App icon"). Uses headless Chrome as the rasterizer, so no
+# the mark (docs/web-design.md §8.4.3). Uses headless Chrome as the rasterizer, so no
 # image library is needed. Run after changing the mark: apps/web/icons/render.sh
 set -euo pipefail
 

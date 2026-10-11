@@ -37,7 +37,7 @@ const EnvSchema = z.object({
   // Where the browser lands after connecting Gmail (the web app's own URL).
   WEB_APP_URL: z.url().default('http://localhost:5173'),
 
-  // Gmail job alerts (Agents.md §10). Optional as a group: without them the app works and
+  // Gmail job alerts (docs/email-alerts.md §10). Optional as a group: without them the app works and
   // "Connect Gmail" says it isn't configured. The redirect URI must match the one
   // registered on the Google OAuth client exactly.
   GOOGLE_CLIENT_ID: z.string().min(1).optional(),

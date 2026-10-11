@@ -1,8 +1,8 @@
-# Caddy: the only thing exposed to the internet (Agents.md §4).
+# Caddy: the only thing exposed to the internet (docs/architecture.md §4).
 #  - HTTPS: for a real hostname (SITE_ADDRESS=numan-shortlist.duckdns.org) Caddy gets and
 #    renews a Let's Encrypt certificate by itself. A phone only installs the PWA over HTTPS.
 #  - /api/* and /health go to the API; everything else is the built React app.
-#  - One origin for both, so the SameSite=Strict refresh cookie works (Agents.md §8.2) —
+#  - One origin for both, so the SameSite=Strict refresh cookie works (docs/security.md §8.2) —
 #    the same arrangement as Vite's proxy in development.
 {$SITE_ADDRESS} {
 	encode zstd gzip

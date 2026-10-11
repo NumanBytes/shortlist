@@ -24,7 +24,7 @@ export type AnalysisOutcome =
 // A failure that retrying can't fix; the processor maps it to UnrecoverableError.
 export class PermanentAnalysisError extends Error {}
 
-// The job's description changed while the model was reading the old one (Agents.md §10.5,
+// The job's description changed while the model was reading the old one (docs/email-alerts.md §10.5,
 // "Paste full description"). Thrown inside the save transaction to roll it back.
 class DescriptionChanged extends Error {}
 

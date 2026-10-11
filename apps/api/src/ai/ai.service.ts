@@ -4,7 +4,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 
 const DAY_MS = 24 * 3600 * 1000;
 
-// What the user sees about AI spend and the budget guard (Agents.md §12.3). The worker's
+// What the user sees about AI spend and the budget guard (docs/ai-scoring.md §12.3). The worker's
 // BudgetGuard enforces the same numbers from the same AiUsage rows.
 @Injectable()
 export class AiService {

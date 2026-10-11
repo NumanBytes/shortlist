@@ -19,7 +19,7 @@ const random = () => randomBytes(32).toString('base64url');
 // Why a connect attempt ended, as shown to the user on the Sources page.
 export type ConnectOutcome = 'connected' | 'denied' | 'expired' | 'mismatch' | 'scope' | 'no_refresh_token' | 'google_error';
 
-// Connecting Gmail read-only (Agents.md §10.3). The API runs the OAuth handshake and
+// Connecting Gmail read-only (docs/email-alerts.md §10.3). The API runs the OAuth handshake and
 // stores the encrypted refresh token; the worker does all the reading.
 @Injectable()
 export class GmailService {
@@ -60,7 +60,7 @@ export class GmailService {
       this.prisma.emailMessage.groupBy({ by: ['status'], where: recent, _count: true }),
       this.prisma.emailMessage.groupBy({ by: ['portal'], where: { ...recent, status: 'PARSED' }, _count: true, _sum: { jobsFound: true } }),
       // A code parser that found nothing (or threw) and handed the email to the model: the
-      // portal probably changed its email layout (Agents.md §10.4).
+      // portal probably changed its email layout (docs/email-alerts.md §10.4).
       this.prisma.emailMessage.groupBy({ by: ['portal'], where: { ...recent, parserFailed: true }, _count: true }),
       this.prisma.jobSource.findMany({
         where: { userId, type: 'EMAIL_INBOX', lastRunAt: { not: null } },

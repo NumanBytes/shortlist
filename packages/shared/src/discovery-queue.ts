@@ -15,7 +15,7 @@ export interface DiscoverSourceData {
   sourceId: string;
 }
 
-// AI analysis queue (Agents.md §12). Separate from discovery so model calls get their
+// AI analysis queue (docs/ai-scoring.md §12). Separate from discovery so model calls get their
 // own (low) concurrency and a slow source never delays scoring, or vice versa.
 export const ANALYSIS_QUEUE = 'analysis';
 
@@ -30,7 +30,7 @@ export interface AnalyzeJobData {
   jobId: string;
 }
 
-// Resume tailoring queue (Agents.md §13). Its own queue: a Sonnet call takes far longer
+// Resume tailoring queue (docs/resume.md §13). Its own queue: a Sonnet call takes far longer
 // than an analysis, and the user is waiting on this one.
 export const RESUME_QUEUE = 'resume';
 
@@ -43,7 +43,7 @@ export interface TailorResumeData {
   jobId: string;
 }
 
-// Email alerts queue (Agents.md §10). Reading Gmail is I/O against one mailbox per user,
+// Email alerts queue (docs/email-alerts.md §10). Reading Gmail is I/O against one mailbox per user,
 // on its own schedule; kept apart so a slow mailbox never delays discovery or scoring.
 export const EMAIL_QUEUE = 'email';
 
@@ -58,7 +58,7 @@ export interface CheckEmailData {
   userId: string;
 }
 
-// Worker liveness (Agents.md §4). The worker writes this key every
+// Worker liveness (docs/architecture.md §4). The worker writes this key every
 // WORKER_HEARTBEAT_INTERVAL_MS with a TTL; if it's missing, no worker is consuming the
 // queues, and the API can say so instead of the UI spinning forever on queued work.
 // A key with a TTL, not BullMQ's getWorkers(): that uses CLIENT LIST, which hosted Redis

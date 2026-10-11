@@ -9,7 +9,7 @@ export function configureApp(app: INestApplication): INestApplication {
   const env = app.get<Env>(ENV);
 
   app.setGlobalPrefix('api/v1', { exclude: ['health'] });
-  // Real client IPs behind a proxy, for the auth rate limits (Agents.md §8.1).
+  // Real client IPs behind a proxy, for the auth rate limits (docs/security.md §8.1).
   (app.getHttpAdapter().getInstance() as { set(name: string, value: unknown): void }).set('trust proxy', env.TRUST_PROXY_HOPS);
   app.use(cookieParser());
 

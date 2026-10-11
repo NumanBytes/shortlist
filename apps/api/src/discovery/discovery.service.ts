@@ -93,7 +93,7 @@ export class DiscoveryService {
   // What the Jobs page needs to say how fresh the list is and whether "Find new jobs" can
   // do anything: when sources last finished, whether a run is in progress, when the button
   // will next queue something, when the nightly run fires, and whether a worker is running
-  // at all (without one, queued work just waits — Agents.md §4).
+  // at all (without one, queued work just waits — docs/architecture.md §4).
   async status(userId: string) {
     const [sources, running, workerOnline, nextNightlyAt, jobsThisWeek] = await Promise.all([
       this.prisma.jobSource.findMany({

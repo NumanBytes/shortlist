@@ -1,4 +1,4 @@
-// Deterministic job scoring (Agents.md §12.1). The model only reads the job and maps
+// Deterministic job scoring (docs/ai-scoring.md §12.1). The model only reads the job and maps
 // each requirement to the user's VERIFIED skills; this file turns that mapping into a
 // score, verdict, gaps, strengths and risks. Same inputs, same output — always — and a
 // change to evidence re-scores with no model call.

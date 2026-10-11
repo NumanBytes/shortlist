@@ -107,7 +107,7 @@ export function JobRow({ job, selected }: { job: JobListItem; selected: boolean 
             <div className="flex flex-wrap gap-1.5 pt-1.5">
               {job.match && <VerdictBadge verdict={job.match.verdict} />}
               {showMode && <Badge>{job.workMode === 'ONSITE' ? 'On-site' : job.workMode!.charAt(0) + job.workMode!.slice(1).toLowerCase()}</Badge>}
-              {/* From an alert email: scored from a summary only (Agents.md §10.5). */}
+              {/* From an alert email: scored from a summary only (docs/email-alerts.md §10.5). */}
               {job.isPartial && (
                 <Badge>
                   <Mail className="size-3" aria-hidden="true" /> From alert

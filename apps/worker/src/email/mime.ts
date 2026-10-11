@@ -1,7 +1,7 @@
 // A small RFC 5322 / MIME reader for job-alert emails — hand-rolled, like the OAuth code,
 // so every step is visible. It handles what alert emails actually use: nested multipart,
 // quoted-printable and base64 bodies, charset decoding, and RFC 2047 encoded headers.
-// It only reads; nothing here is stored (Agents.md §10.3).
+// It only reads; nothing here is stored (docs/email-alerts.md §10.3).
 
 export interface ParsedMail {
   from: string | null;

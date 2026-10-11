@@ -1,6 +1,6 @@
 import { createTestApp, type TestApp, type TestUser } from './helpers.js';
 
-// Jobs that came from alert emails (Agents.md §10.5). The worker creates them; here they're
+// Jobs that came from alert emails (docs/email-alerts.md §10.5). The worker creates them; here they're
 // inserted directly, as the worker would.
 describe('Alert-email jobs (e2e)', () => {
   let t: TestApp;

@@ -1,5 +1,5 @@
 // Development helper: tailor a resume for one job and print it, WITHOUT saving it — for
-// tuning the tailoring prompt against real output (Agents.md §13.1).
+// tuning the tailoring prompt against real output (docs/resume.md §13.1).
 //   pnpm --filter @shortlist/worker preview:resume <jobId>
 //
 // The model call is real (≈ $0.03–0.05): budget-checked and logged to AiUsage like any

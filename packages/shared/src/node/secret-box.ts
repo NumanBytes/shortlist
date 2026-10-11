@@ -1,6 +1,6 @@
 import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
 
-// Encrypts secrets at rest (the Gmail refresh token, Agents.md §10.3) with AES-256-GCM:
+// Encrypts secrets at rest (the Gmail refresh token, docs/email-alerts.md §10.3) with AES-256-GCM:
 // - GCM is authenticated: a tampered or truncated ciphertext fails to decrypt instead of
 //   yielding garbage, so there's no separate MAC to get wrong.
 // - A fresh random 12-byte IV per encryption; reusing an IV with the same key breaks GCM.

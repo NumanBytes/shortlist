@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-// The rule filter's settings (Agents.md §5: "cheap rule filter, NO AI CALL").
+// The rule filter's settings (docs/architecture.md §5: "cheap rule filter, NO AI CALL").
 // Matching is case-insensitive and whole-word: "react" matches "React.js developer"
 // but not "reactive"; multi-word terms like "full stack" match as a phrase.
 const terms = z.array(z.string().trim().min(1).max(60)).max(100);
@@ -10,7 +10,7 @@ export const DiscoveryPreferencesSchema = z
     titleInclude: terms,
     titleExclude: terms,
     stackKeywords: terms,
-    // Jobs with no description (alert emails, Agents.md §10.5) can't be checked for the
+    // Jobs with no description (alert emails, docs/email-alerts.md §10.5) can't be checked for the
     // stack, so they pass if the title or summary names a stack keyword OR the title names
     // one of these software roles. Keeps "Full Stack Engineer"; drops "Electrical Engineer".
     roleTitleTerms: terms,

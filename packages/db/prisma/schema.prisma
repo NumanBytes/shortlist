@@ -58,7 +58,7 @@ enum JobStatus {
   WITHDRAWN
 }
 
-// Where a job is in the AI pipeline (Agents.md §12).
+// Where a job is in the AI pipeline (docs/ai-scoring.md §12).
 enum JobAnalysisStatus {
   PENDING // waiting to be analysed
   DONE // requirements extracted and scored
@@ -296,7 +296,7 @@ model Job {
   source    String? // provider, e.g. "greenhouse", "remoteok" — shown as attribution
   sourceUrl String? // the original posting; "Apply" always links here
   rawJD     String  @db.Text
-  // From a job-alert email (Agents.md §10.5): only the alert's summary is known until the
+  // From a job-alert email (docs/email-alerts.md §10.5): only the alert's summary is known until the
   // user pastes the full description, or the same job turns up on a board that has it.
   isPartial Boolean @default(false)
   salary    String? // as the source wrote it ("Rs 60,000 - Rs 70,000 a month")
@@ -319,7 +319,7 @@ model Job {
   match        JobMatch?
   resume       JobResume?
 
-  // AI analysis (Agents.md §12)
+  // AI analysis (docs/ai-scoring.md §12)
   analysisStatus   JobAnalysisStatus @default(PENDING)
   analysisError    String?
   analyzedAt       DateTime?
@@ -340,7 +340,7 @@ model Job {
   @@index([userId, discoveredAt])
 }
 
-// The cheap, no-AI rule filter that runs before anything reaches a model (Agents.md §5).
+// The cheap, no-AI rule filter that runs before anything reaches a model (docs/architecture.md §5).
 // Data, not code: tuning what gets through is an update, never a redeploy. A user
 // without a row gets DEFAULT_DISCOVERY_PREFERENCES from @shortlist/shared.
 model DiscoveryPreferences {
@@ -410,7 +410,7 @@ model SkillGap {
   @@index([skillName])
 }
 
-// Resume library (Agents.md §13.2–13.4). A variant is one tailored resume; many jobs can
+// Resume library (docs/resume.md §13.2–13.4). A variant is one tailored resume; many jobs can
 // use the same one. Its content cites evidence by ID, and whether it is stale is DERIVED
 // from that evidence at read time (un-verified, edited since, or deleted) rather than
 // flagged by every write path — a future write path can't forget to mark it.
@@ -467,7 +467,7 @@ enum JobResumeStatus {
   FAILED
 }
 
-// Budget guard (Agents.md §12.3). Runtime settings per user — the cost dial is data,
+// Budget guard (docs/ai-scoring.md §12.3). Runtime settings per user — the cost dial is data,
 // not a constant. A user without a row gets DEFAULT_AI_SETTINGS from shared.
 model AiSettings {
   id     String @id @default(uuid())
@@ -521,7 +521,7 @@ model Education {
   @@index([userId])
 }
 
-// ── Email job alerts (Agents.md §10) ──────────────────────────────────────────
+// ── Email job alerts (docs/email-alerts.md §10) ──────────────────────────────────────────
 
 // The user's Gmail, connected read-only. The refresh token is the only credential and is
 // stored encrypted (AES-256-GCM, bound to the user id); access tokens are never stored.

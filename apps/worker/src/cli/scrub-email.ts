@@ -6,7 +6,7 @@
 // - every link stripped to scheme + host + path, keeping only the public job id (Indeed's
 //   `jk`); click-tracking paths (personal tokens) replaced by placeholders;
 // - routing, DKIM and tracking headers dropped.
-// Always read the result before committing it (Agents.md §10.4).
+// Always read the result before committing it (docs/email-alerts.md §10.4).
 import { readFileSync, writeFileSync } from 'node:fs';
 import { parseMail } from '../email/mime.js';
 

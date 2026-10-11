@@ -22,7 +22,7 @@ interface VariantRow {
 
 const MAX_REUSE_OFFERS = 3;
 
-// Resumes for jobs (Agents.md §13). The API never writes a resume — the worker does; this
+// Resumes for jobs (docs/resume.md §13). The API never writes a resume — the worker does; this
 // queues tailoring, records reuse and approval, and decides staleness.
 @Injectable()
 export class ResumesService {
@@ -62,7 +62,7 @@ export class ResumesService {
       overlap: record?.overlap ?? null,
       // Tailoring works from the analysis's requirement list, so the job must be scored.
       // and an alert-only job needs its full description first: a resume tailored to a
-      // two-line summary would be tailored to a guess (Agents.md §10.5).
+      // two-line summary would be tailored to a guess (docs/email-alerts.md §10.5).
       canTailor: job.analysisStatus === 'DONE' && !job.isPartial,
       needsDescription: job.isPartial,
       variant: variant && {
@@ -129,7 +129,7 @@ export class ResumesService {
     return this.forJob(userId, jobId);
   }
 
-  // Cancel a tailoring run that hasn't started (Agents.md §13.1). The job's previous resume,
+  // Cancel a tailoring run that hasn't started (docs/resume.md §13.1). The job's previous resume,
   // if any, stays as it was; nothing is charged because the model was never called.
   async cancel(userId: string, jobId: string) {
     const job = await this.prisma.job.findFirst({ where: { id: jobId, userId }, select: { resume: true } });
@@ -160,7 +160,7 @@ export class ResumesService {
     });
   }
 
-  // Staleness is derived, never stored (Agents.md §13.3): a variant is out of date if any
+  // Staleness is derived, never stored (docs/resume.md §13.3): a variant is out of date if any
   // evidence it relies on was deleted, un-verified, or changed after it was generated.
   // Every claim change (rewording, renaming a skill, editing a role) touches the evidence
   // row, so no write path has to remember to flag resumes.
@@ -202,7 +202,7 @@ export class ResumesService {
     );
   }
 
-  // Approved, up-to-date resumes built for nearly the same requirements (Agents.md §13.2).
+  // Approved, up-to-date resumes built for nearly the same requirements (docs/resume.md §13.2).
   private async reuseOffers(userId: string, requirements: { skillName: string; importance: Importance }[], currentId: string | null) {
     if (requirements.length === 0) return [];
     const [settingsRow, approved] = await Promise.all([

@@ -287,7 +287,7 @@ export function useDeleteEducation() {
 // ── Resumes ──────────────────────────────────────────────────────────────────
 export const resumeKeys = { job: (jobId: string) => ['jobs', 'resume', jobId] as const };
 
-// While the worker is tailoring, poll — but not forever (Agents.md §13.1). A real run takes
+// While the worker is tailoring, poll — but not forever (docs/resume.md §13.1). A real run takes
 // well under two minutes, so: every 3s at first, every 10s after a minute, every 15s
 // while no worker is running (to notice it starting), and not at all once it has waited
 // TAILOR_POLL_LIMIT_MS — the card then says so and offers "Check again".
@@ -372,7 +372,7 @@ export function useDisconnectGmail() {
   });
 }
 
-// "Paste full description" (Agents.md §10.5): completes an alert-only job; it's scored again.
+// "Paste full description" (docs/email-alerts.md §10.5): completes an alert-only job; it's scored again.
 export function usePasteDescription() {
   const queryClient = useQueryClient();
   return useMutation({

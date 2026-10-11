@@ -167,7 +167,7 @@ export function PageHeader({ title, children }: { title: string; children?: Reac
 }
 
 // Tailoring runs in the worker, so leaving the job's page never stops it. This pill keeps
-// it visible on every other page and leads back to the job (Agents.md §13.1).
+// it visible on every other page and leads back to the job (docs/resume.md §13.1).
 function TailoringPill() {
   const active = useActiveTailoring();
   const { pathname } = useLocation();

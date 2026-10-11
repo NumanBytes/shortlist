@@ -3,7 +3,7 @@ import { loadEnv } from './config/env.js';
 import { WorkerModule } from './worker.module.js';
 
 // No HTTP server: this process only consumes the queue. Slow sources and (later)
-// 15–20s Claude calls run here, never on the API's event loop (Agents.md §3).
+// 15–20s Claude calls run here, never on the API's event loop (docs/scenarios.md §3).
 async function bootstrap() {
   loadEnv(); // fail fast on bad config, before connecting to anything
   const app = await NestFactory.createApplicationContext(WorkerModule);

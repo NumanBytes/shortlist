@@ -1,4 +1,4 @@
-// The Shortlist mark, "the slice" (Agents.md §8.4.3): three list bars ending on one
+// The Shortlist mark, "the slice" (docs/web-design.md §8.4.3): three list bars ending on one
 // diagonal cut, and only the picked one runs past it. Same geometry as public/favicon.svg,
 // drawn with theme tokens (accent tile, on-accent bars) so dark mode follows.
 const TILE = {

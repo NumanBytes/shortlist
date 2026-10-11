@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { normalizeSkillName, type Context, type Depth, type Importance } from './scoring.js';
 
-// Resume tailoring (Agents.md §13). The model only words bullets and groups skills, citing
+// Resume tailoring (docs/resume.md §13). The model only words bullets and groups skills, citing
 // evidence by short refs it was given; everything in this file is deterministic code that
 // decides what it may cite (placement rules, §6.1) and throws out any bullet that claims
 // more than its cited evidence says. The user's review is the final gate; this is the net.
@@ -256,7 +256,7 @@ export function checkBullet(
     }
   }
 
-  // Known false claims (Agents.md §7.2) — refused whatever is cited.
+  // Known false claims (docs/career-data.md §7.2) — refused whatever is cited.
   if (/azure/i.test(full)) return { ok: false, reason: 'mentions Azure, a known false claim' };
   if (where.commercial && /(?<![A-Za-z])(node(\.js)?|express(\.js)?)(?![A-Za-z])/i.test(full)) {
     return { ok: false, reason: 'mentions Node.js/Express in paid work, where they were never used' };
@@ -416,7 +416,7 @@ export function assembleResume(input: AssembleInput): AssembleResult {
   };
 }
 
-// ── Reuse (Agents.md §13.2) ───────────────────────────────────────────────────
+// ── Reuse (docs/resume.md §13.2) ───────────────────────────────────────────────────
 // Plain code, no AI: how much of a job's requirement list a stored variant was built for.
 export function requirementProfile(requirements: { skillName: string }[]): string[] {
   return [...new Set(requirements.flatMap((r) => splitOptions(r.skillName).map(normalizeSkillName)))].sort();

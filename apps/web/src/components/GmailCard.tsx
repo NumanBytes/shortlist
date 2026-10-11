@@ -19,7 +19,7 @@ const OUTCOME: Record<string, { ok: boolean; text: string }> = {
 };
 const POLLS = 15;
 
-// Email job alerts (Agents.md §10): connect the personal Gmail read-only; Shortlist reads
+// Email job alerts (docs/email-alerts.md §10): connect the personal Gmail read-only; Shortlist reads
 // only the "Shortlist" label and never sends anything.
 export function GmailCard() {
   const [params, setParams] = useSearchParams();
@@ -72,7 +72,7 @@ function Body({ status, onCheck }: { status: GmailStatus; onCheck: () => void })
     return (
       <p className="text-muted">
         Not set up on this server yet: it needs a Google OAuth client (GOOGLE_* and TOKEN_ENCRYPTION_KEY in the API and
-        worker env). See Agents.md §10.6.
+        worker env). See docs/email-alerts.md §10.6.
       </p>
     );
   }
@@ -156,7 +156,7 @@ function Body({ status, onCheck }: { status: GmailStatus; onCheck: () => void })
               )}
               {p.parserWarnings > 0 && (
                 // A code parser found nothing in what looked like an alert, and the model read
-                // it instead (Agents.md §10.4) — the portal likely changed its email layout.
+                // it instead (docs/email-alerts.md §10.4) — the portal likely changed its email layout.
                 <p className="mt-0.5 flex gap-1.5 text-stretch-fg">
                   <AlertTriangle className="size-3.5 shrink-0" /> {p.label}'s email layout may have changed — read by AI for now
                   ({p.parserWarnings})

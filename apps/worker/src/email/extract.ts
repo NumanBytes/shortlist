@@ -4,7 +4,7 @@ import { structuredCall, type AnalyzerResult } from '../analysis/job-analyzer.js
 import type { AlertEmail, EmailPosting } from './alert-email.js';
 import { workModeOf } from './alert-email.js';
 
-// The model fallback for alert emails (Agents.md §10.4). The same split as scoring: the
+// The model fallback for alert emails (docs/email-alerts.md §10.4). The same split as scoring: the
 // model READS the email; code decides what to keep. It sees links only as short refs, so
 // it can't invent a URL, and every job it names must appear in the email word for word.
 

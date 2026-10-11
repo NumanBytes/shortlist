@@ -11,7 +11,7 @@ import { Badge, Button, Card, Sheet, buttonStyles } from './ui';
 
 const shortDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 
-// The job's resume (Agents.md §13): reuse an approved one, tailor a new one, or open the
+// The job's resume (docs/resume.md §13): reuse an approved one, tailor a new one, or open the
 // one it has. Shown once the user marks a job Interested — tailoring costs money, so it
 // never starts on its own.
 export function ResumeSection({ job }: { job: JobDetail }) {
@@ -64,7 +64,7 @@ function Callout({ tone, icon, title, children }: { tone: 'stretch' | 'danger'; 
 
 const SLOW_MS = 2 * 60 * 1000;
 
-// Never an endless spinner (Agents.md §13.1): show how long it has waited, and say plainly
+// Never an endless spinner (docs/resume.md §13.1): show how long it has waited, and say plainly
 // when nothing can be happening — no worker running — or when it has taken far too long.
 // No fake step-by-step progress: the worker doesn't report steps, so none are shown.
 export function TailoringProgress({ jobId, resume }: { jobId: string; resume: JobResume }) {

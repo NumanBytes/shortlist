@@ -20,7 +20,7 @@ export const WORKER_GOOGLE_OAUTH = Symbol('WORKER_GOOGLE_OAUTH');
 export const WORKER_GMAIL_API = Symbol('WORKER_GMAIL_API');
 export const SECRET_BOX = Symbol('SECRET_BOX');
 
-// Code parsers, only where a sender's volume justifies one (Agents.md §10.4). Every other
+// Code parsers, only where a sender's volume justifies one (docs/email-alerts.md §10.4). Every other
 // sender is read by the model fallback.
 export const EMAIL_PARSERS: EmailParser[] = [indeedParser];
 
@@ -48,7 +48,7 @@ const FIRST_LOOKBACK = 'newer_than:30d';
 const OVERLAP_MS = 2 * 24 * 3600 * 1000;
 const MAX_MESSAGES = 300; // per check — a backlog is worked through over several checks
 
-// Reads new mail under the user's Shortlist label (Agents.md §10). Only that label is ever
+// Reads new mail under the user's Shortlist label (docs/email-alerts.md §10). Only that label is ever
 // queried; bodies are processed in memory and never stored.
 @Injectable()
 export class EmailService {
@@ -176,7 +176,7 @@ export class EmailService {
     return { ...(await this.readWithModel(userId, email, portalLabel, fallback)), parserFailed: true };
   }
 
-  // The model fallback (Agents.md §10.4). `note` explains why a code parser didn't answer.
+  // The model fallback (docs/email-alerts.md §10.4). `note` explains why a code parser didn't answer.
   private async readWithModel(userId: string, email: AlertEmail, portalLabel: string, note: string | null): Promise<Reading> {
     if (!this.extractor.configured) return { status: 'DEFERRED', parser: null, note: 'ANTHROPIC_API_KEY is not set in the worker' };
     const guard = await this.budget.checkMonthly(userId);
@@ -227,7 +227,7 @@ export class EmailService {
       .map((p): Posting => ({ ...p, externalId: p.externalId ?? p.url, description: null }))
       // Stage A as for boards (posting age not enforced: an alert is new by definition), then
       // the summary stage: no description, so a software-role title or a stack keyword in
-      // the title or summary (Agents.md §10.5).
+      // the title or summary (docs/email-alerts.md §10.5).
       .filter((p) => {
         const snippet = postings.find((e) => e.url === p.url)?.snippet ?? '';
         return filter.screenListing(p, { enforceMaxAge: false }).pass && filter.screenSummary(p, snippet).pass;

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { Education, PublicUser, ResumeBullet, ResumeContent } from '../lib/types';
 
-// The resume in the user's own CV layout (Agents.md §13.1): centred name and contact line,
+// The resume in the user's own CV layout (docs/resume.md §13.1): centred name and contact line,
 // then Experience, Skills, Projects, Education. Paper and ink colours stay the same in dark
 // mode — it's a document. Printed with the browser's "Save as PDF", so the text stays
 // selectable for applicant tracking systems.

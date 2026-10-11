@@ -93,7 +93,7 @@ export class ResumeService {
     });
   }
 
-  // One model call, logged, then checked by code (Agents.md §13.1). Everything tailoring
+  // One model call, logged, then checked by code (docs/resume.md §13.1). Everything tailoring
   // does except storing the result. Throws PermanentTailorError for output that would fail
   // again; rethrows transient errors for the queue to retry.
   private async draft(job: NonNullable<Awaited<ReturnType<ResumeService['loadJob']>>>): Promise<Draft> {

@@ -12,12 +12,12 @@ import { Badge, Button, EmptyState, Sheet, Skeleton, buttonStyles } from '../com
 import { useApproveResume, useEducation, useJobDetail, useJobResume, useProfile } from '../lib/queries';
 import type { JobResume, ResumeBullet } from '../lib/types';
 
-const PAGE_PX = 816; // US Letter at 96 dpi — the printed page (Agents.md §13.1)
+const PAGE_PX = 816; // US Letter at 96 dpi — the printed page (docs/resume.md §13.1)
 const monthYear = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
 const title = (s: string) => s.charAt(0) + s.slice(1).toLowerCase();
 
 // Review → approve → print (design board 3). Printing is offered only for an approved,
-// up-to-date resume: every new resume is read before it goes out (Agents.md §13.2). A
+// up-to-date resume: every new resume is read before it goes out (docs/resume.md §13.2). A
 // draft printed anyway (Ctrl+P) carries a DRAFT banner.
 export function ResumePage() {
   const { jobId = '' } = useParams();

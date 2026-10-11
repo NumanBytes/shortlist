@@ -1,0 +1,262 @@
+# Job discovery
+
+Where jobs come from: board adapters, filtering, dedupe, scheduling, and manual intake.
+
+> Part of the Shortlist docs. Start with [Agents.md](../Agents.md): the product rules and a
+> map of every file. Section numbers are shared across files.
+
+## 9. Job discovery
+
+### 9.1 Source tiers
+
+1. **Public company job-board APIs** (Greenhouse, Lever, SmartRecruiters, Workable; later
+   Ashby, Recruitee, …) — no ToS issue, best description text. The primary tier.
+2. **Remote-job aggregators** with public APIs/feeds (Remote OK, Remotive, Arbeitnow,
+   Himalayas, Jobicy, We Work Remotely).
+3. **Hosted ATS pages** without a public API (JazzHR, Zoho Recruit, OpenCATS-style, …) —
+   one HTML parser per *platform*.
+4. **Custom careers sites** — a generic change watcher plus AI extraction (§9.10).
+5. **Job-alert emails** in the user's Gmail — the legitimate way to cover LinkedIn,
+   Indeed, Glassdoor, Taraki, Wellfound, Rozee.pk, remote.co ([§10](email-alerts.md)).
+6. **Manual "Add a job"** — always available (§11).
+
+### 9.2 Source inventory (probed 2026-10-01 from the user's list of 40 URLs)
+
+Each careers URL was fetched and classified by platform. All of it is recorded as
+`JobSource` rows in `packages/db/prisma/seed/job-sources.ts` — 48 sources, 13 enabled.
+
+| Status | Sources |
+|---|---|
+| **Enabled — public ATS APIs** | Motive (`greenhouse:gomotive`), Careem (Greenhouse), Educative, Kwanso (Lever), Septem Systems (SmartRecruiters), Programmers Force (Workable account `hr-force`) |
+| **Enabled — aggregators** | Remote OK, Remotive (software-dev), Arbeitnow, Himalayas, Jobicy, We Work Remotely (Full-Stack, Front-End) |
+| **Milestone 2 — hosted ATS pages** | VentureDive, NorthBay (JazzHR); ShopDev, Techlogix, SlashNext, Tintash (Zoho Recruit); Intagleo, i2c (OpenCATS-style); 7Vals (Simplicant); UWorx (WebHR); Cogent Labs (Hirestream); Systemvent (SAP SuccessFactors); Code District (Pinpoint) |
+| **Milestone 3 — custom sites** | NetSol, Folio3, Synavos, BrainX, Coeus, Redmath, RipeSeed, Intech, SSI, Cinnova, Rolustech, Xavor, CodingCops, Nextbridge, The Developers Arena |
+| **Recorded with a note** | TCM (403 to automated requests), Qbatch (careers page 404), Conrad Labs (domain doesn't resolve) |
+| **Email alerts ([§10](email-alerts.md))** | LinkedIn, Wellfound, Rozee.pk, remote.co — plus Indeed, Glassdoor, Taraki from the user's inbox |
+| **Not a source** | Turing — a vetting marketplace (apply once, get matched), not a job feed |
+
+Kwanso, first assumed to be a custom site, turned out to use Lever. The user's list is
+explicitly "a beginning, not the limit" — more companies and portals will be added.
+
+### 9.3 Adapter architecture — one adapter per platform, not per company
+
+`apps/worker/src/discovery/adapters/` holds one adapter per platform; each turns that
+platform's response into a common `Posting` (externalId, title, company, location,
+workMode, url, postedAt, description or `loadDescription()`). Adding a *company* on an
+existing platform is a `JobSource` row; adding a *platform* is one adapter plus one entry
+in `ImplementedSourceConfigSchema` — the `AdapterRegistry` type makes the compiler insist
+the two stay in sync. Platforms recorded for later (`PLANNED_PROVIDERS`) validate as
+config but have no adapter; running one fails once, clearly, with "No adapter for
+provider … yet", and the API refuses to enable it.
+
+Platform notes: Greenhouse (`?content=true`, one request per board, HTML is
+entity-encoded); Lever (`?mode=json`, includes `descriptionPlain`); SmartRecruiters (list
+without descriptions; one detail request each, only for survivors); Workable (the v3 list
+via POST + v2 detail — the older widget endpoint returns 0 jobs); Remote OK (first array
+element is a legal notice); Remotive (naive UTC timestamps; free API delayed 24h);
+Arbeitnow (paged, mostly Germany); Himalayas (cursor-paginated); Jobicy (entity-encoded
+titles); We Work Remotely (RSS, titles are "Company: Title").
+
+**One validation boundary for every adapter (2026-10-11).** Source responses are
+third-party JSON/RSS, typed only by our reading of their docs. Rather than a Zod schema per
+response shape, each adapter maps items through `mapPostings()` (`discovery/postings.ts`),
+which checks every normalized posting (`PostingCheck`: id, non-empty title and company,
+an **http(s)** URL — it becomes the Apply link's `href`). An item that fails, or whose
+mapping throws on a missing field, is skipped and counted as `invalid posting` with a
+warning; one malformed posting no longer fails the whole source.
+
+### 9.4 The pipeline per source
+
+```
+open DiscoveryRun (RUNNING)            ← before any network call
+→ adapter: fetch + normalize to Postings
+→ stage A filter: title / location / age — listing data only, free
+→ descriptions: only for stage-A survivors (loadDescription), 4 at a time
+→ stage B filter: a core-stack keyword in title or description
+→ dedupe: hash(normalized company + title); bump lastSeenAt on known jobs
+→ store new jobs with source attribution
+→ close run: SUCCESS | EMPTY | FAILED + jobsFound / jobsMatched / jobsNew
+```
+
+Expensive steps always sit behind cheap ones (descriptions that cost a request are
+fetched only for postings that already passed the free screen). One posting's detail
+request failing is counted and skipped; it doesn't fail the source. Each run returns the
+count of rejections per reason, which is how the filter is tuned.
+
+### 9.5 Run lifecycle, failures and retries
+
+- The run row is created as RUNNING before fetching: a crash mid-fetch leaves a visible
+  RUNNING row instead of silence ([§1.3](../Agents.md)).
+- **EMPTY** (source returned nothing) stays distinct from **SUCCESS with 0 matches**.
+- **FAILED** stores the error message; the error is rethrown so the queue retries it.
+- **Permanent vs transient:** a missing adapter or invalid config raises
+  `PermanentSourceError` → BullMQ `UnrecoverableError` → fails once, no retries.
+  Timeouts and 5xx retry (3 attempts, exponential backoff from 60s); **each attempt is its
+  own run row**, so retries are visible.
+
+### 9.6 The rule filter (no AI)
+
+Settings are a `DiscoveryPreferences` row per user; defaults
+(`DEFAULT_DISCOVERY_PREFERENCES` in shared) are tuned for a ~2-year frontend/full-stack
+developer in Lahore:
+- *Title include:* developer, engineer, software, frontend, full stack, react, mern,
+  javascript, typescript, web, …
+- *Title exclude:* far-senior roles (principal, staff, director, head of, manager,
+  architect), interns, other stacks (iOS, Android, Flutter, embedded, data/ML, DevOps,
+  QA, security, Salesforce, SAP), non-engineering roles, and German-market/student
+  postings ("Werkstudent", "Praktikum", "(m/w/d)"). **"Senior" is kept** — whether to
+  stretch is the scorer's call, not the filter's.
+- *Stack keywords* (stage B): react, next.js, typescript, javascript, node, nestjs,
+  express, mern, tailwind, angular, …
+- *On-site/hybrid locations:* lahore, pakistan, pk.
+- *Remote:* passes only if the location is empty, names a worldwide term (worldwide,
+  anywhere, global, international), or names **only** allowed regions
+  (`remoteAllowRegions`: remote, Asia, APAC, South Asia, Pakistan, Lahore). "Remote - LATAM"
+  fails on "latam". **An allow-list, replacing the original block-list** (2026-10-02): the
+  first real run let through roles limited to Poland, Argentina, France, South Africa,
+  Nepal… — a block-list can never name every country that can't hire from Pakistan, and
+  the filter's job is to err on the side of dropping. An allowed on-site place still wins
+  ("USA, Pakistan" passes on "pakistan").
+- *No location and unknown work mode:* benefit of the doubt (common on company boards).
+- *Posting age (30 days):* **aggregators only** — on a company's own board a listed job is
+  open ([§1.3](../Agents.md)).
+- *Matching:* case-insensitive, whole-word on non-alphanumeric boundaries — "react"
+  matches "React.js developer" but not "reactive"; "next.js" and "c++" work.
+
+**Alert jobs (2026-10-03):** a job read from an email has no description, so stage B
+can't run. Instead the **summary stage** passes it if a stack keyword appears in its
+title or summary, **or** its title names a software role (`roleTitleTerms`: software,
+full stack, frontend, web developer, …). This keeps "Full Stack Engineer" whose summary
+names no technology, and drops "Associate Electrical Engineer" — from the first real
+Gmail check, where stage A alone let 8 such roles through. Borderline roles (a PHP
+full-stack job) pass and are left to scoring. Like every filter setting, the list is a
+`DiscoveryPreferences` column with a default in shared.
+
+### 9.7 Deduplication
+
+`dedupeHash = sha256(normalize(company) | normalize(title))`, unique per user. Normalizing
+strips accents, punctuation and company suffixes (Inc., Ltd., Pvt., Technologies, …) but
+keeps C, C++ and C# distinct. Location is deliberately excluded: sources format it too
+differently to match reliably, and the same title at the same company in two cities is
+one decision for the user. This is what collapses the same job from different sources
+and repeated email alerts into one.
+
+### 9.8 Scheduling and the queue
+
+- Nightly at **02:00 Asia/Karachi** (`DISCOVERY_CRON`, `DISCOVERY_TZ`), via a BullMQ **job
+  scheduler stored in Redis** (`upsertJobScheduler`). Upserting is idempotent, so any
+  number of worker copies or restarts still produce exactly one run per night — an
+  in-process cron would fire once per copy.
+- The scheduled `discover-all` job fans out one `discover-source` job per enabled source
+  (all users), so a slow or failing source retries alone and never holds up the others.
+  Fan-out job IDs derive from the batch ID, so a retried fan-out re-adding the same IDs is
+  a no-op. (BullMQ custom job IDs can't contain `:`; we use `__`.)
+- **Job ids live in one place (2026-10-11):** the API and the worker both add jobs, so
+  every job id, deduplication id and retry option comes from `queueJobOptions` /
+  `dedupeId` in `@shortlist/shared` (`discovery-queue.ts`). Before, each app built its own,
+  and the nightly fan-out had **no** deduplication id, so "Find new jobs" during the
+  nightly run could fetch a source twice in parallel; for model calls, a mismatch would
+  mean paying twice.
+- Worker concurrency: 3 sources in parallel (`WORKER_CONCURRENCY`).
+- BullMQ 6 requires a constructed `ioredis` client in ESM (`createRedis`); the worker's
+  client waits for Redis to return (`maxRetriesPerRequest: null`).
+
+### 9.9 "Run discovery now"
+
+`POST /discovery/run` queues the user's enabled sources **except any that ran in the last
+6 hours** (`MANUAL_RUN_COOLDOWN_HOURS`), so a user pressing the button can't break an
+aggregator's request limits. With Redis down, BullMQ either errors immediately or waits
+indefinitely for a connection (both observed), so every enqueue from the API is bounded
+by a **3-second timeout** and both failures return **503**.
+
+**Updated 2026-10-04: one "Find new jobs" button.** At the user's request the button
+is on the Jobs page (New tab) as well as on Sources. It also queues a check of the Gmail
+alert label when Gmail is connected (best effort, since the inbox is checked every two
+hours anyway), so one tap covers every source. Each source job now carries a
+**deduplication id** (`discover-<sourceId>`), so tapping again, or tapping while the worker
+is stopped, joins the job already queued instead of piling up duplicates. The cooldown alone
+can't prevent that, because `lastRunAt` only moves when a run *finishes*.
+`GET /discovery/status` returns `{ enabledSources, lastCheckedAt, running, availableAt,
+nextNightlyAt, workerOnline, cooldownHours }`. A RUNNING run older than 30 minutes is
+treated as crashed, not still running. The button only queues work; the worker does the
+fetching. With no worker running, the UI says so instead of showing a spinner.
+
+### 9.10 Source terms and etiquette
+
+- Remote OK, Remotive and Jobicy require **naming them as the source and linking back to
+  the original posting**, with Apply going to the original URL. Every job stores `source`
+  and `sourceUrl`; the job card shows "via Remote OK" (or "<Company> careers") and "Open
+  posting ↗" uses `rel="noopener"` — not `noreferrer`/`nofollow`, because they ask for
+  referral traffic.
+- Remotive asks for at most ~4 requests a day; the nightly run makes 1.
+- LinkedIn, Indeed, Glassdoor, Wellfound and remote.co are never scraped — email only.
+
+### 9.11 Finding sources versus finding jobs (decided 2026-10-02)
+
+"Search every software house in Lahore and every remote board" is two different
+problems, solved differently:
+
+| Layer | What | How often | Cost |
+|---|---|---|---|
+| **1. Find sources** | Grow the list of companies/boards to watch | Monthly, or on demand | Cents (or free — see below) |
+| **2. Portal alerts** | LinkedIn, Rozee, Indeed, Glassdoor, Wellfound search thousands of companies against saved keywords and email the results ([§10](email-alerts.md)) | Continuous | Free |
+| **3. Poll known sources** | The platform adapters (§9.3) | Nightly | Free — no AI |
+| **4. Custom sites** | Change watcher; Haiku reads only changed pages | Nightly | Fractions of a cent per change |
+
+**Claude web search is never used for nightly job discovery.** Rejected because:
+it costs $10 per 1,000 searches plus tokens for every result page (dozens of searches a
+night ≈ $10–15/month, over budget); results are non-deterministic and miss companies
+silently — the "silent single-source search" failure of [§1.3](../Agents.md); they are dominated by
+LinkedIn/Indeed links that can't be fetched; and the portals' own alerts already search
+the whole market for free.
+
+**Where web search *is* used — layer 1, sparingly and targeted:**
+- **ATS-scoped searches** such as `site:job-boards.greenhouse.io Lahore`,
+  `site:jobs.lever.co Pakistan`, `site:apply.workable.com Lahore`,
+  `site:jobs.ashbyhq.com Pakistan` — they find companies that post Pakistan jobs on
+  platforms we already have adapters for. Each company found becomes a source polled
+  free every night thereafter. ~20–30 searches ≈ $0.30–0.60 per run, monthly.
+- **The user can run these searches by hand in claude.ai** (Claude Pro includes web
+  search) and paste the company list in — taking the cost off the API budget ([§12.3](ai-scoring.md)).
+- **Board probing needs no AI and no search:** for any company name (from alerts, the
+  user's list, or a directory such as P@SHA's member list), call the platforms' public
+  APIs (`boards-api.greenhouse.io/v1/boards/<slug>`, Lever, SmartRecruiters, Workable)
+  — free, deterministic. This is the board discovery of §9.12.
+- Every newly found source is a **suggestion the user approves**, never added silently.
+
+### 9.12 Planned discovery work
+
+- **Milestone 2:** HTML parsers for JazzHR, Zoho Recruit and OpenCATS-style pages (8
+  companies), then the single-company platforms.
+- **Milestone 3 — custom careers sites:** a **generic change watcher** instead of 15
+  hand-written scrapers (which would break on every redesign): fetch each page nightly
+  and compare with the previous version (free); only when it changed, have Haiku extract
+  the listings (~$0.001 per changed page). One adapter for every custom site, and the
+  cheap check sits in front of the expensive one.
+- **Board discovery** (decided 2026-10-02): when an email alert names a company Shortlist
+  doesn't watch, check whether it has a public Greenhouse / Lever / SmartRecruiters /
+  Workable board (official public APIs, not scraping). If found, **suggest adding it as a
+  source** — from then on its jobs arrive automatically with full descriptions. Alerts
+  thereby grow the watched-company list over time.
+
+---
+
+## 11. Manual job intake — "Add a job" (planned, decided 2026-10-02)
+
+The universal fallback for everything automatic discovery can't reach: WhatsApp groups,
+LinkedIn feed posts, recruiter messages, referrals, unsupported portals. Tier 6 of §9.1.
+
+- **Input:** a link, pasted text, or both. A link to a supported platform → the full
+  description is fetched from its public API. Otherwise the pasted text is the
+  description; title and company are extracted (editable).
+- **Becomes a real `Job`** (source MANUAL): it enters the pipeline (Interested → Applied…),
+  is deduplicated against discovered jobs, and is scored like any other.
+- **Same truthfulness rules:** verified evidence only, every bullet traceable, gaps shown
+  before tailoring.
+- **Bypasses the score threshold** — tailoring runs even on a low score, because the user
+  asked; the score and gaps are shown first so it's an informed choice.
+- **Android share target:** the PWA manifest registers a `share_target`, so the user can
+  long-press a WhatsApp message or tap Share on a LinkedIn post → Shortlist, and the job
+  opens pre-filled. iOS doesn't support share targets for web apps; there it's
+  copy-paste.
+- Scam heuristics ([§3.11](scenarios.md)) apply — WhatsApp-sourced jobs are a common vector.

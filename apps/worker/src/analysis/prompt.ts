@@ -14,7 +14,7 @@ export interface PromptJob {
   company: string;
   location: string | null;
   rawJD: string;
-  isPartial?: boolean; // from an alert email: only a summary, not the posting (Agents.md §10.5)
+  isPartial?: boolean; // from an alert email: only a summary, not the posting (docs/email-alerts.md §10.5)
 }
 
 // Generous: real descriptions are far shorter. If one is longer, the request says so.

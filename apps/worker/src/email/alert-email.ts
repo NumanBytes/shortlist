@@ -32,7 +32,7 @@ export interface EmailPosting {
 
 export type ParseResult = { kind: 'jobs'; postings: EmailPosting[] } | { kind: 'not_alert'; reason: string };
 
-// A code parser for one portal's alerts (Agents.md §10.4). Optional: any sender without one
+// A code parser for one portal's alerts (docs/email-alerts.md §10.4). Optional: any sender without one
 // is read by the model fallback, so a parser exists only where volume justifies it.
 export interface EmailParser {
   portal: string; // matches portalFor(): "indeed"

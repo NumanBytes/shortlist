@@ -16,7 +16,7 @@ const nightly = (iso: string | null) =>
   iso ? new Date(iso).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : null;
 
 // How fresh the New list is, and a way to look for new jobs now instead of waiting for the
-// nightly run (Agents.md §9.9). It only queues work — the worker fetches — so it says when
+// nightly run (docs/discovery.md §9.9). It only queues work — the worker fetches — so it says when
 // no worker is running instead of pretending to check.
 export function FindNewJobs() {
   const [watchUntil, setWatchUntil] = useState(0);

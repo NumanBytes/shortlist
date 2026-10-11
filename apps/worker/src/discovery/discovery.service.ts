@@ -40,7 +40,7 @@ export class DiscoveryService {
     const source = await this.prisma.jobSource.findUnique({ where: { id: sourceId } });
     if (!source) throw new PermanentSourceError(`JobSource ${sourceId} no longer exists`);
 
-    // Opened BEFORE anything is fetched (Agents.md §4). If the process dies mid-fetch,
+    // Opened BEFORE anything is fetched (docs/architecture.md §4). If the process dies mid-fetch,
     // the run is left visibly RUNNING — never silently absent, which would read as
     // "no jobs today". That exact confusion is what this table exists to prevent.
     const run = await this.prisma.discoveryRun.create({ data: { jobSourceId: source.id, status: 'RUNNING' } });

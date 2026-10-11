@@ -4,7 +4,7 @@
 //
 // Files go to test/fixtures/email/.private/<sender>/, which is git-ignored: they contain
 // your name, address and tracking links. A parser's committed fixture must be a scrubbed
-// copy (Agents.md §10.4) — never one of these files as-is.
+// copy (docs/email-alerts.md §10.4) — never one of these files as-is.
 import { HttpGmailApi, HttpGoogleOAuth, SecretBox } from '@shortlist/shared/node';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';

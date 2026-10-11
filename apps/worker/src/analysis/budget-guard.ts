@@ -6,7 +6,7 @@ export type BudgetDecision = { allowed: true } | { allowed: false; reason: strin
 
 const DAY_MS = 24 * 3600 * 1000;
 
-// Budget guard (Agents.md §12.3). Checked before EVERY model call. Totals come from the
+// Budget guard (docs/ai-scoring.md §12.3). Checked before EVERY model call. Totals come from the
 // AiUsage log, so the guard sees exactly what was spent — including calls whose output
 // was rejected. With ANALYSIS_CONCURRENCY parallel calls, a burst can overshoot a cap by
 // at most that many calls; the Console's prepaid balance is the hard stop behind this.
