@@ -1,13 +1,18 @@
-import { ListChecks } from 'lucide-react';
-
-// The Shortlist mark: a checklist on an accent tile (mobile design, 2026-10-04).
+// The Shortlist mark, "the slice" (Agents.md §8.4.3): three list bars ending on one
+// diagonal cut, and only the picked one runs past it. Same geometry as public/favicon.svg,
+// drawn with theme tokens (accent tile, on-accent bars) so dark mode follows.
 export function Logo({ withName = true, size = 'sm' }: { withName?: boolean; size?: 'sm' | 'lg' }) {
-  const tile = size === 'lg' ? 'size-16 rounded-[18px] shadow-[0_10px_24px_-8px_rgb(5_150_105/0.5)]' : 'size-8 rounded-[9px]';
+  const tile = size === 'lg' ? 'size-16 rounded-[14px] shadow-[0_10px_24px_-8px_rgb(5_150_105/0.5)]' : 'size-8';
   return (
     <span className={`inline-flex items-center ${size === 'lg' ? 'flex-col gap-4' : 'gap-2'}`}>
-      <span className={`grid place-items-center bg-accent text-on-accent ${tile}`} aria-hidden="true">
-        <ListChecks className={size === 'lg' ? 'size-8' : 'size-[18px]'} strokeWidth={2.25} />
-      </span>
+      <svg viewBox="0 0 64 64" className={`shrink-0 ${tile}`} aria-hidden="true">
+        <rect width="64" height="64" rx="14" className="fill-accent" />
+        <g className="fill-on-accent">
+          <path d="M17.5 17H44.75L43 24H17.5a3.5 3.5 0 0 1 0-7Z" fillOpacity={0.5} />
+          <path d="M17.5 28.5H52.6L50.85 35.5H17.5a3.5 3.5 0 0 1 0-7Z" />
+          <path d="M17.5 40H39L37.25 47H17.5a3.5 3.5 0 0 1 0-7Z" fillOpacity={0.5} />
+        </g>
+      </svg>
       {withName && (
         <span className={`font-bold tracking-tight text-fg ${size === 'lg' ? 'text-[28px] leading-none' : 'text-base'}`}>Shortlist</span>
       )}
