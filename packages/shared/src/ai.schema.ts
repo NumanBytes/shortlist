@@ -1,9 +1,9 @@
 import { z } from 'zod';
 
-// ── Models and prices (checked 2026-10-02, Agents.md §12.2) ───────────────────
+// ── Models and prices (checked 2026-10-02, docs/ai-scoring.md §12.2) ───────────────────
 export const AI_MODELS = {
   analyzeJob: 'claude-haiku-4-5',
-  // Writing is where quality shows; still ~$0.03 per resume (Agents.md §13.1).
+  // Writing is where quality shows; still ~$0.03 per resume (docs/resume.md §13.1).
   tailorResume: 'claude-sonnet-5-5',
   // Reading jobs out of alert emails no code parser handles: short, structured, cheap.
   extractEmail: 'claude-haiku-4-5',
@@ -32,13 +32,13 @@ export function costUsd(
   );
 }
 
-// ── Budget guard settings (Agents.md §12.3) ───────────────────────────────────
+// ── Budget guard settings (docs/ai-scoring.md §12.3) ───────────────────────────────────
 export const AiSettingsSchema = z
   .object({
     maxAnalysesPerDay: z.number().int().min(0).max(500),
     monthlyBudgetUsd: z.number().min(0).max(1000),
     // Share of a job's requirements a stored, approved resume must have been built for to
-    // be offered for reuse instead of tailoring a new one (Agents.md §13.2).
+    // be offered for reuse instead of tailoring a new one (docs/resume.md §13.2).
     resumeReuseMinOverlap: z.number().min(0.5).max(1),
   })
   .strict();
@@ -51,7 +51,11 @@ export type UpdateAiSettingsInput = z.infer<typeof UpdateAiSettingsSchema>;
 
 // $4.50 of the initial $5 credit, leaving headroom for manual runs; the Console's
 // prepaid balance (auto-reload off) is the hard stop behind this.
-export const DEFAULT_AI_SETTINGS: AiSettingsInput = { maxAnalysesPerDay: 40, monthlyBudgetUsd: 4.5, resumeReuseMinOverlap: 0.85 };
+export const DEFAULT_AI_SETTINGS: AiSettingsInput = {
+  maxAnalysesPerDay: 40,
+  monthlyBudgetUsd: 4.5,
+  resumeReuseMinOverlap: 0.85,
+};
 
 // Prisma row (Decimals as objects) → settings, defaulting for a user without a row.
 export function aiSettingsFromRow(

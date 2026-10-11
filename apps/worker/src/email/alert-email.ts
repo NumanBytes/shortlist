@@ -32,7 +32,7 @@ export interface EmailPosting {
 
 export type ParseResult = { kind: 'jobs'; postings: EmailPosting[] } | { kind: 'not_alert'; reason: string };
 
-// A code parser for one portal's alerts (Agents.md §10.4). Optional: any sender without one
+// A code parser for one portal's alerts (docs/email-alerts.md §10.4). Optional: any sender without one
 // is read by the model fallback, so a parser exists only where volume justifies it.
 export interface EmailParser {
   portal: string; // matches portalFor(): "indeed"
@@ -73,7 +73,8 @@ export function textLinks(text: string): EmailLink[] {
   const lines = text.split('\n');
   lines.forEach((line, i) => {
     for (const m of line.matchAll(/https?:\/\/[^\s<>"]+/g)) {
-      if (!links.has(m[0])) links.set(m[0], { url: m[0], text: line.replace(m[0], '').trim() || (lines[i - 1] ?? '').trim() });
+      if (!links.has(m[0]))
+        links.set(m[0], { url: m[0], text: line.replace(m[0], '').trim() || (lines[i - 1] ?? '').trim() });
     }
   });
   return [...links.values()].slice(0, MAX_LINKS);
@@ -100,7 +101,8 @@ export function senderDomain(sender: string | null): string | null {
   if (!host) return null;
   const labels = host.split('.');
   // Two-label public suffixes (com.pk, co.uk, …) keep one more label.
-  const keep = labels.length >= 3 && /^(com|co|org|net|gov|edu|ac)$/.test(labels.at(-2)!) && labels.at(-1)!.length === 2 ? 3 : 2;
+  const keep =
+    labels.length >= 3 && /^(com|co|org|net|gov|edu|ac)$/.test(labels.at(-2)!) && labels.at(-1)!.length === 2 ? 3 : 2;
   return labels.slice(-keep).join('.');
 }
 

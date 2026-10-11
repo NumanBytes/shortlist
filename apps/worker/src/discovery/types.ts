@@ -21,6 +21,8 @@ export interface Posting {
 
 export interface AdapterContext {
   sourceName: string; // JobSource.name — used as the company for single-company boards
+  // Told about each item mapPostings had to drop, so the run can report it.
+  onSkipped?: (reason: string) => void;
 }
 
 export type Adapter<C> = (config: C, ctx: AdapterContext) => Promise<Posting[]>;

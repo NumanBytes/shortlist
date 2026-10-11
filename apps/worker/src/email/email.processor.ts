@@ -1,15 +1,8 @@
 import { InjectQueue, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
-import { EMAIL_QUEUE, EmailJob, type CheckEmailData } from '@shortlist/shared';
+import { EMAIL_QUEUE, EmailJob, queueJobOptions, type CheckEmailData } from '@shortlist/shared';
 import { Queue, UnrecoverableError, type Job } from 'bullmq';
 import { EmailService, PermanentEmailError } from './email.service.js';
-
-const CHECK_OPTIONS = {
-  attempts: 3,
-  backoff: { type: 'exponential' as const, delay: 60_000 },
-  removeOnComplete: { age: 7 * 24 * 3600, count: 1000 },
-  removeOnFail: { age: 30 * 24 * 3600 },
-};
 
 @Processor(EMAIL_QUEUE)
 export class EmailProcessor extends WorkerHost {
@@ -30,7 +23,7 @@ export class EmailProcessor extends WorkerHost {
           userIds.map((userId) => ({
             name: EmailJob.Check,
             data: { userId } satisfies CheckEmailData,
-            opts: { ...CHECK_OPTIONS, jobId: `email__${userId}__${String(job.id).replace(/:/g, '-')}`, deduplication: { id: `email-${userId}` } },
+            opts: queueJobOptions.checkEmail(userId, String(job.id)),
           })),
         );
         this.logger.log(`Email check queued for ${userIds.length} mailbox(es)`);
@@ -43,7 +36,8 @@ export class EmailProcessor extends WorkerHost {
         } catch (err) {
           if (err instanceof PermanentEmailError) throw new UnrecoverableError(err.message);
           // Out of retries on a transient error: say so on the connection, not just in logs.
-          if (job.attemptsMade + 1 >= (job.opts.attempts ?? 1)) await this.email.failed(userId, `Couldn't reach Gmail: ${(err as Error).message}`);
+          if (job.attemptsMade + 1 >= (job.opts.attempts ?? 1))
+            await this.email.failed(userId, `Couldn't reach Gmail: ${(err as Error).message}`);
           throw err;
         }
       }

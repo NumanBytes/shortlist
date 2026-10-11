@@ -14,7 +14,8 @@ export function timeAgo(iso: string | null, now = Date.now()): string {
   return months < 24 ? `${months}mo ago` : `${Math.round(months / 12)}y ago`;
 }
 
-export const providerLabel = (provider: string | null) => (provider && PROVIDER_LABELS[provider]) || provider || 'unknown';
+export const providerLabel = (provider: string | null) =>
+  (provider && PROVIDER_LABELS[provider]) || provider || 'unknown';
 
 export const AGGREGATORS = new Set(['remoteok', 'remotive', 'arbeitnow', 'himalayas', 'jobicy', 'weworkremotely']);
 // Listed somewhere other than the company's own board — an aggregator or a job-alert email —
@@ -31,7 +32,7 @@ export function prettyLocation(location: string | null): string | null {
     .join(', ');
 }
 
-// Posting age only means something on aggregators (Agents.md §9.6): a company board's
+// Posting age only means something on aggregators (docs/discovery.md §9.6): a company board's
 // publish date can be years old for a role that is still open, so don't show it there.
 export function postedLabel(job: Pick<JobListItem, 'source' | 'postedAt' | 'jobSource'>): string | null {
   if (!job.postedAt || !isAggregator(job)) return null;
@@ -58,22 +59,65 @@ export function timeUntil(iso: string, now = Date.now()): string {
 }
 
 // The resume as plain text — for application forms that want it pasted, not uploaded.
-// Same content and order as the printed page (Agents.md §13.1).
+// Same content and order as the printed page (docs/resume.md §13.1).
 export function resumeText(
-  content: { experience: { title: string; company: string; startDate: string; endDate: string | null; isCurrent: boolean; bullets: { label: string | null; text: string }[] }[]; projects: { name: string; bullets: { label: string | null; text: string }[] }[]; skillGroups: { label: string; skills: { name: string }[] }[] },
-  profile: { name: string; email: string; phone: string | null; location: string | null; linkedinUrl: string | null; githubUrl: string | null },
+  content: {
+    experience: {
+      title: string;
+      company: string;
+      startDate: string;
+      endDate: string | null;
+      isCurrent: boolean;
+      bullets: { label: string | null; text: string }[];
+    }[];
+    projects: { name: string; bullets: { label: string | null; text: string }[] }[];
+    skillGroups: { label: string; skills: { name: string }[] }[];
+  },
+  profile: {
+    name: string;
+    email: string;
+    phone: string | null;
+    location: string | null;
+    linkedinUrl: string | null;
+    githubUrl: string | null;
+  },
   education: { degree: string; institution: string; startYear: number | null; endYear: number | null }[],
 ): string {
-  const my = (iso: string) => new Date(iso).toLocaleString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+  const my = (iso: string) =>
+    new Date(iso).toLocaleString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
   const bullet = (b: { label: string | null; text: string }) => `• ${b.label ? `${b.label}: ` : ''}${b.text}`;
-  const lines = [profile.name, [profile.email, profile.phone, profile.location].filter(Boolean).join(' | '), [profile.linkedinUrl, profile.githubUrl].filter(Boolean).join(' | ')];
+  const lines = [
+    profile.name,
+    [profile.email, profile.phone, profile.location].filter(Boolean).join(' | '),
+    [profile.linkedinUrl, profile.githubUrl].filter(Boolean).join(' | '),
+  ];
   lines.push('', 'EXPERIENCE');
-  for (const r of content.experience) lines.push(`${r.title} | ${r.company} — ${my(r.startDate)} - ${r.isCurrent || !r.endDate ? 'Present' : my(r.endDate)}`, ...r.bullets.map(bullet), '');
-  if (content.skillGroups.length) lines.push('SKILLS', ...content.skillGroups.map((g) => `${g.label}: ${g.skills.map((s) => s.name).join(', ')}`), '');
+  for (const r of content.experience)
+    lines.push(
+      `${r.title} | ${r.company} — ${my(r.startDate)} - ${r.isCurrent || !r.endDate ? 'Present' : my(r.endDate)}`,
+      ...r.bullets.map(bullet),
+      '',
+    );
+  if (content.skillGroups.length)
+    lines.push(
+      'SKILLS',
+      ...content.skillGroups.map((g) => `${g.label}: ${g.skills.map((s) => s.name).join(', ')}`),
+      '',
+    );
   if (content.projects.length) {
     lines.push('PROJECTS');
     for (const p of content.projects) lines.push(p.name, ...p.bullets.map(bullet), '');
   }
-  if (education.length) lines.push('EDUCATION', ...education.map((e) => `${e.degree} | ${e.institution}${e.startYear || e.endYear ? ` — ${e.startYear ?? ''} - ${e.endYear ?? 'Present'}` : ''}`));
-  return lines.filter((l, i, all) => !(l === '' && all[i - 1] === '')).join('\n').trim();
+  if (education.length)
+    lines.push(
+      'EDUCATION',
+      ...education.map(
+        (e) =>
+          `${e.degree} | ${e.institution}${e.startYear || e.endYear ? ` — ${e.startYear ?? ''} - ${e.endYear ?? 'Present'}` : ''}`,
+      ),
+    );
+  return lines
+    .filter((l, i, all) => !(l === '' && all[i - 1] === ''))
+    .join('\n')
+    .trim();
 }

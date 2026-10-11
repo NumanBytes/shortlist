@@ -1,4 +1,10 @@
-import { placementFor, type ResumeEvidence, type ResumeProject, type ResumeRefs, type ResumeRole } from '@shortlist/shared';
+import {
+  placementFor,
+  type ResumeEvidence,
+  type ResumeProject,
+  type ResumeRefs,
+  type ResumeRole,
+} from '@shortlist/shared';
 
 // Builds the tailoring request. A truthfulness boundary like the analysis prompt: only
 // VERIFIED evidence goes in (Agents.md §6.2), each item listed only where the placement
@@ -109,7 +115,9 @@ export function buildResumePrompt(input: ResumePromptInput) {
     (r) => `- ${r.skillName} (${r.importance.toLowerCase()}${r.isCore ? ', core' : ''})`,
   );
   const truncated = input.job.rawJD.length > MAX_DESCRIPTION_CHARS;
-  const description = truncated ? `${input.job.rawJD.slice(0, MAX_DESCRIPTION_CHARS)}\n[description truncated]` : input.job.rawJD;
+  const description = truncated
+    ? `${input.job.rawJD.slice(0, MAX_DESCRIPTION_CHARS)}\n[description truncated]`
+    : input.job.rawJD;
 
   const user = [
     'Roles:',

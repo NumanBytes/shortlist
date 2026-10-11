@@ -2,7 +2,7 @@ import { Redis } from 'ioredis';
 import { AUTH_RATE_RULES, DEFAULT_AUTH_RATE_RULES, type AuthRateRules } from '../src/rate-limit/rate-limiter.js';
 import { TEST_PASSWORD, createTestApp, uniqueEmail, type TestApp, TEST_REDIS_URL } from './helpers.js';
 
-// The auth rate limits (Agents.md §8.1) against the real local Redis, with low limits in a
+// The auth rate limits (docs/security.md §8.1) against the real local Redis, with low limits in a
 // namespace of this file's own so runs never interfere.
 describe('Auth rate limits (e2e)', () => {
   const rules: AuthRateRules = {
@@ -64,7 +64,11 @@ describe('Auth rate limits (e2e)', () => {
 
   it('limits sign-ups per IP', async () => {
     const register = (ip: string) =>
-      t.http().post('/api/v1/auth/register').set('X-Forwarded-For', ip).send({ email: uniqueEmail(), password: TEST_PASSWORD, name: 'Rate Test' });
+      t
+        .http()
+        .post('/api/v1/auth/register')
+        .set('X-Forwarded-For', ip)
+        .send({ email: uniqueEmail(), password: TEST_PASSWORD, name: 'Rate Test' });
     const ok = [await register('192.0.2.9').expect(201), await register('192.0.2.9').expect(201)];
     const created = ok.map((r) => r.body.user.id as string);
     const refused = await register('192.0.2.9').expect(429);

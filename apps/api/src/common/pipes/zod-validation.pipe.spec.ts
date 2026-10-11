@@ -13,14 +13,12 @@ describe('ZodValidationPipe', () => {
   });
 
   it('rejects an invalid enum value', () => {
-    expect(() => pipe.transform({ name: 'React', category: 'framework' })).toThrow(
-      BadRequestException,
-    );
+    expect(() => pipe.transform({ name: 'React', category: 'framework' })).toThrow(BadRequestException);
   });
 
   it('rejects fields the client is not allowed to set', () => {
-    expect(() =>
-      pipe.transform({ name: 'Node', category: 'FRAMEWORK', isVerified: true }),
-    ).toThrow(BadRequestException);
+    expect(() => pipe.transform({ name: 'Node', category: 'FRAMEWORK', isVerified: true })).toThrow(
+      BadRequestException,
+    );
   });
 });

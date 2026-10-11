@@ -166,7 +166,8 @@ describe('DiscoveryService.runSource', () => {
   });
 
   it('applies the posting-age limit to aggregators only', async () => {
-    const old = () => posting({ company: crypto.randomUUID(), postedAt: new Date(Date.now() - 200 * 24 * 3600 * 1000) });
+    const old = () =>
+      posting({ company: crypto.randomUUID(), postedAt: new Date(Date.now() - 200 * 24 * 3600 * 1000) });
     const board = await newSource();
     const feed = await newSource({ provider: 'greenhouse', board: 'test' }, 'AGGREGATOR_API');
     const { service } = serviceWith(async () => [old()]);

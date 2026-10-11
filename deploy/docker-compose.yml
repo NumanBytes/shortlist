@@ -1,4 +1,4 @@
-# The whole of Shortlist on one server (Agents.md §4, "Deployment"; deploy/README.md).
+# The whole of Shortlist on one server (docs/architecture.md §4, "Deployment"; deploy/README.md).
 #   docker compose --env-file .env up -d --build
 # Only Caddy publishes ports. Postgres and Redis are reachable only by the other services
 # on this private network — never from the internet.
@@ -32,7 +32,7 @@ services:
       interval: 5s
       retries: 20
 
-  # Queue only (Agents.md §4): appendonly so queued work survives a restart, and no
+  # Queue only (docs/architecture.md §4): appendonly so queued work survives a restart, and no
   # eviction — BullMQ needs every key it writes to stay.
   redis:
     image: redis:7-alpine
@@ -65,7 +65,7 @@ services:
       WEB_APP_URL: https://${SITE_ADDRESS}
       GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-}
       # One proxy (Caddy) sits in front of the API: the client IP is one hop back in
-      # X-Forwarded-For. Wrong here = one login rate limit for everyone (Agents.md §8.1).
+      # X-Forwarded-For. Wrong here = one login rate limit for everyone (docs/security.md §8.1).
       TRUST_PROXY_HOPS: '1'
     depends_on:
       migrate: { condition: service_completed_successfully }

@@ -2,13 +2,14 @@ import { Inject, Injectable, Logger, type OnModuleDestroy } from '@nestjs/common
 import { Redis } from 'ioredis';
 import { ENV } from '../config/config.module.js';
 import type { Env } from '../config/env.js';
+import { withTimeout } from '../common/with-timeout.js';
 
 export interface RateRule {
   limit: number;
   windowSeconds: number;
 }
 
-// The auth limits (Agents.md §8.1). A security policy, so it lives in code and changes by
+// The auth limits (docs/security.md §8.1). A security policy, so it lives in code and changes by
 // review. Injected as a token so tests can swap in their own (low limits, own namespace).
 export interface AuthRateRules {
   // Every login attempt from one IP: one machine trying many accounts.
@@ -53,7 +54,7 @@ return {n, redis.call('PTTL', KEYS[1])}`;
 
 const TIMEOUT_MS = 1000;
 
-// Counters in Redis (Agents.md §4: "a queue, and rate-limit counters"). Losing them is
+// Counters in Redis (docs/architecture.md §4: "a queue, and rate-limit counters"). Losing them is
 // harmless — they're short-lived by design — so nothing here belongs in Postgres.
 //
 // Fails OPEN: if Redis doesn't answer, the request is allowed and a warning logged. Redis
@@ -80,29 +81,24 @@ export class RateLimiter implements OnModuleDestroy {
   }
 
   async reset(key: string): Promise<void> {
-    await this.bounded(this.redis.del(key)).catch(() => undefined);
+    await withTimeout(this.redis.del(key), TIMEOUT_MS).catch(() => undefined);
   }
 
-  private async run(script: string, key: string, rule: RateRule, ok: (count: number) => boolean): Promise<RateDecision> {
+  private async run(
+    script: string,
+    key: string,
+    rule: RateRule,
+    ok: (count: number) => boolean,
+  ): Promise<RateDecision> {
     try {
-      const [count, ttlMs] = (await this.bounded(this.redis.eval(script, 1, key, rule.windowSeconds * 1000))) as [number, number];
+      const [count, ttlMs] = (await withTimeout(
+        this.redis.eval(script, 1, key, rule.windowSeconds * 1000),
+        TIMEOUT_MS,
+      )) as [number, number];
       return { allowed: ok(count), count, retryAfterSeconds: Math.max(1, Math.ceil((ttlMs > 0 ? ttlMs : 0) / 1000)) };
     } catch (err) {
       this.logger.warn(`Rate limiter unavailable, allowing request: ${(err as Error).message}`);
       return { allowed: true, count: 0, retryAfterSeconds: 0 };
-    }
-  }
-
-  private async bounded<T>(op: Promise<T>): Promise<T> {
-    let timer: NodeJS.Timeout | undefined;
-    const timeout = new Promise<never>((_, reject) => {
-      timer = setTimeout(() => reject(new Error(`no response from Redis in ${TIMEOUT_MS}ms`)), TIMEOUT_MS);
-    });
-    try {
-      return await Promise.race([op, timeout]);
-    } finally {
-      clearTimeout(timer);
-      op.catch(() => undefined);
     }
   }
 

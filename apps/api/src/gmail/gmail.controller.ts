@@ -48,7 +48,12 @@ export class GmailController {
     @Query('error') error?: string,
   ) {
     const nonce: unknown = req.cookies?.[NONCE_COOKIE];
-    const outcome = await this.gmail.finishConnect({ code, state, error, nonce: typeof nonce === 'string' ? nonce : undefined });
+    const outcome = await this.gmail.finishConnect({
+      code,
+      state,
+      error,
+      nonce: typeof nonce === 'string' ? nonce : undefined,
+    });
     res.clearCookie(NONCE_COOKIE, this.cookieOptions());
     res.redirect(303, `${this.env.WEB_APP_URL}/sources?gmail=${outcome}`);
   }

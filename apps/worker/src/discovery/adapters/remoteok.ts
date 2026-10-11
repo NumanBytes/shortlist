@@ -1,5 +1,6 @@
 import { getJson } from '../http.js';
 import { htmlToText, toDate } from '../text.js';
+import { mapPostings } from '../postings.js';
 import type { Adapter, Posting } from '../types.js';
 
 // https://remoteok.com/api — terms: link back to the Remote OK URL and name Remote OK
@@ -15,21 +16,23 @@ interface RemoteOkJob {
   tags?: string[];
 }
 
-export const remoteok: Adapter<{ provider: 'remoteok' }> = async () => {
+export const remoteok: Adapter<{ provider: 'remoteok' }> = async (_config, ctx) => {
   const items = await getJson<RemoteOkJob[]>('https://remoteok.com/api');
-  return items
-    .filter((j): j is Required<Pick<RemoteOkJob, 'id' | 'position' | 'url'>> & RemoteOkJob => Boolean(j.id && j.position && j.url))
-    .map((j): Posting => ({
-      externalId: j.id,
-      title: j.position.trim(),
-      company: j.company?.trim() || 'Unknown',
-      location: j.location?.trim() || null,
-      workMode: 'REMOTE',
-      url: j.url,
-      postedAt: toDate(j.date),
-      // Tags carry the stack ("react", "typescript") — keep them searchable.
-      description: [htmlToText(j.description ?? ''), j.tags?.length ? `Tags: ${j.tags.join(', ')}` : '']
-        .filter(Boolean)
-        .join('\n\n'),
-    }));
+  // The legal notice has no id/position: not a job, so filtered out rather than reported.
+  const jobs = items.filter((j): j is Required<Pick<RemoteOkJob, 'id' | 'position' | 'url'>> & RemoteOkJob =>
+    Boolean(j.id && j.position && j.url),
+  );
+  return mapPostings(jobs, ctx, (j): Posting => ({
+    externalId: j.id,
+    title: j.position.trim(),
+    company: j.company?.trim() || 'Unknown',
+    location: j.location?.trim() || null,
+    workMode: 'REMOTE',
+    url: j.url,
+    postedAt: toDate(j.date),
+    // Tags carry the stack ("react", "typescript") — keep them searchable.
+    description: [htmlToText(j.description ?? ''), j.tags?.length ? `Tags: ${j.tags.join(', ')}` : '']
+      .filter(Boolean)
+      .join('\n\n'),
+  }));
 };

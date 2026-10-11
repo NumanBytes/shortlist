@@ -1,13 +1,13 @@
 import { Navigate, Outlet, Route, Routes } from 'react-router';
-import { useAuth } from './auth/AuthProvider';
-import { AppShell } from './components/AppShell';
-import { AuthForm } from './pages/AuthForm';
-import { JobDetailPage } from './pages/JobDetailPage';
-import { JobsLayout, NoJobSelected } from './pages/JobsPage';
-import { ProfilePage } from './pages/ProfilePage';
-import { ResumePage } from './pages/ResumePage';
-import { ReviewPage } from './pages/ReviewPage';
-import { SourcesPage } from './pages/SourcesPage';
+import { AuthForm } from './features/auth/AuthForm';
+import { useAuth } from './features/auth/AuthProvider';
+import { ReviewPage } from './features/evidence/ReviewPage';
+import { JobsLayout, NoJobSelected } from './features/jobs/JobsPage';
+import { JobDetailPage } from './features/jobs/job-detail/JobDetailPage';
+import { ProfilePage } from './features/profile/ProfilePage';
+import { ResumePage } from './features/resume/ResumePage';
+import { SourcesPage } from './features/sources/SourcesPage';
+import { AppShell } from './layout/AppShell';
 
 // Signed-in pages. While the session is being restored from the refresh cookie we
 // don't know yet, so render nothing rather than flashing the login page.

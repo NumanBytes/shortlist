@@ -4,7 +4,7 @@ import { Redis } from 'ioredis';
 import { ENV } from '../config/config.module.js';
 import type { Env } from '../config/env.js';
 
-// "Is anything consuming the queues?" (Agents.md §4). The API can only add jobs; without
+// "Is anything consuming the queues?" (docs/architecture.md §4). The API can only add jobs; without
 // this, a stopped worker looks exactly like a slow one — the UI said "Tailoring…" for
 // over ten minutes while nothing was running. A key with a TTL is a dead-man's switch:
 // the worker keeps renewing it, and if the process dies (even without a clean shutdown)

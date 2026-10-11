@@ -46,15 +46,24 @@ export const PlannedSourceConfigSchema = z
 
 export const JobSourceConfigSchema = z.union([ImplementedSourceConfigSchema, PlannedSourceConfigSchema]);
 
+// The JobSource key for one portal's alert emails (docs/email-alerts.md §10.4), e.g. "rozee.pk" →
+// "email_alerts:rozee-pk". The worker files emails under it and the API looks it up, so
+// both must build it the same way. Seeded rows use the same slugs.
+export const emailSourceKey = (portal: string) => `email_alerts:${portal.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`;
+
 export type ImplementedSourceConfig = z.infer<typeof ImplementedSourceConfigSchema>;
 export type JobSourceConfig = z.infer<typeof JobSourceConfigSchema>;
 export type SourceProvider = ImplementedSourceConfig['provider'];
 
-// "Edit URL" on a failing company board (Agents.md §9.5): the user pastes the board's
+// "Edit URL" on a failing company board (docs/discovery.md §9.5): the user pastes the board's
 // link — or just its name — and we keep only the part the adapter needs. Aggregators have
 // fixed APIs, so only these four have an address to edit.
 const BOARD_HOSTS = {
-  greenhouse: { field: 'board', hosts: [/(?:job-)?boards(?:-api)?\.greenhouse\.io$/], path: /^\/(?:v1\/boards\/)?([^/?#]+)/ },
+  greenhouse: {
+    field: 'board',
+    hosts: [/(?:job-)?boards(?:-api)?\.greenhouse\.io$/],
+    path: /^\/(?:v1\/boards\/)?([^/?#]+)/,
+  },
   lever: { field: 'site', hosts: [/jobs\.(?:eu\.)?lever\.co$/], path: /^\/([^/?#]+)/ },
   smartrecruiters: { field: 'company', hosts: [/(?:careers|jobs)\.smartrecruiters\.com$/], path: /^\/([^/?#]+)/ },
   workable: { field: 'account', hosts: [/apply\.workable\.com$/], path: /^\/([^/?#]+)/ },
@@ -62,7 +71,9 @@ const BOARD_HOSTS = {
 export type BoardProvider = keyof typeof BOARD_HOSTS;
 export const isBoardProvider = (p: string): p is BoardProvider => p in BOARD_HOSTS;
 
-export const UpdateSourceAddressSchema = z.object({ address: z.string().trim().min(1, 'Paste the board link or its name').max(300) }).strict();
+export const UpdateSourceAddressSchema = z
+  .object({ address: z.string().trim().min(1, 'Paste the board link or its name').max(300) })
+  .strict();
 export type UpdateSourceAddressInput = z.infer<typeof UpdateSourceAddressSchema>;
 
 // The board's link or bare name → the provider's config, or an error a person can act on.
@@ -88,6 +99,7 @@ export function parseBoardAddress(
     name = decodeURIComponent(m[1]!);
   }
   const parsed = ImplementedSourceConfigSchema.safeParse({ provider, [spec.field]: name });
-  if (!parsed.success || !/^[A-Za-z0-9._-]+$/.test(name)) return { ok: false, error: "That board name doesn't look right" };
+  if (!parsed.success || !/^[A-Za-z0-9._-]+$/.test(name))
+    return { ok: false, error: "That board name doesn't look right" };
   return { ok: true, config: parsed.data };
 }

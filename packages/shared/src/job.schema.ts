@@ -51,7 +51,7 @@ export const PROVIDER_LABELS: Record<string, string> = {
   himalayas: 'Himalayas',
   jobicy: 'Jobicy',
   weworkremotely: 'We Work Remotely',
-  // Job-alert email portals (Agents.md §10) — same ids as the worker's portalFor().
+  // Job-alert email portals (docs/email-alerts.md §10) — same ids as the worker's portalFor().
   indeed: 'Indeed',
   linkedin: 'LinkedIn',
   'rozee-pk': 'Rozee.pk',

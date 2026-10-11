@@ -41,7 +41,9 @@ describe('Gmail connection (e2e)', () => {
   const oauth = new FakeOAuth();
 
   beforeAll(async () => {
-    t = await createTestApp((b) => b.overrideProvider(GOOGLE_OAUTH).useValue(oauth).overrideProvider(GMAIL_API).useValue(gmailApi));
+    t = await createTestApp((b) =>
+      b.overrideProvider(GOOGLE_OAUTH).useValue(oauth).overrideProvider(GMAIL_API).useValue(gmailApi),
+    );
   });
   afterAll(async () => {
     await t.close();
@@ -58,7 +60,8 @@ describe('Gmail connection (e2e)', () => {
     const req = t.http().get(`/api/v1/gmail/callback?${new URLSearchParams(query)}`);
     return (cookie ? req.set('Cookie', cookie) : req).expect(303);
   };
-  const outcome = (res: { headers: Record<string, string> }) => new URL(res.headers.location!).searchParams.get('gmail');
+  const outcome = (res: { headers: Record<string, string> }) =>
+    new URL(res.headers.location!).searchParams.get('gmail');
 
   it('starts with a read-only, PKCE consent URL and a browser-binding cookie', async () => {
     const me = await t.register();
@@ -88,7 +91,10 @@ describe('Gmail connection (e2e)', () => {
     expect(new SecretBox(KEY).open(row.refreshTokenEnc, me.user.id)).toBe('1//real-refresh-token');
 
     const status = await t.http().get('/api/v1/gmail').set(me.auth).expect(200);
-    expect(status.body).toMatchObject({ configured: true, connection: { emailAddress: 'numan@gmail.com', status: 'ACTIVE', labelName: 'Shortlist' } });
+    expect(status.body).toMatchObject({
+      configured: true,
+      connection: { emailAddress: 'numan@gmail.com', status: 'ACTIVE', labelName: 'Shortlist' },
+    });
     expect(JSON.stringify(status.body)).not.toMatch(/refresh/i);
   });
 
@@ -105,7 +111,9 @@ describe('Gmail connection (e2e)', () => {
     const attackerFlow = await start(attacker);
     const victimFlow = await start(victim); // the victim's browser has its own cookie
     // The victim is tricked into completing the ATTACKER's consent link.
-    expect(outcome(await callback({ code: 'victim-code', state: attackerFlow.state }, victimFlow.cookie))).toBe('mismatch');
+    expect(outcome(await callback({ code: 'victim-code', state: attackerFlow.state }, victimFlow.cookie))).toBe(
+      'mismatch',
+    );
     expect(outcome(await callback({ code: 'victim-code', state: attackerFlow.state }))).toBe('mismatch');
     expect(await t.prisma.gmailConnection.findUnique({ where: { userId: attacker.user.id } })).toBeNull();
   });
@@ -113,7 +121,10 @@ describe('Gmail connection (e2e)', () => {
   it('reports expired attempts, a cancelled consent, and a missing read scope', async () => {
     const me = await t.register();
     const a = await start(me);
-    await t.prisma.oAuthState.updateMany({ where: { userId: me.user.id }, data: { expiresAt: new Date(Date.now() - 1000) } });
+    await t.prisma.oAuthState.updateMany({
+      where: { userId: me.user.id },
+      data: { expiresAt: new Date(Date.now() - 1000) },
+    });
     expect(outcome(await callback({ code: 'c', state: a.state }, a.cookie))).toBe('expired');
 
     const b = await start(me);

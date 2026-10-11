@@ -4,7 +4,7 @@ import { structuredCall, type AnalyzerResult } from '../analysis/job-analyzer.js
 import type { AlertEmail, EmailPosting } from './alert-email.js';
 import { workModeOf } from './alert-email.js';
 
-// The model fallback for alert emails (Agents.md §10.4). The same split as scoring: the
+// The model fallback for alert emails (docs/email-alerts.md §10.4). The same split as scoring: the
 // model READS the email; code decides what to keep. It sees links only as short refs, so
 // it can't invent a URL, and every job it names must appear in the email word for word.
 
@@ -23,7 +23,13 @@ export class AnthropicEmailExtractor implements EmailExtractor {
     return this.client !== null;
   }
   extract({ system, user }: { system: string; user: string }) {
-    return structuredCall(this.client, { model: AI_MODELS.extractEmail, maxTokens: 4096, system, user, schema: EMAIL_EXTRACTION_JSON_SCHEMA });
+    return structuredCall(this.client, {
+      model: AI_MODELS.extractEmail,
+      maxTokens: 4096,
+      system,
+      user,
+      schema: EMAIL_EXTRACTION_JSON_SCHEMA,
+    });
   }
 }
 
@@ -67,7 +73,12 @@ export function buildExtractionPrompt(email: AlertEmail) {
 }
 
 // Lower-case, punctuation to spaces, single spaces: "Full-Stack Dev (MERN)" ~ "full stack dev mern".
-const norm = (s: string) => s.toLowerCase().normalize('NFKC').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+const norm = (s: string) =>
+  s
+    .toLowerCase()
+    .normalize('NFKC')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim();
 
 // Every job the model returns must be traceable to the email; anything else is dropped.
 export function checkExtracted(

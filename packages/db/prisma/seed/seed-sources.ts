@@ -49,7 +49,9 @@ async function main() {
     }
     const enabled = toCreate.filter((s) => s.enabled).length;
     console.log(`${dryRun ? 'Dry run — would create' : 'Created'} for ${email}:`);
-    console.log(`  ${toCreate.length} sources (${enabled} enabled, ${toCreate.length - enabled} recorded for later milestones)`);
+    console.log(
+      `  ${toCreate.length} sources (${enabled} enabled, ${toCreate.length - enabled} recorded for later milestones)`,
+    );
     console.log(`  ${JOB_SOURCES.length - toCreate.length} already present (left untouched)`);
   } finally {
     await prisma.$disconnect();

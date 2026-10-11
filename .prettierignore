@@ -1,0 +1,10 @@
+node_modules
+dist
+coverage
+pnpm-lock.yaml
+# Applied migrations are checksummed by Prisma: never rewrite them, even whitespace.
+packages/db/prisma/migrations
+# Recorded real responses and emails: tests compare them byte for byte.
+apps/worker/test/fixtures
+# Docs keep their hand-wrapped prose.
+*.md

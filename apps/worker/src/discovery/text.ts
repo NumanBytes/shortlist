@@ -1,6 +1,18 @@
 const NAMED: Record<string, string> = {
-  amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ',
-  ndash: '–', mdash: '—', hellip: '…', rsquo: '’', lsquo: '‘', rdquo: '”', ldquo: '“', bull: '•',
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: "'",
+  nbsp: ' ',
+  ndash: '–',
+  mdash: '—',
+  hellip: '…',
+  rsquo: '’',
+  lsquo: '‘',
+  rdquo: '”',
+  ldquo: '“',
+  bull: '•',
 };
 
 export function decodeEntities(s: string): string {
@@ -47,4 +59,7 @@ export function toDate(value: unknown): Date | null {
 }
 
 export const joinParts = (...parts: (string | null | undefined)[]) =>
-  parts.map((p) => p?.trim()).filter(Boolean).join(', ') || null;
+  parts
+    .map((p) => p?.trim())
+    .filter(Boolean)
+    .join(', ') || null;

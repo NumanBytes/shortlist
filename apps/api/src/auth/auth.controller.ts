@@ -51,7 +51,7 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     // Rate limits live here, not in a guard: only the handler knows whether the attempt
-    // FAILED, and failures are what count against an account (Agents.md §8.1).
+    // FAILED, and failures are what count against an account (docs/security.md §8.1).
     await this.limited(res, this.limits.beforeLogin(clientIp(req), body.email));
     let result: AuthResult;
     try {

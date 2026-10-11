@@ -1,7 +1,7 @@
 #!/bin/sh
 # Copies the newest nightly dump off the server (run by the `offsite` service at 04:00, half
 # an hour after backup.sh). deploy/backups/ dies with the server; this copy doesn't, so it
-# lives outside the hosting provider: Google Drive by default (Agents.md §4,
+# lives outside the hosting provider: Google Drive by default (docs/architecture.md §4,
 # deploy/README.md "Off-site copies").
 #
 # Fails loudly (non-zero exit, log line, optional /fail ping) when there's nothing fresh to

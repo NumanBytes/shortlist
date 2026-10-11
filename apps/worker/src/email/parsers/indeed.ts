@@ -2,7 +2,7 @@ import type { AlertEmail, EmailParser, EmailPosting, ParseResult } from '../aler
 import { workModeOf } from '../alert-email.js';
 
 // Indeed job alerts (donotreply@jobalert.indeed.com). Written against real alerts captured
-// 2026-10-03 (Agents.md §10.4). Both the daily alert and the "your job alert is now active"
+// 2026-10-03 (docs/email-alerts.md §10.4). Both the daily alert and the "your job alert is now active"
 // confirmation list jobs in the same plain-text layout, one block per job:
 //
 //   Full Stack Developer                       ← title
@@ -16,7 +16,8 @@ import { workModeOf } from '../alert-email.js';
 
 const URL_LINE = /^https?:\/\/\S+$/;
 const AGE = /^(just posted|today|active today|(\d+)\+? days? ago|active (\d+)\+? days? ago)$/i;
-const SALARY = /(\bRs\.?\s?[\d,]|\bPKR\b|[$€£]\s?[\d,]|\ba (month|year|week|day)\b|\ban hour\b|per (month|annum|year|hour))/i;
+const SALARY =
+  /(\bRs\.?\s?[\d,]|\bPKR\b|[$€£]\s?[\d,]|\ba (month|year|week|day)\b|\ban hour\b|per (month|annum|year|hour))/i;
 const BADGE = /^(easily apply|urgently hiring|hiring multiple candidates|new|responsive employer)$/i;
 const DAY_MS = 24 * 3600 * 1000;
 

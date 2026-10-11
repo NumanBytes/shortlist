@@ -1,9 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import {
-  workDatesProblem,
-  type CreateWorkExperienceInput,
-  type UpdateWorkExperienceInput,
-} from '@shortlist/shared';
+import { workDatesProblem, type CreateWorkExperienceInput, type UpdateWorkExperienceInput } from '@shortlist/shared';
 import { UNVERIFIED, claimChanged } from '../common/verification.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -78,4 +74,3 @@ export class WorkExperienceService {
     ]);
   }
 }
-

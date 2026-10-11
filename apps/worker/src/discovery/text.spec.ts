@@ -2,7 +2,9 @@ import { decodeEntities, htmlToText, toDate } from './text.js';
 
 describe('htmlToText', () => {
   it('keeps structure as line breaks and bullets', () => {
-    expect(htmlToText('<p>Build UIs</p><ul><li>React</li><li>TypeScript</li></ul>')).toBe('Build UIs\n\n- React\n- TypeScript');
+    expect(htmlToText('<p>Build UIs</p><ul><li>React</li><li>TypeScript</li></ul>')).toBe(
+      'Build UIs\n\n- React\n- TypeScript',
+    );
   });
 
   it('decodes entity-encoded HTML (Greenhouse, WWR) before stripping it', () => {

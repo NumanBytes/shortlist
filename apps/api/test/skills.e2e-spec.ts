@@ -31,11 +31,7 @@ describe('Skills (e2e)', () => {
     const list = await t.http().get('/api/v1/skills').set(me.auth).expect(200);
     expect(list.body.map((s: { name: string }) => s.name)).toContain('Svelte');
 
-    const updated = await t.http()
-      .patch(`/api/v1/skills/${id}`)
-      .set(me.auth)
-      .send({ category: 'LIBRARY' })
-      .expect(200);
+    const updated = await t.http().patch(`/api/v1/skills/${id}`).set(me.auth).send({ category: 'LIBRARY' }).expect(200);
     expect(updated.body.category).toBe('LIBRARY');
 
     await t.http().delete(`/api/v1/skills/${id}`).set(me.auth).expect(204);

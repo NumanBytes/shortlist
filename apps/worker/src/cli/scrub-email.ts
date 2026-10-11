@@ -6,7 +6,7 @@
 // - every link stripped to scheme + host + path, keeping only the public job id (Indeed's
 //   `jk`); click-tracking paths (personal tokens) replaced by placeholders;
 // - routing, DKIM and tracking headers dropped.
-// Always read the result before committing it (Agents.md §10.4).
+// Always read the result before committing it (docs/email-alerts.md §10.4).
 import { readFileSync, writeFileSync } from 'node:fs';
 import { parseMail } from '../email/mime.js';
 
@@ -25,7 +25,10 @@ function scrubUrl(raw: string): string {
   let out: string;
   try {
     const u = new URL(raw.replace(/&amp;/g, '&'));
-    const opaque = u.pathname.includes('~~') || /^(engage|cts|clk|click|email|links?|t)\./i.test(u.hostname) || /[0-9a-f]{16,}|[A-Za-z0-9_-]{32,}/i.test(u.pathname);
+    const opaque =
+      u.pathname.includes('~~') ||
+      /^(engage|cts|clk|click|email|links?|t)\./i.test(u.hostname) ||
+      /[0-9a-f]{16,}|[A-Za-z0-9_-]{32,}/i.test(u.pathname);
     const params = [...u.searchParams].filter(([k]) => KEEP_PARAMS.has(k));
     out = `${u.origin}${opaque ? `/redacted/${++placeholder}` : u.pathname}${params.length ? `?${new URLSearchParams(params)}` : ''}`;
   } catch {

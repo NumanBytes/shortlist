@@ -33,7 +33,11 @@ export function MoreMenu({ title, actions }: { title: string; actions: MenuActio
                 }}
                 className={`flex min-h-14 w-full items-center gap-3 px-4 text-left text-base font-medium disabled:opacity-45 ${a.danger ? 'text-danger-fg' : 'text-fg'} hover:bg-surface-2`}
               >
-                <span className={`grid size-9 shrink-0 place-items-center rounded-[10px] ${a.danger ? 'bg-danger-bg' : 'bg-surface-2 text-muted'}`}>{a.icon}</span>
+                <span
+                  className={`grid size-9 shrink-0 place-items-center rounded-[10px] ${a.danger ? 'bg-danger-bg' : 'bg-surface-2 text-muted'}`}
+                >
+                  {a.icon}
+                </span>
                 {a.label}
               </button>
             </li>

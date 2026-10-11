@@ -2,7 +2,7 @@ import { createHash, randomBytes } from 'node:crypto';
 
 // Google OAuth 2.0 (authorization-code flow with PKCE) and the few Gmail REST calls
 // Shortlist needs — hand-rolled with fetch rather than the googleapis SDK, so every request
-// is visible (Agents.md §10.3). Read-only scope; nothing here can send or change mail.
+// is visible (docs/email-alerts.md §10.3). Read-only scope; nothing here can send or change mail.
 
 export const GMAIL_READONLY_SCOPE = 'https://www.googleapis.com/auth/gmail.readonly';
 
@@ -32,7 +32,9 @@ export class GoogleApiError extends Error {
     return this.code === 'invalid_grant';
   }
   get permanent() {
-    return this.grantRevoked || this.status === 401 || this.status === 403 || this.status === 404 || this.status === 400;
+    return (
+      this.grantRevoked || this.status === 401 || this.status === 403 || this.status === 404 || this.status === 400
+    );
   }
 }
 
@@ -73,7 +75,8 @@ async function call(url: string, init: RequestInit): Promise<unknown> {
   if (!res.ok) {
     const b = body as { error?: string | { message?: string; status?: string }; error_description?: string } | null;
     const code = typeof b?.error === 'string' ? b.error : b?.error?.status;
-    const detail = b?.error_description ?? (typeof b?.error === 'object' ? b.error.message : undefined) ?? text.slice(0, 200);
+    const detail =
+      b?.error_description ?? (typeof b?.error === 'object' ? b.error.message : undefined) ?? text.slice(0, 200);
     throw new GoogleApiError(`Google ${res.status}${code ? ` ${code}` : ''}: ${detail}`, res.status, code);
   }
   return body;
@@ -86,7 +89,10 @@ const form = (data: Record<string, string>) => ({
 });
 
 export interface GoogleOAuth {
-  exchangeCode(code: string, verifier: string): Promise<{ accessToken: string; refreshToken: string | null; scope: string }>;
+  exchangeCode(
+    code: string,
+    verifier: string,
+  ): Promise<{ accessToken: string; refreshToken: string | null; scope: string }>;
   refreshAccessToken(refreshToken: string): Promise<string>;
   revoke(token: string): Promise<void>;
 }
@@ -113,7 +119,12 @@ export class HttpGoogleOAuth implements GoogleOAuth {
   async refreshAccessToken(refreshToken: string) {
     const r = (await call(
       TOKEN_URL,
-      form({ refresh_token: refreshToken, client_id: this.cfg.clientId, client_secret: this.cfg.clientSecret, grant_type: 'refresh_token' }),
+      form({
+        refresh_token: refreshToken,
+        client_id: this.cfg.clientId,
+        client_secret: this.cfg.clientSecret,
+        grant_type: 'refresh_token',
+      }),
     )) as { access_token: string };
     return r.access_token;
   }
@@ -148,7 +159,10 @@ export interface GmailMessage {
 export interface GmailApi {
   profile(accessToken: string): Promise<{ emailAddress: string }>;
   labels(accessToken: string): Promise<{ id: string; name: string }[]>;
-  listMessages(accessToken: string, p: { labelId: string; query: string; pageToken?: string }): Promise<{ messages: GmailMessageRef[]; nextPageToken?: string }>;
+  listMessages(
+    accessToken: string,
+    p: { labelId: string; query: string; pageToken?: string },
+  ): Promise<{ messages: GmailMessageRef[]; nextPageToken?: string }>;
   getMessage(accessToken: string, id: string, format: 'full' | 'raw' | 'metadata'): Promise<GmailMessage>;
 }
 
@@ -166,8 +180,16 @@ export class HttpGmailApi implements GmailApi {
   }
 
   async listMessages(accessToken: string, p: { labelId: string; query: string; pageToken?: string }) {
-    const q = new URLSearchParams({ labelIds: p.labelId, q: p.query, maxResults: '100', ...(p.pageToken ? { pageToken: p.pageToken } : {}) });
-    const r = (await this.get(accessToken, `/messages?${q}`)) as { messages?: GmailMessageRef[]; nextPageToken?: string };
+    const q = new URLSearchParams({
+      labelIds: p.labelId,
+      q: p.query,
+      maxResults: '100',
+      ...(p.pageToken ? { pageToken: p.pageToken } : {}),
+    });
+    const r = (await this.get(accessToken, `/messages?${q}`)) as {
+      messages?: GmailMessageRef[];
+      nextPageToken?: string;
+    };
     return { messages: r.messages ?? [], nextPageToken: r.nextPageToken };
   }
 

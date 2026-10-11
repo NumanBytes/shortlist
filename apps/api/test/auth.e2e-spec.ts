@@ -88,7 +88,9 @@ describe('Auth & health (e2e)', () => {
         .post('/api/v1/auth/register')
         .send({ email: email(), password: PASSWORD, name: 'Cookie' })
         .expect(201);
-      const header = (res.headers['set-cookie'] as unknown as string[]).find((c) => c.startsWith('shortlist_refresh='))!;
+      const header = (res.headers['set-cookie'] as unknown as string[]).find((c) =>
+        c.startsWith('shortlist_refresh='),
+      )!;
       expect(header).toMatch(/HttpOnly/);
       expect(header).toMatch(/SameSite=Strict/);
       expect(header).toMatch(/Path=\/api\/v1\/auth/);

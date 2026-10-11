@@ -1,5 +1,6 @@
 import { getJson } from '../http.js';
 import { htmlToText, toDate } from '../text.js';
+import { mapPostings } from '../postings.js';
 import type { Adapter, Posting } from '../types.js';
 
 // Public Job Board API — https://developers.greenhouse.io/job-board.html
@@ -19,7 +20,7 @@ export const greenhouse: Adapter<{ provider: 'greenhouse'; board: string }> = as
   const { jobs } = await getJson<{ jobs: GreenhouseJob[] }>(
     `https://boards-api.greenhouse.io/v1/boards/${encodeURIComponent(board)}/jobs?content=true`,
   );
-  return jobs.map((j): Posting => {
+  return mapPostings(jobs, ctx, (j): Posting => {
     const location = j.location?.name?.trim() || null;
     return {
       externalId: String(j.id),

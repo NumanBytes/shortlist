@@ -196,7 +196,7 @@ export interface ActiveTailoring {
   queuedAt: string;
 }
 
-// ── Resumes (Agents.md §13) ──────────────────────────────────────────────────
+// ── Resumes (docs/resume.md §13) ──────────────────────────────────────────────────
 export interface ResumeBullet {
   label: string | null;
   text: string;
@@ -237,11 +237,21 @@ export interface JobResume {
     stale: string[];
     content: ResumeContent;
   } | null;
-  sources: Record<string, { skillName: string; whatIDid: string; isVerified: boolean; context: EvidenceContext; depth: EvidenceDepth; lastUsed: string }>;
+  sources: Record<
+    string,
+    {
+      skillName: string;
+      whatIDid: string;
+      isVerified: boolean;
+      context: EvidenceContext;
+      depth: EvidenceDepth;
+      lastUsed: string;
+    }
+  >;
   reuse: { variantId: string; overlap: number; approvedAt: string | null; usedFor: string[] }[];
 }
 
-// ── Gmail job alerts (Agents.md §10) ─────────────────────────────────────────
+// ── Gmail job alerts (docs/email-alerts.md §10) ─────────────────────────────────────────
 export interface GmailStatus {
   configured: boolean;
   connection: {

@@ -1,5 +1,5 @@
 // Development helper: tailor a resume for one job and print it, WITHOUT saving it — for
-// tuning the tailoring prompt against real output (Agents.md §13.1).
+// tuning the tailoring prompt against real output (docs/resume.md §13.1).
 //   pnpm --filter @shortlist/worker preview:resume <jobId>
 //
 // The model call is real (≈ $0.03–0.05): budget-checked and logged to AiUsage like any
@@ -41,7 +41,9 @@ try {
     for (const p of draft.content.projects) print(p.name, p.bullets);
     for (const d of draft.content.dropped) console.log(`\n  ✗ removed (${d.reason}): ${d.text}`);
     const avg = counts.reduce((a, b) => a + b, 0) / counts.length;
-    console.log(`\n${counts.length} bullets · average ${avg.toFixed(1)} words · longest ${Math.max(...counts)} · $${draft.cost.toFixed(4)} · not saved`);
+    console.log(
+      `\n${counts.length} bullets · average ${avg.toFixed(1)} words · longest ${Math.max(...counts)} · $${draft.cost.toFixed(4)} · not saved`,
+    );
   }
 } finally {
   await prisma.$disconnect();

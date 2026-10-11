@@ -5,7 +5,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { compileFilter } from './filter.js';
 import { storeJobs } from './job-store.js';
 import { loadPreferences } from './preferences.js';
-import type { AdapterRegistry, Posting } from './types.js';
+import type { AdapterContext, AdapterRegistry, Posting } from './types.js';
 
 export const ADAPTER_REGISTRY = Symbol('ADAPTER_REGISTRY');
 
@@ -40,7 +40,7 @@ export class DiscoveryService {
     const source = await this.prisma.jobSource.findUnique({ where: { id: sourceId } });
     if (!source) throw new PermanentSourceError(`JobSource ${sourceId} no longer exists`);
 
-    // Opened BEFORE anything is fetched (Agents.md §4). If the process dies mid-fetch,
+    // Opened BEFORE anything is fetched (docs/architecture.md §4). If the process dies mid-fetch,
     // the run is left visibly RUNNING — never silently absent, which would read as
     // "no jobs today". That exact confusion is what this table exists to prevent.
     const run = await this.prisma.discoveryRun.create({ data: { jobSourceId: source.id, status: 'RUNNING' } });
@@ -51,8 +51,14 @@ export class DiscoveryService {
       const rejections: Record<string, number> = {};
       const count = (reason: string) => (rejections[reason] = (rejections[reason] ?? 0) + 1);
 
-      const adapter = this.adapters[config.provider] as (c: typeof config, ctx: { sourceName: string }) => Promise<Posting[]>;
-      const postings = await adapter(config, { sourceName: source.name });
+      const adapter = this.adapters[config.provider] as (c: typeof config, ctx: AdapterContext) => Promise<Posting[]>;
+      const postings = await adapter(config, {
+        sourceName: source.name,
+        onSkipped: (reason) => {
+          count('invalid posting');
+          this.logger.warn(`${source.name}: skipped ${reason}`);
+        },
+      });
 
       // Stage A: title / location / age, from the listing alone.
       const enforceMaxAge = source.type === 'AGGREGATOR_API';
@@ -96,7 +102,15 @@ export class DiscoveryService {
       this.logger.log(
         `${source.name}: ${status} — ${postings.length} found, ${matched.length} matched, ${jobsNew} new`,
       );
-      return { runId: run.id, status, jobsFound: postings.length, jobsMatched: matched.length, jobsNew, newJobIds, rejections };
+      return {
+        runId: run.id,
+        status,
+        jobsFound: postings.length,
+        jobsMatched: matched.length,
+        jobsNew,
+        newJobIds,
+        rejections,
+      };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       await this.finish(run.id, source.id, 'FAILED', { errorMessage: message.slice(0, 1000) });
@@ -110,9 +124,13 @@ export class DiscoveryService {
     if (implemented.success) return implemented.data;
     const planned = PlannedSourceConfigSchema.safeParse(raw);
     if (planned.success) {
-      throw new PermanentSourceError(`No adapter for provider "${planned.data.provider}" yet (planned for a later milestone)`);
+      throw new PermanentSourceError(
+        `No adapter for provider "${planned.data.provider}" yet (planned for a later milestone)`,
+      );
     }
-    throw new PermanentSourceError(`Invalid source config: ${implemented.error.issues.map((i) => i.message).join('; ')}`);
+    throw new PermanentSourceError(
+      `Invalid source config: ${implemented.error.issues.map((i) => i.message).join('; ')}`,
+    );
   }
 
   private async finish(

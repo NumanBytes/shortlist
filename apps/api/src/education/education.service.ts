@@ -7,7 +7,10 @@ export class EducationService {
   constructor(private readonly prisma: PrismaService) {}
 
   list(userId: string) {
-    return this.prisma.education.findMany({ where: { userId }, orderBy: [{ endYear: { sort: 'desc', nulls: 'first' } }, { startYear: 'desc' }] });
+    return this.prisma.education.findMany({
+      where: { userId },
+      orderBy: [{ endYear: { sort: 'desc', nulls: 'first' } }, { startYear: 'desc' }],
+    });
   }
 
   create(userId: string, input: CreateEducationInput) {

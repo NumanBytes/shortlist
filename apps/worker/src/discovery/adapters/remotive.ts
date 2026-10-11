@@ -1,5 +1,6 @@
 import { getJson } from '../http.js';
 import { htmlToText, toDate } from '../text.js';
+import { mapPostings } from '../postings.js';
 import type { Adapter, Posting } from '../types.js';
 
 // https://remotive.com/api-documentation — terms: link back to the Remotive URL and
@@ -16,11 +17,11 @@ interface RemotiveJob {
   tags?: string[];
 }
 
-export const remotive: Adapter<{ provider: 'remotive'; category: string }> = async ({ category }) => {
+export const remotive: Adapter<{ provider: 'remotive'; category: string }> = async ({ category }, ctx) => {
   const { jobs } = await getJson<{ jobs: RemotiveJob[] }>(
     `https://remotive.com/api/remote-jobs?category=${encodeURIComponent(category)}`,
   );
-  return jobs.map((j): Posting => ({
+  return mapPostings(jobs, ctx, (j): Posting => ({
     externalId: String(j.id),
     title: j.title.trim(),
     company: j.company_name.trim(),

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { normalizeSkillName, type Context, type Depth, type Importance } from './scoring.js';
 
-// Resume tailoring (Agents.md §13). The model only words bullets and groups skills, citing
+// Resume tailoring (docs/resume.md §13). The model only words bullets and groups skills, citing
 // evidence by short refs it was given; everything in this file is deterministic code that
 // decides what it may cite (placement rules, §6.1) and throws out any bullet that claims
 // more than its cited evidence says. The user's review is the final gate; this is the net.
@@ -72,15 +72,30 @@ export const RESUME_JSON_SCHEMA = {
   properties: {
     experience: {
       type: 'array',
-      items: { type: 'object', additionalProperties: false, required: ['role', 'bullets'], properties: { role: { type: 'string' }, bullets: BULLETS } },
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['role', 'bullets'],
+        properties: { role: { type: 'string' }, bullets: BULLETS },
+      },
     },
     projects: {
       type: 'array',
-      items: { type: 'object', additionalProperties: false, required: ['project', 'bullets'], properties: { project: { type: 'string' }, bullets: BULLETS } },
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['project', 'bullets'],
+        properties: { project: { type: 'string' }, bullets: BULLETS },
+      },
     },
     skillGroups: {
       type: 'array',
-      items: { type: 'object', additionalProperties: false, required: ['label', 'skills'], properties: { label: { type: 'string' }, skills: stringList } },
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['label', 'skills'],
+        properties: { label: { type: 'string' }, skills: stringList },
+      },
     },
     learning: stringList,
   },
@@ -102,7 +117,9 @@ export const ResumeContentSchema = z.object({
     }),
   ),
   projects: z.array(z.object({ projectId: z.string(), name: z.string(), bullets: z.array(BulletSchema) })),
-  skillGroups: z.array(z.object({ label: z.string(), skills: z.array(z.object({ id: z.string(), name: z.string() })) })),
+  skillGroups: z.array(
+    z.object({ label: z.string(), skills: z.array(z.object({ id: z.string(), name: z.string() })) }),
+  ),
   // Bullets the checks removed, with the reason — shown to the user, never printed.
   dropped: z.array(z.object({ where: z.string(), text: z.string(), reason: z.string() })),
 });
@@ -216,7 +233,9 @@ const STRONG_VERBS: Record<string, string[]> = {
   spearheaded: ['spearhead'],
 };
 
-type Where = { kind: 'EXPERIENCE'; roleId: string; commercial: true } | { kind: 'PROJECTS'; projectId: string; commercial: boolean };
+type Where =
+  | { kind: 'EXPERIENCE'; roleId: string; commercial: true }
+  | { kind: 'PROJECTS'; projectId: string; commercial: boolean };
 
 interface CheckContext {
   byId: Map<string, ResumeEvidence>;
@@ -239,7 +258,8 @@ export function checkBullet(
   const ids: string[] = [];
   for (const ref of new Set(b.evidence.map((r) => r.trim()))) {
     const id = ctx.refs.evidence.get(ref);
-    if (!id || !ctx.byId.has(id)) return { ok: false, reason: `cites "${ref}", which isn't one of your verified items` };
+    if (!id || !ctx.byId.has(id))
+      return { ok: false, reason: `cites "${ref}", which isn't one of your verified items` };
     ids.push(id);
   }
   const cited = ids.map((id) => ctx.byId.get(id)!);
@@ -256,7 +276,7 @@ export function checkBullet(
     }
   }
 
-  // Known false claims (Agents.md §7.2) — refused whatever is cited.
+  // Known false claims (docs/career-data.md §7.2) — refused whatever is cited.
   if (/azure/i.test(full)) return { ok: false, reason: 'mentions Azure, a known false claim' };
   if (where.commercial && /(?<![A-Za-z])(node(\.js)?|express(\.js)?)(?![A-Za-z])/i.test(full)) {
     return { ok: false, reason: 'mentions Node.js/Express in paid work, where they were never used' };
@@ -273,7 +293,8 @@ export function checkBullet(
   const citedSkillIds = new Set(cited.map((e) => e.skillId));
   const covered = new Set(cited.map((e) => normalizeSkillName(e.skillName)));
   for (const a of ctx.aliases) {
-    if (a.skillIds.some((id) => citedSkillIds.has(id))) for (const o of splitOptions(a.name)) covered.add(normalizeSkillName(o));
+    if (a.skillIds.some((id) => citedSkillIds.has(id)))
+      for (const o of splitOptions(a.name)) covered.add(normalizeSkillName(o));
   }
   for (const n of ctx.policed) if (mentionSpans(source, n).length) covered.add(normalizeSkillName(n));
   const coveredSpans = ctx.policed
@@ -282,7 +303,8 @@ export function checkBullet(
   for (const n of ctx.policed) {
     if (covered.has(normalizeSkillName(n))) continue;
     const inside = (s: [number, number]) => coveredSpans.some(([a, z]) => a <= s[0] && s[1] <= z);
-    if (mentionSpans(full, n).some((s) => !inside(s))) return { ok: false, reason: `mentions ${n} without citing evidence for it` };
+    if (mentionSpans(full, n).some((s) => !inside(s)))
+      return { ok: false, reason: `mentions ${n} without citing evidence for it` };
   }
 
   if (!cited.some((e) => e.depth === 'PRODUCTION')) {
@@ -302,7 +324,7 @@ export function checkBullet(
 export function assembleResume(input: AssembleInput): AssembleResult {
   const now = input.now ?? new Date();
   const byId = new Map(input.evidence.map((e) => [e.id, e]));
-  const policed = [...new Set([...input.policedNames.flatMap(splitOptions)])];
+  const policed = [...new Set(input.policedNames.flatMap(splitOptions))];
   const ctx: CheckContext = { byId, refs: input.refs, policed, aliases: input.requirementAliases, now };
   const dropped: ResumeContent['dropped'] = [];
   const used = new Set<string>();
@@ -333,7 +355,12 @@ export function assembleResume(input: AssembleInput): AssembleResult {
     .sort((a, b) => b.startDate.getTime() - a.startDate.getTime())
     .map((r) => {
       const place = `${r.title}, ${r.company}`;
-      const bullets = keep(roleBullets.get(r.id) ?? [], { kind: 'EXPERIENCE', roleId: r.id, commercial: true }, place, MAX_BULLETS_PER_ROLE);
+      const bullets = keep(
+        roleBullets.get(r.id) ?? [],
+        { kind: 'EXPERIENCE', roleId: r.id, commercial: true },
+        place,
+        MAX_BULLETS_PER_ROLE,
+      );
       return {
         workExperienceId: r.id,
         title: r.title,
@@ -416,7 +443,7 @@ export function assembleResume(input: AssembleInput): AssembleResult {
   };
 }
 
-// ── Reuse (Agents.md §13.2) ───────────────────────────────────────────────────
+// ── Reuse (docs/resume.md §13.2) ───────────────────────────────────────────────────
 // Plain code, no AI: how much of a job's requirement list a stored variant was built for.
 export function requirementProfile(requirements: { skillName: string }[]): string[] {
   return [...new Set(requirements.flatMap((r) => splitOptions(r.skillName).map(normalizeSkillName)))].sort();
@@ -431,7 +458,9 @@ export function resumeOverlap(
   if (jobNames.length === 0) return { overlap: 0, missingRequired: [] };
   const covered = jobNames.filter((n) => have.has(n)).length;
   const missingRequired = job
-    .filter((r) => r.importance === 'REQUIRED' && !splitOptions(r.skillName).some((o) => have.has(normalizeSkillName(o))))
+    .filter(
+      (r) => r.importance === 'REQUIRED' && !splitOptions(r.skillName).some((o) => have.has(normalizeSkillName(o))),
+    )
     .map((r) => r.skillName);
   return { overlap: covered / jobNames.length, missingRequired };
 }

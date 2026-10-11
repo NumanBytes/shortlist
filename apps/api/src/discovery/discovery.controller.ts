@@ -1,5 +1,10 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
-import { UpdateJobSourceSchema, UpdateSourceAddressSchema, type UpdateJobSourceInput, type UpdateSourceAddressInput } from '@shortlist/shared';
+import {
+  UpdateJobSourceSchema,
+  UpdateSourceAddressSchema,
+  type UpdateJobSourceInput,
+  type UpdateSourceAddressInput,
+} from '@shortlist/shared';
 import { CurrentUser, type AuthUser } from '../auth/current-user.decorator.js';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
 import { DiscoveryService } from './discovery.service.js';

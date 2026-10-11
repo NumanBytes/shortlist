@@ -109,7 +109,10 @@ export const CAREER_DATA: CareerData = {
       category: 'LIBRARY',
       evidence: [
         builtAtCloudCard('React'),
-        cloudcard('MAINTENANCE', 'Upgraded React versions across CloudCard apps (upgrade work, not primary development).'),
+        cloudcard(
+          'MAINTENANCE',
+          'Upgraded React versions across CloudCard apps (upgrade work, not primary development).',
+        ),
       ],
     },
     { name: 'Material UI', category: 'LIBRARY', evidence: [builtAtCloudCard('Material UI')] },
@@ -118,14 +121,19 @@ export const CAREER_DATA: CareerData = {
       name: 'Angular',
       category: 'FRAMEWORK',
       evidence: [
-        cloudcard('MAINTENANCE', 'Upgraded Angular versions across CloudCard apps (upgrade work, not primary development).'),
+        cloudcard(
+          'MAINTENANCE',
+          'Upgraded Angular versions across CloudCard apps (upgrade work, not primary development).',
+        ),
       ],
     },
     { name: 'Ruby', category: 'LANGUAGE', evidence: [cloudcard('WORKING', 'Worked a little in Ruby at CloudCard.')] },
     {
       name: 'PostgreSQL',
       category: 'DATABASE',
-      evidence: [cloudcard('PRODUCTION', 'Wrote PostgreSQL database migrations and added new tables and columns at CloudCard.')],
+      evidence: [
+        cloudcard('PRODUCTION', 'Wrote PostgreSQL database migrations and added new tables and columns at CloudCard.'),
+      ],
     },
     {
       name: 'SQL',
@@ -135,7 +143,9 @@ export const CAREER_DATA: CareerData = {
     {
       name: 'Role-based access control',
       category: 'CONCEPT',
-      evidence: [cloudcard('PRODUCTION', 'Implemented role-based access control through database configuration at CloudCard.')],
+      evidence: [
+        cloudcard('PRODUCTION', 'Implemented role-based access control through database configuration at CloudCard.'),
+      ],
     },
     {
       // Named and described by the user (2026-10-02). The B2C layer is in-house Ruby —
@@ -152,12 +162,26 @@ export const CAREER_DATA: CareerData = {
     {
       name: 'GraphQL',
       category: 'CONCEPT',
-      evidence: [cloudcard('PRODUCTION', 'Expose Ruby-backed APIs as GraphQL and consume them from the frontend at CloudCard.')],
+      evidence: [
+        cloudcard('PRODUCTION', 'Expose Ruby-backed APIs as GraphQL and consume them from the frontend at CloudCard.'),
+      ],
     },
     // Everyday tools, confirmed by the user as CloudCard work (2026-10-02).
-    { name: 'Git', category: 'TOOL', evidence: [cloudcard('PRODUCTION', 'Use Git for version control in day-to-day work at CloudCard.')] },
-    { name: 'REST APIs', category: 'CONCEPT', evidence: [cloudcard('PRODUCTION', 'Work with REST APIs in frontend features at CloudCard.')] },
-    { name: 'npm', category: 'TOOL', evidence: [cloudcard('PRODUCTION', 'Use npm to manage dependencies and scripts at CloudCard.')] },
+    {
+      name: 'Git',
+      category: 'TOOL',
+      evidence: [cloudcard('PRODUCTION', 'Use Git for version control in day-to-day work at CloudCard.')],
+    },
+    {
+      name: 'REST APIs',
+      category: 'CONCEPT',
+      evidence: [cloudcard('PRODUCTION', 'Work with REST APIs in frontend features at CloudCard.')],
+    },
+    {
+      name: 'npm',
+      category: 'TOOL',
+      evidence: [cloudcard('PRODUCTION', 'Use npm to manage dependencies and scripts at CloudCard.')],
+    },
     {
       name: 'Prompt engineering',
       category: 'CONCEPT',
@@ -173,17 +197,29 @@ export const CAREER_DATA: CareerData = {
     {
       name: 'Docker',
       category: 'TOOL',
-      evidence: [cloudcard('WORKING', "Worked within CloudCard's Docker setup as a user of it, not the owner of the infrastructure.")],
+      evidence: [
+        cloudcard(
+          'WORKING',
+          "Worked within CloudCard's Docker setup as a user of it, not the owner of the infrastructure.",
+        ),
+      ],
     },
     {
       name: 'Docker Compose',
       category: 'TOOL',
-      evidence: [cloudcard('WORKING', "Worked within CloudCard's Docker Compose setup as a user of it, not the owner.")],
+      evidence: [
+        cloudcard('WORKING', "Worked within CloudCard's Docker Compose setup as a user of it, not the owner."),
+      ],
     },
     {
       name: 'Microservices',
       category: 'CONCEPT',
-      evidence: [cloudcard('WORKING', "Worked within CloudCard's microservices architecture from the frontend side; did not own the services.")],
+      evidence: [
+        cloudcard(
+          'WORKING',
+          "Worked within CloudCard's microservices architecture from the frontend side; did not own the services.",
+        ),
+      ],
     },
 
     // ── PERSONAL ─────────────────────────────────────────────────────────────
@@ -204,7 +240,15 @@ export const CAREER_DATA: CareerData = {
     {
       name: 'pnpm',
       category: 'TOOL',
-      evidence: [{ context: 'PERSONAL', depth: 'WORKING', whatIDid: 'Use pnpm and pnpm workspaces in personal projects such as Shortlist.', lastUsed: NOW, project: 'shortlist' }],
+      evidence: [
+        {
+          context: 'PERSONAL',
+          depth: 'WORKING',
+          whatIDid: 'Use pnpm and pnpm workspaces in personal projects such as Shortlist.',
+          lastUsed: NOW,
+          project: 'shortlist',
+        },
+      ],
     },
     // Learning through building Shortlist (EXPOSURE, per the user, 2026-10-02). Worded so
     // they don't read as "built it on my own" — much of the code was written with an AI
@@ -223,7 +267,12 @@ export const CAREER_DATA: CareerData = {
     ).map(([name, category]): SeedSkill => ({
       name,
       category,
-      evidence: [learning(`Learning ${name} while building the Shortlist project; not yet able to build with it independently.`, 'shortlist')],
+      evidence: [
+        learning(
+          `Learning ${name} while building the Shortlist project; not yet able to build with it independently.`,
+          'shortlist',
+        ),
+      ],
     })),
     { name: 'NextAuth', category: 'LIBRARY', evidence: [learning('Learning NextAuth (authentication for Next.js).')] },
     // Self-taught only. Never CloudCard experience — guarded in guards.ts.

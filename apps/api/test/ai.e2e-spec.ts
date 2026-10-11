@@ -26,7 +26,14 @@ describe('AI analysis API (e2e)', () => {
 
   const job = (who: TestUser, over: Record<string, unknown> = {}) =>
     t.prisma.job.create({
-      data: { userId: who.user.id, title: 'Engineer', company: 'Acme', rawJD: 'React.', dedupeHash: crypto.randomUUID(), ...over },
+      data: {
+        userId: who.user.id,
+        title: 'Engineer',
+        company: 'Acme',
+        rawJD: 'React.',
+        dedupeHash: crypto.randomUUID(),
+        ...over,
+      },
     });
 
   const scored = async (who: TestUser, score: number, title: string) => {
@@ -43,7 +50,14 @@ describe('AI analysis API (e2e)', () => {
       },
     });
     await t.prisma.jobRequirement.create({
-      data: { jobId: j.id, skillName: 'React', importance: 'REQUIRED', isCore: true, matchedSkillIds: ['x'], relatedSkillIds: [] },
+      data: {
+        jobId: j.id,
+        skillName: 'React',
+        importance: 'REQUIRED',
+        isCore: true,
+        matchedSkillIds: ['x'],
+        relatedSkillIds: [],
+      },
     });
     return j;
   };
@@ -114,11 +128,23 @@ describe('AI analysis API (e2e)', () => {
     it('allows re-analysis once the user has verified a skill the last analysis never saw', async () => {
       const user = await t.register();
       const j = await scored(user, 60, 'Stale analysis');
-      const skill = await t.http().post('/api/v1/skills').set(user.auth).send({ name: 'React', category: 'LIBRARY' }).expect(201);
-      const ev = await t.http()
+      const skill = await t
+        .http()
+        .post('/api/v1/skills')
+        .set(user.auth)
+        .send({ name: 'React', category: 'LIBRARY' })
+        .expect(201);
+      const ev = await t
+        .http()
         .post('/api/v1/evidence')
         .set(user.auth)
-        .send({ skillId: skill.body.id, context: 'COMMERCIAL', depth: 'PRODUCTION', whatIDid: 'Built UIs', lastUsed: '2026-09-01' })
+        .send({
+          skillId: skill.body.id,
+          context: 'COMMERCIAL',
+          depth: 'PRODUCTION',
+          whatIDid: 'Built UIs',
+          lastUsed: '2026-09-01',
+        })
         .expect(201);
       await t.http().post(`/api/v1/evidence/${ev.body.id}/verify`).set(user.auth).expect(200);
       await t.http().post(`/api/v1/jobs/${j.id}/analyze`).set(user.auth).expect(202);
@@ -137,8 +163,24 @@ describe('AI analysis API (e2e)', () => {
       const user = await t.register();
       await t.prisma.aiUsage.createMany({
         data: [
-          { userId: user.user.id, purpose: 'ANALYZE_JOB', model: 'claude-haiku-4-5', inputTokens: 1, outputTokens: 1, costUsd: 0.0031, succeeded: true },
-          { userId: user.user.id, purpose: 'ANALYZE_JOB', model: 'claude-haiku-4-5', inputTokens: 1, outputTokens: 1, costUsd: 0.0029, succeeded: false },
+          {
+            userId: user.user.id,
+            purpose: 'ANALYZE_JOB',
+            model: 'claude-haiku-4-5',
+            inputTokens: 1,
+            outputTokens: 1,
+            costUsd: 0.0031,
+            succeeded: true,
+          },
+          {
+            userId: user.user.id,
+            purpose: 'ANALYZE_JOB',
+            model: 'claude-haiku-4-5',
+            inputTokens: 1,
+            outputTokens: 1,
+            costUsd: 0.0029,
+            succeeded: false,
+          },
         ],
       });
       await job(user, { analysisStatus: 'DEFERRED' });

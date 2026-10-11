@@ -10,30 +10,28 @@ import {
   RESUME_QUEUE,
   WORKER_HEARTBEAT_KEY,
   ResumeJob,
+  dedupeId,
+  queueJobOptions,
   type AnalyzeJobData,
   type CheckEmailData,
   type DiscoverSourceData,
   type TailorResumeData,
 } from '@shortlist/shared';
-import { Queue, type JobsOptions } from 'bullmq';
+import { Queue } from 'bullmq';
 import { Redis } from 'ioredis';
 import { ENV } from '../config/config.module.js';
 import type { Env } from '../config/env.js';
+import { withTimeout } from '../common/with-timeout.js';
 
-// How long an HTTP request may wait on Redis. Depending on connection state, a dead
-// Redis either errors immediately ("Connection is closed") or makes BullMQ wait for a
-// ready connection indefinitely — both were observed. Either way the caller gets a 503.
-const ENQUEUE_TIMEOUT_MS = 3000;
+// How long an HTTP request may wait on Redis (see withTimeout). A queue that doesn't
+// answer in time is a 503, not a hung request.
+const REDIS_TIMEOUT_MS = 3000;
 const UNAVAILABLE = 'Job queue unavailable — try again shortly';
 
-const RETRY: JobsOptions = {
-  attempts: 3,
-  removeOnComplete: { age: 7 * 24 * 3600, count: 1000 },
-  removeOnFail: { age: 30 * 24 * 3600 },
-};
-
-// The API's side of the queues: it only ever ADDS jobs; apps/worker processes them.
-// Custom job ids can't contain ":".
+// The API's side of the queues: it only ever ADDS jobs; apps/worker processes them. Job ids,
+// dedupe ids and retry options come from queueJobOptions (@shortlist/shared), shared with
+// the worker: a second tap, two tabs or the nightly run all join the job already queued or
+// running for the same thing instead of running — or paying — twice.
 @Injectable()
 export class JobQueues implements OnModuleDestroy {
   private readonly logger = new Logger(JobQueues.name);
@@ -61,15 +59,9 @@ export class JobQueues implements OnModuleDestroy {
             sourceIds.map((sourceId) => ({
               name: DiscoveryJob.Source,
               data: { sourceId } satisfies DiscoverSourceData,
-              opts: {
-                ...RETRY,
-                jobId: `${sourceId}__${batchId}`,
-                backoff: { type: 'exponential', delay: 60_000 },
-                // A source already queued or running (a second tap, or the worker not
-                // started yet) is joined, not queued again — its lastRunAt only moves on
-                // when a run finishes, so the cooldown alone can't stop a pile-up.
-                deduplication: { id: `discover-${sourceId}` },
-              },
+              // Joining matters here: lastRunAt only moves on when a run finishes, so the
+              // cooldown alone can't stop a pile-up while the worker is busy or stopped.
+              opts: queueJobOptions.discoverSource(sourceId, batchId),
             })),
           ),
     );
@@ -77,65 +69,50 @@ export class JobQueues implements OnModuleDestroy {
 
   enqueueAnalysis(jobId: string, batchId: string): Promise<void> {
     return this.bounded(
-      this.analysis.add(AnalysisJob.Job, { jobId } satisfies AnalyzeJobData, {
-        ...RETRY,
-        jobId: `analyze__${jobId}__${batchId}`,
-        backoff: { type: 'exponential', delay: 120_000 },
-        // Same dedupe id as the worker uses: if this job is already queued, in retry
-        // backoff, or being analysed, "Retry" joins it instead of billing a second call.
-        deduplication: { id: `analyze-${jobId}` },
-      }),
+      this.analysis.add(
+        AnalysisJob.Job,
+        { jobId } satisfies AnalyzeJobData,
+        queueJobOptions.analyzeJob(jobId, batchId),
+      ),
     );
   }
 
   enqueueTailoring(jobId: string): Promise<void> {
     return this.bounded(
-      this.resume.add(ResumeJob.Tailor, { jobId } satisfies TailorResumeData, {
-        ...RETRY,
-        jobId: `tailor__${jobId}__${Date.now()}`,
-        backoff: { type: 'exponential', delay: 60_000 },
-        // A double-click (or two tabs) joins the tailoring already queued or running for
-        // this job instead of paying for a second one.
-        deduplication: { id: `tailor-${jobId}` },
-      }),
+      this.resume.add(
+        ResumeJob.Tailor,
+        { jobId } satisfies TailorResumeData,
+        queueJobOptions.tailorResume(jobId, String(Date.now())),
+      ),
     );
   }
 
   enqueueEmailCheck(userId: string): Promise<void> {
     return this.bounded(
-      this.email.add(EmailJob.Check, { userId } satisfies CheckEmailData, {
-        ...RETRY,
-        jobId: `email__${userId}__${Date.now()}`,
-        backoff: { type: 'exponential', delay: 60_000 },
-        // One check per mailbox at a time, whoever asks (schedule or "Check now").
-        deduplication: { id: `email-${userId}` },
-      }),
+      this.email.add(
+        EmailJob.Check,
+        { userId } satisfies CheckEmailData,
+        queueJobOptions.checkEmail(userId, String(Date.now())),
+      ),
     );
   }
 
   private async bounded(add: Promise<unknown> | null): Promise<void> {
     if (!add) return;
-    let timer: NodeJS.Timeout | undefined;
-    const timeout = new Promise<never>((_, reject) => {
-      timer = setTimeout(() => reject(new Error(`no response from Redis in ${ENQUEUE_TIMEOUT_MS}ms`)), ENQUEUE_TIMEOUT_MS);
-    });
     try {
-      await Promise.race([add, timeout]);
+      await withTimeout(add, REDIS_TIMEOUT_MS);
     } catch (err) {
       this.logger.error(`Enqueue failed: ${(err as Error).message}`);
       throw new ServiceUnavailableException(UNAVAILABLE);
-    } finally {
-      clearTimeout(timer);
-      add.catch(() => undefined); // if the timeout won, don't leave an unhandled rejection
     }
   }
 
-  // "Cancel" on a tailoring run (Agents.md §13.1). A job still waiting (or in retry
+  // "Cancel" on a tailoring run (docs/resume.md §13.1). A job still waiting (or in retry
   // backoff) is removed, so the model is never called. One the worker has started can't be
   // recalled — its Claude call is already in flight — so say so instead of pretending.
   async cancelTailoring(jobId: string): Promise<'removed' | 'running' | 'none'> {
     const attempt = (async () => {
-      const id = await this.resume.getDeduplicationJobId(`tailor-${jobId}`);
+      const id = await this.resume.getDeduplicationJobId(dedupeId.tailorResume(jobId));
       const job = id ? await this.resume.getJob(id) : undefined;
       if (!job) return 'none' as const;
       const state = await job.getState();
@@ -146,21 +123,14 @@ export class JobQueues implements OnModuleDestroy {
       } catch {
         return 'running' as const;
       }
-      await this.resume.removeDeduplicationKey(`tailor-${jobId}`);
+      await this.resume.removeDeduplicationKey(dedupeId.tailorResume(jobId));
       return 'removed' as const;
     })();
-    let timer: NodeJS.Timeout | undefined;
-    const timeout = new Promise<never>((_, reject) => {
-      timer = setTimeout(() => reject(new Error(`no response from Redis in ${ENQUEUE_TIMEOUT_MS}ms`)), ENQUEUE_TIMEOUT_MS);
-    });
     try {
-      return await Promise.race([attempt, timeout]);
+      return await withTimeout(attempt, REDIS_TIMEOUT_MS);
     } catch (err) {
       this.logger.error(`Cancel failed: ${(err as Error).message}`);
       throw new ServiceUnavailableException(UNAVAILABLE);
-    } finally {
-      clearTimeout(timer);
-      attempt.catch(() => undefined);
     }
   }
 
@@ -172,7 +142,7 @@ export class JobQueues implements OnModuleDestroy {
     return beat === undefined ? null : beat !== null;
   }
 
-  // When the nightly discovery fires next (the scheduler lives in Redis, Agents.md §9.8).
+  // When the nightly discovery fires next (the scheduler lives in Redis, docs/discovery.md §9.8).
   async nextNightlyDiscovery(): Promise<Date | null> {
     const scheduler = await this.read(this.discovery.getJobScheduler(NIGHTLY_DISCOVERY_SCHEDULER_ID));
     return scheduler?.next ? new Date(scheduler.next) : null;
@@ -180,22 +150,13 @@ export class JobQueues implements OnModuleDestroy {
 
   // A read bounded like an enqueue; undefined (not a 503) when Redis doesn't answer.
   private async read<T>(op: Promise<T>): Promise<T | undefined> {
-    let timer: NodeJS.Timeout | undefined;
-    const timeout = new Promise<undefined>((resolve) => {
-      timer = setTimeout(() => resolve(undefined), ENQUEUE_TIMEOUT_MS);
-    });
-    try {
-      return await Promise.race([op, timeout]);
-    } catch {
-      return undefined;
-    } finally {
-      clearTimeout(timer);
-      op.catch(() => undefined);
-    }
+    return withTimeout(op, REDIS_TIMEOUT_MS).catch(() => undefined);
   }
 
   async onModuleDestroy() {
-    await Promise.all([this.discovery, this.analysis, this.resume, this.email].map((q) => q.close().catch(() => undefined)));
+    await Promise.all(
+      [this.discovery, this.analysis, this.resume, this.email].map((q) => q.close().catch(() => undefined)),
+    );
     this.connection.disconnect();
   }
 }

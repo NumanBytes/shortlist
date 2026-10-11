@@ -16,7 +16,8 @@ const posting = (over: Partial<Posting> = {}): Posting => ({
 });
 
 const filter = compileFilter(DEFAULT_DISCOVERY_PREFERENCES);
-const screen = (over: Partial<Posting>, enforceMaxAge = true) => filter.screenListing(posting(over), { enforceMaxAge, now: NOW });
+const screen = (over: Partial<Posting>, enforceMaxAge = true) =>
+  filter.screenListing(posting(over), { enforceMaxAge, now: NOW });
 
 describe('termMatcher', () => {
   const m = termMatcher(['react', 'next.js', 'c++', 'full stack']);
@@ -48,7 +49,10 @@ describe('stage A — listing screen', () => {
   });
 
   it('rejects on-site roles outside Pakistan', () => {
-    expect(screen({ location: 'Dubai, UAE' })).toMatchObject({ pass: false, reason: expect.stringContaining('location') });
+    expect(screen({ location: 'Dubai, UAE' })).toMatchObject({
+      pass: false,
+      reason: expect.stringContaining('location'),
+    });
   });
 
   it('accepts remote roles open worldwide, rejects region-locked ones', () => {
@@ -56,12 +60,26 @@ describe('stage A — listing screen', () => {
     expect(screen({ workMode: 'REMOTE', location: 'Anywhere in the World' })).toEqual({ pass: true });
     expect(screen({ workMode: 'REMOTE', location: 'Remote' })).toEqual({ pass: true });
     expect(screen({ workMode: 'REMOTE', location: 'APAC' })).toEqual({ pass: true });
-    expect(screen({ workMode: 'REMOTE', location: 'USA' })).toEqual({ pass: false, reason: 'remote, but limited to "usa"' });
-    expect(screen({ workMode: null, location: 'Remote - LATAM' })).toEqual({ pass: false, reason: 'remote, but limited to "latam"' });
+    expect(screen({ workMode: 'REMOTE', location: 'USA' })).toEqual({
+      pass: false,
+      reason: 'remote, but limited to "usa"',
+    });
+    expect(screen({ workMode: null, location: 'Remote - LATAM' })).toEqual({
+      pass: false,
+      reason: 'remote, but limited to "latam"',
+    });
   });
 
   it('rejects remote roles limited to countries that came through the old block-list (first real run)', () => {
-    for (const location of ['Poland', 'Argentina', 'France, Netherlands', 'South Africa', 'Nepal', 'Leipzig', 'Homeoffice']) {
+    for (const location of [
+      'Poland',
+      'Argentina',
+      'France, Netherlands',
+      'South Africa',
+      'Nepal',
+      'Leipzig',
+      'Homeoffice',
+    ]) {
       expect(screen({ workMode: 'REMOTE', location })).toMatchObject({ pass: false });
     }
   });
@@ -79,7 +97,10 @@ describe('stage A — listing screen', () => {
   });
 
   it('on aggregators, drops postings older than the limit and keeps undated ones', () => {
-    expect(screen({ postedAt: new Date('2026-08-01T00:00:00Z') })).toEqual({ pass: false, reason: 'older than 30 days' });
+    expect(screen({ postedAt: new Date('2026-08-01T00:00:00Z') })).toEqual({
+      pass: false,
+      reason: 'older than 30 days',
+    });
     expect(screen({ postedAt: null })).toEqual({ pass: true });
   });
 
@@ -89,13 +110,17 @@ describe('stage A — listing screen', () => {
 
   it('respects allowRemote = false', () => {
     const noRemote = compileFilter({ ...DEFAULT_DISCOVERY_PREFERENCES, allowRemote: false });
-    expect(noRemote.screenListing(posting({ workMode: 'REMOTE', location: 'Worldwide' }), { enforceMaxAge: true, now: NOW })).toMatchObject({ pass: false });
+    expect(
+      noRemote.screenListing(posting({ workMode: 'REMOTE', location: 'Worldwide' }), { enforceMaxAge: true, now: NOW }),
+    ).toMatchObject({ pass: false });
   });
 });
 
 describe('stage B — description screen', () => {
   it('passes when the description mentions the core stack', () => {
-    expect(filter.screenDescription(posting(), 'You will build features in React and TypeScript.')).toEqual({ pass: true });
+    expect(filter.screenDescription(posting(), 'You will build features in React and TypeScript.')).toEqual({
+      pass: true,
+    });
   });
 
   it('counts a stack keyword in the title', () => {
@@ -110,15 +135,20 @@ describe('stage B — description screen', () => {
 describe('defaults, tuned from the first live run', () => {
   it('drops German-market and student postings', () => {
     expect(screen({ title: 'Werkstudent Full-Stack Entwicklung (m/w/d)' })).toMatchObject({ pass: false });
-    expect(screen({ title: 'Full Stack Developer (m/w/d)', workMode: 'REMOTE', location: 'Remote' })).toMatchObject({ pass: false });
+    expect(screen({ title: 'Full Stack Developer (m/w/d)', workMode: 'REMOTE', location: 'Remote' })).toMatchObject({
+      pass: false,
+    });
   });
 
   it('drops remote roles limited to India', () => {
-    expect(screen({ workMode: 'REMOTE', location: 'India - Remote' })).toEqual({ pass: false, reason: 'remote, but limited to "india"' });
+    expect(screen({ workMode: 'REMOTE', location: 'India - Remote' })).toEqual({
+      pass: false,
+      reason: 'remote, but limited to "india"',
+    });
   });
 });
 
-// Alert-email jobs have only a title and a one-line summary (Agents.md §10.5). Titles from
+// Alert-email jobs have only a title and a one-line summary (docs/email-alerts.md §10.5). Titles from
 // the first real Gmail check (2026-10-03), where stage A alone let all of these through.
 describe('summary screen — alert jobs with no description', () => {
   const summary = (title: string, snippet = '') => filter.screenSummary(posting({ title }), snippet).pass;
@@ -134,12 +164,15 @@ describe('summary screen — alert jobs with no description', () => {
     expect(summary(title, 'Great team, competitive salary.')).toBe(false);
   });
 
-  it.each(['Full Stack Engineer', 'Associate Software Engineer', 'Sr. Full Stack Engineer', 'Frontend Developer', 'Web Developer'])(
-    'keeps the software role "%s" even when the summary names no stack',
-    (title) => {
-      expect(summary(title, '4+ years of professional experience shipping production systems.')).toBe(true);
-    },
-  );
+  it.each([
+    'Full Stack Engineer',
+    'Associate Software Engineer',
+    'Sr. Full Stack Engineer',
+    'Frontend Developer',
+    'Web Developer',
+  ])('keeps the software role "%s" even when the summary names no stack', (title) => {
+    expect(summary(title, '4+ years of professional experience shipping production systems.')).toBe(true);
+  });
 
   it('keeps any title when the summary names the stack', () => {
     expect(summary('Developer', 'Build features with React and TypeScript.')).toBe(true);

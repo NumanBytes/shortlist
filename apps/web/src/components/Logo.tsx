@@ -1,8 +1,14 @@
-// The Shortlist mark, "the slice" (Agents.md §8.4.3): three list bars ending on one
+// The Shortlist mark, "the slice" (docs/web-design.md §8.4.3): three list bars ending on one
 // diagonal cut, and only the picked one runs past it. Same geometry as public/favicon.svg,
 // drawn with theme tokens (accent tile, on-accent bars) so dark mode follows.
-export function Logo({ withName = true, size = 'sm' }: { withName?: boolean; size?: 'sm' | 'lg' }) {
-  const tile = size === 'lg' ? 'size-16 rounded-[14px] shadow-[0_10px_24px_-8px_rgb(5_150_105/0.5)]' : 'size-8';
+const TILE = {
+  sm: 'size-8', // header
+  md: 'size-12', // install sheet
+  lg: 'size-16 rounded-[14px] shadow-[0_10px_24px_-8px_rgb(5_150_105/0.5)]', // sign-in
+};
+
+export function Logo({ withName = true, size = 'sm' }: { withName?: boolean; size?: keyof typeof TILE }) {
+  const tile = TILE[size];
   return (
     <span className={`inline-flex items-center ${size === 'lg' ? 'flex-col gap-4' : 'gap-2'}`}>
       <svg viewBox="0 0 64 64" className={`shrink-0 ${tile}`} aria-hidden="true">
@@ -14,7 +20,11 @@ export function Logo({ withName = true, size = 'sm' }: { withName?: boolean; siz
         </g>
       </svg>
       {withName && (
-        <span className={`font-bold tracking-tight text-fg ${size === 'lg' ? 'text-[28px] leading-none' : 'text-base'}`}>Shortlist</span>
+        <span
+          className={`font-bold tracking-tight text-fg ${size === 'lg' ? 'text-[28px] leading-none' : 'text-base'}`}
+        >
+          Shortlist
+        </span>
       )}
     </span>
   );

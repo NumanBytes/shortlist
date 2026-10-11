@@ -1,0 +1,100 @@
+# Every pull request and every push to main runs the same checks as a careful local run
+# (docs/development.md §15.6). A red check doesn't block merging by itself: a private repo
+# on the free plan can't require checks, so don't merge a PR with a red check.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A newer push to the same branch makes an older run pointless.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # Fast checks with no services: formatting, lint, types, unit tests, build.
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6 # version from package.json "packageManager"
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm format:check
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+
+  # Tests that need the real Postgres and Redis: API e2e and worker integration.
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:18-alpine # same major version as development and production
+        env:
+          POSTGRES_USER: shortlist
+          POSTGRES_PASSWORD: shortlist
+          POSTGRES_DB: shortlist
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U shortlist" --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://shortlist:shortlist@localhost:5432/shortlist
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # The apps and the Prisma CLI read .env files; these values exist only in this
+      # throwaway runner. No Google or Anthropic keys: tests fake both.
+      - name: Write env files
+        run: |
+          echo "DATABASE_URL=$DATABASE_URL" > packages/db/.env
+          cp packages/db/.env apps/worker/.env
+          { cat packages/db/.env; echo "JWT_ACCESS_SECRET=ci-only-secret-not-used-anywhere-else-0123456789"; } > apps/api/.env
+      - run: pnpm --filter @shortlist/shared build && pnpm --filter @shortlist/db build
+      - run: pnpm --filter @shortlist/db db:migrate:deploy
+      - run: pnpm --filter @shortlist/api test:e2e
+      - run: pnpm --filter @shortlist/worker test:integration
+
+  # The deploy builds these images on the server; catch a broken Dockerfile here first.
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - name: Build the server image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          target: server
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Build the web image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          target: web
+          push: false
+          cache-from: type=gha

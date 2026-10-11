@@ -5,7 +5,7 @@ import type { Posting } from './types.js';
 export interface StoreItem {
   posting: Posting;
   description: string;
-  // Only an alert's summary is known (Agents.md §10.5); the full description comes later.
+  // Only an alert's summary is known (docs/email-alerts.md §10.5); the full description comes later.
   partial?: boolean;
 }
 
@@ -24,7 +24,7 @@ export interface StoreResult {
 }
 
 // Shared by board discovery and email alerts: inserts postings not seen before (by
-// normalized company + title, Agents.md §9.7), bumps lastSeenAt on ones that were, and
+// normalized company + title, docs/discovery.md §9.7), bumps lastSeenAt on ones that were, and
 // fills in the description of a partial (alert-only) job when a source finally has it.
 export async function storeJobs(prisma: PrismaService, ctx: StoreContext, items: StoreItem[]): Promise<StoreResult> {
   if (items.length === 0) return { newJobIds: [], completedJobIds: [] };
@@ -91,7 +91,9 @@ export async function storeJobs(prisma: PrismaService, ctx: StoreContext, items:
     // A salary from any source beats none.
     ...existing
       .filter((j) => !j.salary && byHash.get(j.dedupeHash)!.posting.salary)
-      .map((j) => prisma.job.update({ where: { id: j.id }, data: { salary: byHash.get(j.dedupeHash)!.posting.salary } })),
+      .map((j) =>
+        prisma.job.update({ where: { id: j.id }, data: { salary: byHash.get(j.dedupeHash)!.posting.salary } }),
+      ),
   ]);
   return { newJobIds: created.map((j) => j.id), completedJobIds: completions.map((j) => j.id) };
 }

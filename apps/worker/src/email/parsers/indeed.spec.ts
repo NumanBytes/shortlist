@@ -35,20 +35,30 @@ describe('Indeed alert parser', () => {
       salary: 'Rs 60,000 - Rs 70,000 a month',
       postedAt: new Date(RECEIVED.getTime() - 2 * 24 * 3600 * 1000), // "2 days ago"
     });
-    expect(r.postings.every((p) => p.title && p.company && /^https:\/\/pk\.indeed\.com\/viewjob\?jk=[0-9a-f]+$/.test(p.url))).toBe(true);
+    expect(
+      r.postings.every((p) => p.title && p.company && /^https:\/\/pk\.indeed\.com\/viewjob\?jk=[0-9a-f]+$/.test(p.url)),
+    ).toBe(true);
   });
 
   it('also reads the jobs listed in an "alert is now active" confirmation', () => {
     const r = parse('indeed-alert-active.eml');
     if (r.kind !== 'jobs') throw new Error('expected jobs');
     expect(r.postings).toHaveLength(10);
-    expect(r.postings[0]).toMatchObject({ title: 'Full Stack Engineer', company: 'Burq, Inc.', location: 'Lahore', externalId: null });
+    expect(r.postings[0]).toMatchObject({
+      title: 'Full Stack Engineer',
+      company: 'Burq, Inc.',
+      location: 'Lahore',
+      externalId: null,
+    });
     // No job key in these links: the portal's own link is kept as-is.
     expect(r.postings[0]!.url).toMatch(/^https:\/\/engage\.indeed\.com\//);
   });
 
   it('says a confirmation with no jobs is not an alert (instead of "found nothing")', () => {
-    expect(parse('indeed-alert-active-empty.eml')).toEqual({ kind: 'not_alert', reason: 'alert confirmation with no jobs yet' });
+    expect(parse('indeed-alert-active-empty.eml')).toEqual({
+      kind: 'not_alert',
+      reason: 'alert confirmation with no jobs yet',
+    });
   });
 
   it('matches only the alerts sender', () => {

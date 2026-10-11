@@ -81,11 +81,19 @@ export const JOB_SOURCES: SeedJobSource[] = [
   planned('simplicant', '7Vals', 'https://7vals.simplicant.com/'),
   planned('webhr', 'UWorx', 'https://uworx.webhr.co/jobs/home/'),
   planned('hirestream', 'Cogent Labs', 'https://cogent-labs.hirestream.io/careers/'),
-  planned('successfactors', 'Systemvent', 'https://career55.sapsf.eu/career?company=systemvent&career_ns=job_listing_summary&navBarLevel=JOB_SEARCH'),
+  planned(
+    'successfactors',
+    'Systemvent',
+    'https://career55.sapsf.eu/career?company=systemvent&career_ns=job_listing_summary&navBarLevel=JOB_SEARCH',
+  ),
   planned('pinpoint', 'Code District', 'https://codedistrict.com/job-details?2096874'),
 
   // ── Milestone 3: custom careers sites (change-detection + extraction) ────
-  planned('careers_page', 'NetSol Technologies', 'https://careers.netsoltech.com/?post_type=noo_job&action=live_search&location=lahore'),
+  planned(
+    'careers_page',
+    'NetSol Technologies',
+    'https://careers.netsoltech.com/?post_type=noo_job&action=live_search&location=lahore',
+  ),
   planned('careers_page', 'Folio3', 'https://folio3.com/careers/'),
   planned('careers_page', 'Synavos', 'https://synavos.com/careers/'),
   planned('careers_page', 'BrainX', 'https://careers.brainxtech.com/'),
@@ -100,9 +108,19 @@ export const JOB_SOURCES: SeedJobSource[] = [
   planned('careers_page', 'CodingCops', 'https://codingcops.com/about/'),
   planned('careers_page', 'Nextbridge', 'https://nextbridge.com/careers/'),
   planned('careers_page', 'The Developers Arena', 'https://www.thedevelopersarena.com/apply'),
-  planned('careers_page', 'The TCM Group', 'https://thetcmgroup.com/about/careers/', 'Returned 403 to automated requests (2026-10-01)'),
+  planned(
+    'careers_page',
+    'The TCM Group',
+    'https://thetcmgroup.com/about/careers/',
+    'Returned 403 to automated requests (2026-10-01)',
+  ),
   planned('careers_page', 'Qbatch', 'https://qbatch.com/careers/', 'Careers page returned 404 (2026-10-01)'),
-  planned('careers_page', 'Conrad Labs', 'https://conradlabs.recruitease.simplisti.cc/recruitment/job-posts', 'Domain did not resolve (2026-10-01)'),
+  planned(
+    'careers_page',
+    'Conrad Labs',
+    'https://conradlabs.recruitease.simplisti.cc/recruitment/job-posts',
+    'Domain did not resolve (2026-10-01)',
+  ),
 
   // ── Milestone 3: job-alert emails (portals that forbid scraping / have no API) ──
   planned('email_alerts', 'Wellfound', undefined, 'No public API; ToS forbids scraping — use job-alert emails'),

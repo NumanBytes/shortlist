@@ -19,7 +19,10 @@ export class EducationController {
   }
 
   @Post()
-  create(@CurrentUser() user: AuthUser, @Body(new ZodValidationPipe(CreateEducationSchema)) body: CreateEducationInput) {
+  create(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodValidationPipe(CreateEducationSchema)) body: CreateEducationInput,
+  ) {
     return this.education.create(user.id, body);
   }
 

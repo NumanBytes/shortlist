@@ -11,7 +11,8 @@ function mockFetch(handler: (url: string, init: RequestInit) => Response | Promi
   return fn;
 }
 
-const authHeader = (init: RequestInit | undefined) => (init?.headers as Record<string, string> | undefined)?.Authorization;
+const authHeader = (init: RequestInit | undefined) =>
+  (init?.headers as Record<string, string> | undefined)?.Authorization;
 
 beforeEach(() => {
   setAccessToken(null);
@@ -90,7 +91,9 @@ describe('api', () => {
   });
 
   it('exposes field-level validation errors', async () => {
-    mockFetch(() => json(400, { message: 'Validation failed', errors: [{ path: 'email', message: 'Invalid email address' }] }));
+    mockFetch(() =>
+      json(400, { message: 'Validation failed', errors: [{ path: 'email', message: 'Invalid email address' }] }),
+    );
     const err = await api('/auth/register', { method: 'POST', body: {} }).catch((e: unknown) => e);
     expect(err).toBeInstanceOf(ApiError);
     expect((err as ApiError).fieldErrors).toEqual({ email: 'Invalid email address' });

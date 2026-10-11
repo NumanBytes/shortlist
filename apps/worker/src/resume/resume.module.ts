@@ -13,7 +13,11 @@ import { ResumeService } from './resume.service.js';
   providers: [
     ResumeService,
     ResumeProcessor,
-    { provide: RESUME_WRITER, inject: [ENV], useFactory: (env: Env) => new AnthropicResumeWriter(env.ANTHROPIC_API_KEY) },
+    {
+      provide: RESUME_WRITER,
+      inject: [ENV],
+      useFactory: (env: Env) => new AnthropicResumeWriter(env.ANTHROPIC_API_KEY),
+    },
   ],
 })
 export class ResumeModule {}

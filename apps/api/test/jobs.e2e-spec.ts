@@ -74,7 +74,7 @@ describe('Jobs & discovery (e2e)', () => {
       await t.http().get('/api/v1/jobs?status=NOPE').set(me.auth).expect(400);
     });
 
-    it('filters by source — only the caller\'s jobs from it', async () => {
+    it("filters by source — only the caller's jobs from it", async () => {
       const src = await source(me);
       await job(me, { title: 'From the board', jobSourceId: src.id });
       await job(me, { title: 'From elsewhere' });
@@ -85,7 +85,7 @@ describe('Jobs & discovery (e2e)', () => {
       await t.http().get('/api/v1/jobs?sourceId=not-a-uuid').set(me.auth).expect(400);
     });
 
-    it('counts jobs per status for the tabs — only the caller\'s', async () => {
+    it("counts jobs per status for the tabs — only the caller's", async () => {
       const user = await t.register();
       await job(user, { status: 'DISCOVERED' });
       await job(user, { status: 'DISCOVERED' });
@@ -125,7 +125,11 @@ describe('Jobs & discovery (e2e)', () => {
       });
       const res = await t.http().get('/api/v1/discovery/sources').set(me.auth).expect(200);
       const board = res.body.find((x: { id: string }) => x.id === s.id);
-      expect(board).toMatchObject({ provider: 'greenhouse', supported: true, lastRun: { status: 'FAILED', errorMessage: 'HTTP 503' } });
+      expect(board).toMatchObject({
+        provider: 'greenhouse',
+        supported: true,
+        lastRun: { status: 'FAILED', errorMessage: 'HTTP 503' },
+      });
       expect(board).not.toHaveProperty('config');
       expect(res.body.find((x: { name: string }) => x.name === 'Planned Co')).toMatchObject({ supported: false });
     });
@@ -137,7 +141,8 @@ describe('Jobs & discovery (e2e)', () => {
         isEnabled: false,
         config: { provider: 'jazzhr', url: 'https://x.applytojob.com/apply' },
       });
-      const res = await t.http()
+      const res = await t
+        .http()
         .patch(`/api/v1/discovery/sources/${planned.id}`)
         .set(me.auth)
         .send({ isEnabled: true })
@@ -174,12 +179,19 @@ describe('Jobs & discovery (e2e)', () => {
     it('"run now" also checks the Gmail alert label when Gmail is connected', async () => {
       const user = await t.register();
       await t.prisma.gmailConnection.create({
-        data: { userId: user.user.id, emailAddress: 'me@example.com', refreshTokenEnc: 'sealed', labelName: 'Shortlist' },
+        data: {
+          userId: user.user.id,
+          emailAddress: 'me@example.com',
+          refreshTokenEnc: 'sealed',
+          labelName: 'Shortlist',
+        },
       });
       const res = await t.http().post('/api/v1/discovery/run').set(user.auth).expect(202);
       expect(res.body.emailQueued).toBe(true);
       const email = new Queue(EMAIL_QUEUE, { connection: redis });
-      const checks = (await email.getJobs(['waiting', 'delayed', 'active'])).filter((j) => j.data.userId === user.user.id);
+      const checks = (await email.getJobs(['waiting', 'delayed', 'active'])).filter(
+        (j) => j.data.userId === user.user.id,
+      );
       expect(checks).toHaveLength(1);
       await Promise.all(checks.map((j) => j.remove()));
       await email.close();
@@ -193,13 +205,18 @@ describe('Jobs & discovery (e2e)', () => {
       await source(user, { isEnabled: false }); // never ran, but disabled: doesn't make a run due
       await t.prisma.discoveryRun.create({ data: { jobSourceId: s.id, status: 'RUNNING' } });
       const res = await t.http().get('/api/v1/discovery/status').set(user.auth).expect(200);
-      expect(res.body).toMatchObject({ enabledSources: 2, lastCheckedAt: ranAt.toISOString(), running: 1, cooldownHours: 6 });
+      expect(res.body).toMatchObject({
+        enabledSources: 2,
+        lastCheckedAt: ranAt.toISOString(),
+        running: 1,
+        cooldownHours: 6,
+      });
       // The older source becomes due first: 2h ago + 6h cooldown.
       expect(Date.parse(res.body.availableAt)).toBeCloseTo(Date.now() + 4 * 3600 * 1000, -4);
       expect(typeof res.body.workerOnline).toBe('boolean');
     });
 
-    it('retries one source — not before its cooldown, and never another user\'s', async () => {
+    it("retries one source — not before its cooldown, and never another user's", async () => {
       const user = await t.register();
       const failed = await source(user, { lastRunAt: new Date(Date.now() - 7 * 3600 * 1000), lastRunStatus: 'FAILED' });
       const recent = await source(user, { lastRunAt: new Date(Date.now() - 3600 * 1000) });
@@ -207,20 +224,37 @@ describe('Jobs & discovery (e2e)', () => {
       const res = await t.http().post(`/api/v1/discovery/sources/${recent.id}/run`).set(user.auth).expect(409);
       expect(res.body.message).toMatch(/ran recently/);
       await t.http().post(`/api/v1/discovery/sources/${failed.id}/run`).set(other.auth).expect(404);
-      const queued = (await queue.getJobs(['waiting', 'delayed', 'active'])).filter((j) => j.data.sourceId === failed.id);
+      const queued = (await queue.getJobs(['waiting', 'delayed', 'active'])).filter(
+        (j) => j.data.sourceId === failed.id,
+      );
       expect(queued).toHaveLength(1);
       await Promise.all(queued.map((j) => j.remove()));
     });
 
-    it('edits a failing board\'s address from its link, and clears the cooldown so it can be retried', async () => {
+    it("edits a failing board's address from its link, and clears the cooldown so it can be retried", async () => {
       const user = await t.register();
       const s = await source(user, { lastRunAt: new Date(), lastRunStatus: 'FAILED' });
-      const res = await t.http().patch(`/api/v1/discovery/sources/${s.id}/address`).set(user.auth).send({ address: 'https://job-boards.greenhouse.io/motive2' }).expect(200);
+      const res = await t
+        .http()
+        .patch(`/api/v1/discovery/sources/${s.id}/address`)
+        .set(user.auth)
+        .send({ address: 'https://job-boards.greenhouse.io/motive2' })
+        .expect(200);
       expect(res.body.config).toEqual({ provider: 'greenhouse', board: 'motive2' });
       await t.http().post(`/api/v1/discovery/sources/${s.id}/run`).set(user.auth).expect(202); // no cooldown now
-      const bad = await t.http().patch(`/api/v1/discovery/sources/${s.id}/address`).set(user.auth).send({ address: 'https://jobs.lever.co/x' }).expect(400);
+      const bad = await t
+        .http()
+        .patch(`/api/v1/discovery/sources/${s.id}/address`)
+        .set(user.auth)
+        .send({ address: 'https://jobs.lever.co/x' })
+        .expect(400);
       expect(bad.body.message).toMatch(/isn't a greenhouse board link/);
-      await t.http().patch(`/api/v1/discovery/sources/${s.id}/address`).set(other.auth).send({ address: 'motive' }).expect(404);
+      await t
+        .http()
+        .patch(`/api/v1/discovery/sources/${s.id}/address`)
+        .set(other.auth)
+        .send({ address: 'motive' })
+        .expect(404);
       const queued = (await queue.getJobs(['waiting', 'delayed', 'active'])).filter((j) => j.data.sourceId === s.id);
       await Promise.all(queued.map((j) => j.remove()));
     });
@@ -233,7 +267,7 @@ describe('Jobs & discovery (e2e)', () => {
       expect(res.body.jobsThisWeek).toBe(1);
     });
 
-    it("knows whether a worker is running from its heartbeat", async () => {
+    it('knows whether a worker is running from its heartbeat', async () => {
       const before = await redis.get(WORKER_HEARTBEAT_KEY);
       await redis.set(WORKER_HEARTBEAT_KEY, new Date().toISOString(), 'PX', 60_000);
       expect((await t.http().get('/api/v1/discovery/status').set(me.auth).expect(200)).body.workerOnline).toBe(true);

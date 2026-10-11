@@ -3,8 +3,9 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router';
 import { App } from './App';
-import { AuthProvider } from './auth/AuthProvider';
+import { AuthProvider } from './features/auth/AuthProvider';
 import { ToastProvider } from './components/Toast';
+import { ErrorBoundary } from './layout/ErrorBoundary';
 import { ApiError } from './lib/api';
 import './index.css';
 import { applyTheme, getTheme } from './lib/theme';
@@ -25,14 +26,17 @@ const queryClient = new QueryClient({
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AuthProvider>
-          <ToastProvider>
-            <App />
-          </ToastProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </QueryClientProvider>
+    {/* Last resort, for errors outside a screen (sign-in, providers); AppShell has its own. */}
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <AuthProvider>
+            <ToastProvider>
+              <App />
+            </ToastProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </ErrorBoundary>
   </StrictMode>,
 );

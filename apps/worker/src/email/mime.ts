@@ -1,7 +1,7 @@
 // A small RFC 5322 / MIME reader for job-alert emails — hand-rolled, like the OAuth code,
 // so every step is visible. It handles what alert emails actually use: nested multipart,
 // quoted-printable and base64 bodies, charset decoding, and RFC 2047 encoded headers.
-// It only reads; nothing here is stored (Agents.md §10.3).
+// It only reads; nothing here is stored (docs/email-alerts.md §10.3).
 
 export interface ParsedMail {
   from: string | null;
@@ -58,7 +58,11 @@ function contentType(part: Part): { type: string; params: Record<string, string>
   const params: Record<string, string> = {};
   for (const p of rest) {
     const i = p.indexOf('=');
-    if (i > 0) params[p.slice(0, i).trim().toLowerCase()] = p.slice(i + 1).trim().replace(/^"(.*)"$/, '$1');
+    if (i > 0)
+      params[p.slice(0, i).trim().toLowerCase()] = p
+        .slice(i + 1)
+        .trim()
+        .replace(/^"(.*)"$/, '$1');
   }
   return { type: type.trim().toLowerCase(), params };
 }
@@ -99,7 +103,8 @@ function splitMultipart(body: Buffer, boundary: string): Buffer[] {
 function decodeBody(part: Part, charset: string | undefined): string {
   const encoding = (part.headers.get('content-transfer-encoding') ?? '7bit').toLowerCase();
   let bytes: Buffer;
-  if (encoding === 'base64') bytes = Buffer.from(part.body.toString('latin1').replace(/[^A-Za-z0-9+/=]/g, ''), 'base64');
+  if (encoding === 'base64')
+    bytes = Buffer.from(part.body.toString('latin1').replace(/[^A-Za-z0-9+/=]/g, ''), 'base64');
   else if (encoding === 'quoted-printable') bytes = decodeQuotedPrintable(part.body.toString('latin1'));
   else bytes = part.body;
   return decodeCharset(bytes, charset);

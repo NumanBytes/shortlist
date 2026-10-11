@@ -12,10 +12,10 @@ const createdUsers: string[] = [];
 class FakeAnalyzer implements JobAnalyzer {
   configured = true;
   prompts: { system: string; user: string }[] = [];
-  next: (prompt: { user: string }) => Partial<AnalyzerResult> | Error = () => ({});
+  next: (prompt: { user: string }) => Partial<AnalyzerResult> | Error | Promise<Partial<AnalyzerResult>> = () => ({});
   async analyze(prompt: { system: string; user: string }): Promise<AnalyzerResult> {
     this.prompts.push(prompt);
-    const r = this.next(prompt);
+    const r = await this.next(prompt);
     if (r instanceof Error) throw r;
     return {
       model: 'claude-haiku-4-5-20251001',
@@ -36,8 +36,22 @@ const output = (user: string, over: Record<string, unknown> = {}) =>
     yearsRequired: 2,
     redFlags: [],
     requirements: [
-      { skill: 'React', importance: 'REQUIRED', isCore: true, yearsRequired: null, sameAs: [refFor(user, 'React')], relatedTo: [] },
-      { skill: 'TypeScript', importance: 'REQUIRED', isCore: false, yearsRequired: null, sameAs: [refFor(user, 'TypeScript')], relatedTo: [] },
+      {
+        skill: 'React',
+        importance: 'REQUIRED',
+        isCore: true,
+        yearsRequired: null,
+        sameAs: [refFor(user, 'React')],
+        relatedTo: [],
+      },
+      {
+        skill: 'TypeScript',
+        importance: 'REQUIRED',
+        isCore: false,
+        yearsRequired: null,
+        sameAs: [refFor(user, 'TypeScript')],
+        relatedTo: [],
+      },
       { skill: 'GraphQL', importance: 'PREFERRED', isCore: false, yearsRequired: null, sameAs: [], relatedTo: [] },
     ],
     ...over,
@@ -49,7 +63,13 @@ async function setup() {
   });
   createdUsers.push(user.id);
   const role = await prisma.workExperience.create({
-    data: { userId: user.id, company: 'CloudCard Inc.', title: 'Frontend Developer', startDate: new Date('2024-05-01'), isCurrent: true },
+    data: {
+      userId: user.id,
+      company: 'CloudCard Inc.',
+      title: 'Frontend Developer',
+      startDate: new Date('2024-05-01'),
+      isCurrent: true,
+    },
   });
   const skill = async (name: string, verified: boolean, context: 'COMMERCIAL' | 'PERSONAL' = 'COMMERCIAL') =>
     prisma.skill.create({
@@ -132,7 +152,16 @@ describe('AnalysisService.analyzeJob', () => {
     const { svc, analyzer } = service();
     analyzer.next = (p) => ({
       text: output(p.user, {
-        requirements: [{ skill: 'Azure B2C', importance: 'REQUIRED', isCore: true, yearsRequired: null, sameAs: ['S42'], relatedTo: [] }],
+        requirements: [
+          {
+            skill: 'Azure B2C',
+            importance: 'REQUIRED',
+            isCore: true,
+            yearsRequired: null,
+            sameAs: ['S42'],
+            relatedTo: [],
+          },
+        ],
       }),
     });
     await svc.analyzeJob(job.id);
@@ -147,7 +176,16 @@ describe('AnalysisService.analyzeJob', () => {
     const { svc, analyzer } = service();
     analyzer.next = (p) => ({
       text: output(p.user, {
-        requirements: [{ skill: 'React', importance: 'REQUIRED', isCore: true, yearsRequired: null, sameAs: [], relatedTo: [refFor(p.user, 'React')] }],
+        requirements: [
+          {
+            skill: 'React',
+            importance: 'REQUIRED',
+            isCore: true,
+            yearsRequired: null,
+            sameAs: [],
+            relatedTo: [refFor(p.user, 'React')],
+          },
+        ],
       }),
     });
     await svc.analyzeJob(job.id);
@@ -159,7 +197,15 @@ describe('AnalysisService.analyzeJob', () => {
     const { user, job } = await setup();
     await prisma.aiSettings.create({ data: { userId: user.id, maxAnalysesPerDay: 40, monthlyBudgetUsd: 0.01 } });
     await prisma.aiUsage.create({
-      data: { userId: user.id, purpose: 'ANALYZE_JOB', model: 'claude-haiku-4-5', inputTokens: 1, outputTokens: 1, costUsd: 0.02, succeeded: true },
+      data: {
+        userId: user.id,
+        purpose: 'ANALYZE_JOB',
+        model: 'claude-haiku-4-5',
+        inputTokens: 1,
+        outputTokens: 1,
+        costUsd: 0.02,
+        succeeded: true,
+      },
     });
     const { svc, analyzer } = service();
     const outcome = await svc.analyzeJob(job.id);
@@ -172,10 +218,21 @@ describe('AnalysisService.analyzeJob', () => {
     const { user, job } = await setup();
     await prisma.aiSettings.create({ data: { userId: user.id, maxAnalysesPerDay: 1, monthlyBudgetUsd: 5 } });
     await prisma.aiUsage.create({
-      data: { userId: user.id, purpose: 'ANALYZE_JOB', model: 'claude-haiku-4-5', inputTokens: 1, outputTokens: 1, costUsd: 0.001, succeeded: true },
+      data: {
+        userId: user.id,
+        purpose: 'ANALYZE_JOB',
+        model: 'claude-haiku-4-5',
+        inputTokens: 1,
+        outputTokens: 1,
+        costUsd: 0.001,
+        succeeded: true,
+      },
     });
     const { svc, analyzer } = service();
-    expect(await svc.analyzeJob(job.id)).toMatchObject({ status: 'DEFERRED', reason: expect.stringMatching(/Daily analysis cap/) });
+    expect(await svc.analyzeJob(job.id)).toMatchObject({
+      status: 'DEFERRED',
+      reason: expect.stringMatching(/Daily analysis cap/),
+    });
     expect(analyzer.prompts).toHaveLength(0);
   });
 
@@ -183,7 +240,10 @@ describe('AnalysisService.analyzeJob', () => {
     const { user, job } = await setup();
     await prisma.skillEvidence.updateMany({ where: { skill: { userId: user.id } }, data: { isVerified: false } });
     const { svc, analyzer } = service();
-    expect(await svc.analyzeJob(job.id)).toMatchObject({ status: 'DEFERRED', reason: expect.stringMatching(/No verified evidence/) });
+    expect(await svc.analyzeJob(job.id)).toMatchObject({
+      status: 'DEFERRED',
+      reason: expect.stringMatching(/No verified evidence/),
+    });
     expect(analyzer.prompts).toHaveLength(0);
   });
 
@@ -235,6 +295,29 @@ describe('AnalysisService.analyzeJob', () => {
     expect(await svc.analyzeJob(job.id)).toMatchObject({ status: 'SKIPPED' });
     expect(analyzer.prompts).toHaveLength(1);
   });
+
+  it('analyses again when the description is pasted while the model is reading the old one', async () => {
+    const { job } = await setup();
+    const { svc, analyzer } = service();
+    analyzer.next = async (p) => {
+      // First call: the user pastes the full posting mid-run (JobsService.pasteDescription).
+      if (analyzer.prompts.length === 1) {
+        await prisma.job.update({
+          where: { id: job.id },
+          data: { rawJD: 'Full posting: React, TypeScript, Kubernetes.', analysisStatus: 'PENDING' },
+        });
+      }
+      return { text: output(p.user) };
+    };
+
+    const outcome = await svc.analyzeJob(job.id);
+
+    expect(outcome).toMatchObject({ status: 'DONE' });
+    expect(analyzer.prompts).toHaveLength(2);
+    expect(analyzer.prompts[1]!.user).toContain('Kubernetes');
+    // Both calls were billed, so both are logged.
+    expect(await prisma.aiUsage.count({ where: { jobId: job.id } })).toBe(2);
+  });
 });
 
 describe('AnalysisService.rescoreUser', () => {
@@ -263,7 +346,10 @@ describe('AnalysisService.rescoreUser', () => {
     expect((await prisma.job.findUniqueOrThrow({ where: { id: job.id } })).analyzedSkillIds).toHaveLength(2);
 
     // The user verifies their (previously unverified) Azure-named skill... any new skill.
-    await prisma.skillEvidence.updateMany({ where: { skill: { userId: user.id, name: 'Azure B2C' } }, data: { isVerified: true } });
+    await prisma.skillEvidence.updateMany({
+      where: { skill: { userId: user.id, name: 'Azure B2C' } },
+      data: { isVerified: true },
+    });
     expect(await svc.rescoreUser(user.id)).toEqual({ rescored: 0, needsReanalysis: [job.id] });
     const pending = await prisma.job.findUniqueOrThrow({ where: { id: job.id }, include: { match: true } });
     expect(pending.analysisStatus).toBe('PENDING');

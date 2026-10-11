@@ -1,4 +1,4 @@
-// Deterministic job scoring (Agents.md §12.1). The model only reads the job and maps
+// Deterministic job scoring (docs/ai-scoring.md §12.1). The model only reads the job and maps
 // each requirement to the user's VERIFIED skills; this file turns that mapping into a
 // score, verdict, gaps, strengths and risks. Same inputs, same output — always — and a
 // change to evidence re-scores with no model call.
@@ -74,7 +74,11 @@ export function promoteExactNameMatches(
   return requirements.map((r) => {
     const id = byName.get(normalizeSkillName(r.skillName));
     if (!id || r.matchedSkillIds.includes(id)) return r;
-    return { ...r, matchedSkillIds: [...r.matchedSkillIds, id], relatedSkillIds: r.relatedSkillIds.filter((x) => x !== id) };
+    return {
+      ...r,
+      matchedSkillIds: [...r.matchedSkillIds, id],
+      relatedSkillIds: r.relatedSkillIds.filter((x) => x !== id),
+    };
   });
 }
 
@@ -147,8 +151,7 @@ export function scoreJob(input: {
       strengths.push(`${req.skillName} — ${all.exactBest.skill.name} (${label(all.exactBest.evidence)})`);
     }
     if (all.exact === 0) {
-      const severity: GapSeverity =
-        req.importance === 'REQUIRED' ? (req.isCore ? 'BLOCKING' : 'MODERATE') : 'MINOR';
+      const severity: GapSeverity = req.importance === 'REQUIRED' ? (req.isCore ? 'BLOCKING' : 'MODERATE') : 'MINOR';
       gaps.push({
         skillName: req.skillName,
         // A related skill softens the gap but never closes it (it isn't the same skill).
@@ -170,13 +173,16 @@ export function scoreJob(input: {
     risks.push(`Asks for ${years}+ years; you have about ${input.userCommercialYears.toFixed(1)} commercial`);
   }
   for (const g of gaps.filter((x) => x.severity !== 'MINOR')) {
-    risks.push(`${g.severity === 'BLOCKING' ? 'Missing core skill' : 'Missing'}: ${g.skillName}${g.note ? ` (${g.note})` : ''}`);
+    risks.push(
+      `${g.severity === 'BLOCKING' ? 'Missing core skill' : 'Missing'}: ${g.skillName}${g.note ? ` (${g.note})` : ''}`,
+    );
   }
   for (const f of input.redFlags) risks.push(`Red flag: ${f}`);
 
   let verdict: Verdict;
   if (input.requirements.length === 0 || blocking >= 2 || overallScore < VERDICT_THRESHOLDS.stretch) verdict = 'SKIP';
-  else if (overallScore >= VERDICT_THRESHOLDS.apply && blocking === 0 && !yearsShort && input.redFlags.length === 0) verdict = 'APPLY';
+  else if (overallScore >= VERDICT_THRESHOLDS.apply && blocking === 0 && !yearsShort && input.redFlags.length === 0)
+    verdict = 'APPLY';
   else verdict = 'STRETCH';
 
   return { overallScore, commercialScore, verdict, strengths, risks, gaps };

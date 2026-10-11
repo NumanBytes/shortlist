@@ -1,5 +1,6 @@
 import { getJson } from '../http.js';
 import { htmlToText, toDate } from '../text.js';
+import { mapPostings } from '../postings.js';
 import type { Adapter, Posting } from '../types.js';
 
 // https://www.arbeitnow.com/api/job-board-api — mostly Europe; remote=false jobs are
@@ -16,7 +17,7 @@ interface ArbeitnowJob {
   tags?: string[];
 }
 
-export const arbeitnow: Adapter<{ provider: 'arbeitnow'; maxPages: number }> = async ({ maxPages }) => {
+export const arbeitnow: Adapter<{ provider: 'arbeitnow'; maxPages: number }> = async ({ maxPages }, ctx) => {
   const jobs: ArbeitnowJob[] = [];
   for (let page = 1; page <= maxPages; page++) {
     const res = await getJson<{ data: ArbeitnowJob[]; links?: { next?: string | null } }>(
@@ -25,7 +26,7 @@ export const arbeitnow: Adapter<{ provider: 'arbeitnow'; maxPages: number }> = a
     jobs.push(...res.data);
     if (!res.links?.next) break;
   }
-  return jobs.map((j): Posting => ({
+  return mapPostings(jobs, ctx, (j): Posting => ({
     externalId: j.slug,
     title: j.title.trim(),
     company: j.company_name.trim(),

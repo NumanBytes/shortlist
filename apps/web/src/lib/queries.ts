@@ -197,7 +197,8 @@ export function useRunSource() {
 export function useSetSourceAddress() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, address }: { id: string; address: string }) => api(`/discovery/sources/${id}/address`, { method: 'PATCH', body: { address } }),
+    mutationFn: ({ id, address }: { id: string; address: string }) =>
+      api(`/discovery/sources/${id}/address`, { method: 'PATCH', body: { address } }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: jobKeys.sources });
       void queryClient.invalidateQueries({ queryKey: jobKeys.discoveryStatus });
@@ -245,7 +246,8 @@ export const useSaveRole = () =>
   useCareerMutation(({ id, body }: { id?: string; body: CreateWorkExperienceInput | UpdateWorkExperienceInput }) =>
     id ? api(`/work-experiences/${id}`, { method: 'PATCH', body }) : api('/work-experiences', { method: 'POST', body }),
   );
-export const useDeleteRole = () => useCareerMutation((id: string) => api(`/work-experiences/${id}`, { method: 'DELETE' }));
+export const useDeleteRole = () =>
+  useCareerMutation((id: string) => api(`/work-experiences/${id}`, { method: 'DELETE' }));
 export const useSaveProject = () =>
   useCareerMutation(({ id, body }: { id?: string; body: CreateProjectInput | UpdateProjectInput }) =>
     id ? api(`/projects/${id}`, { method: 'PATCH', body }) : api('/projects', { method: 'POST', body }),
@@ -265,13 +267,16 @@ export function useUpdateProfile() {
   });
 }
 
-export const useEducation = () => useQuery({ queryKey: profileKeys.education, queryFn: () => api<Education[]>('/education') });
+export const useEducation = () =>
+  useQuery({ queryKey: profileKeys.education, queryFn: () => api<Education[]>('/education') });
 
 export function useSaveEducation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, body }: { id?: string; body: CreateEducationInput | UpdateEducationInput }) =>
-      id ? api<Education>(`/education/${id}`, { method: 'PATCH', body }) : api<Education>('/education', { method: 'POST', body }),
+      id
+        ? api<Education>(`/education/${id}`, { method: 'PATCH', body })
+        : api<Education>('/education', { method: 'POST', body }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: profileKeys.education }),
   });
 }
@@ -287,7 +292,7 @@ export function useDeleteEducation() {
 // ── Resumes ──────────────────────────────────────────────────────────────────
 export const resumeKeys = { job: (jobId: string) => ['jobs', 'resume', jobId] as const };
 
-// While the worker is tailoring, poll — but not forever (Agents.md §13.1). A real run takes
+// While the worker is tailoring, poll — but not forever (docs/resume.md §13.1). A real run takes
 // well under two minutes, so: every 3s at first, every 10s after a minute, every 15s
 // while no worker is running (to notice it starting), and not at all once it has waited
 // TAILOR_POLL_LIMIT_MS — the card then says so and offers "Check again".
@@ -336,7 +341,8 @@ export function usePrepareResume() {
 export function useApproveResume() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ variantId }: { variantId: string; jobId: string }) => api(`/resumes/${variantId}/approve`, { method: 'POST' }),
+    mutationFn: ({ variantId }: { variantId: string; jobId: string }) =>
+      api(`/resumes/${variantId}/approve`, { method: 'POST' }),
     onSuccess: (_, { jobId }) => queryClient.invalidateQueries({ queryKey: resumeKeys.job(jobId) }),
   });
 }
@@ -354,7 +360,8 @@ export const useGmail = (pollUntilCount = 0) =>
   });
 
 // Returns Google's consent URL; the caller navigates there (a full-page redirect, not a popup).
-export const useConnectGmail = () => useMutation({ mutationFn: () => api<{ url: string }>('/gmail/connect', { method: 'POST' }) });
+export const useConnectGmail = () =>
+  useMutation({ mutationFn: () => api<{ url: string }>('/gmail/connect', { method: 'POST' }) });
 
 export function useCheckGmail() {
   const queryClient = useQueryClient();
@@ -372,7 +379,7 @@ export function useDisconnectGmail() {
   });
 }
 
-// "Paste full description" (Agents.md §10.5): completes an alert-only job; it's scored again.
+// "Paste full description" (docs/email-alerts.md §10.5): completes an alert-only job; it's scored again.
 export function usePasteDescription() {
   const queryClient = useQueryClient();
   return useMutation({

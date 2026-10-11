@@ -30,8 +30,7 @@ export class EvidenceService {
 
     // The schema rejects both links in one request; this catches the other case —
     // setting one link while the stored row already has the other.
-    const workExperienceId =
-      input.workExperienceId !== undefined ? input.workExperienceId : existing.workExperienceId;
+    const workExperienceId = input.workExperienceId !== undefined ? input.workExperienceId : existing.workExperienceId;
     const projectId = input.projectId !== undefined ? input.projectId : existing.projectId;
     if (workExperienceId && projectId) {
       throw new BadRequestException(

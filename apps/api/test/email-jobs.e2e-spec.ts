@@ -1,6 +1,6 @@
 import { createTestApp, type TestApp, type TestUser } from './helpers.js';
 
-// Jobs that came from alert emails (Agents.md §10.5). The worker creates them; here they're
+// Jobs that came from alert emails (docs/email-alerts.md §10.5). The worker creates them; here they're
 // inserted directly, as the worker would.
 describe('Alert-email jobs (e2e)', () => {
   let t: TestApp;
@@ -46,7 +46,12 @@ describe('Alert-email jobs (e2e)', () => {
     const j = await partialJob(me);
     await t.http().post(`/api/v1/jobs/${j.id}/description`).set(me.auth).send({ description: 'too short' }).expect(400);
     await t.http().post(`/api/v1/jobs/${j.id}/description`).set(other.auth).send({ description: FULL }).expect(404);
-    const res = await t.http().post(`/api/v1/jobs/${j.id}/description`).set(me.auth).send({ description: FULL }).expect(200);
+    const res = await t
+      .http()
+      .post(`/api/v1/jobs/${j.id}/description`)
+      .set(me.auth)
+      .send({ description: FULL })
+      .expect(200);
     expect(res.body).toMatchObject({ isPartial: false, analysisStatus: 'PENDING', rawJD: FULL.trim() });
     // A job that already has its description can't be overwritten this way.
     await t.http().post(`/api/v1/jobs/${j.id}/description`).set(me.auth).send({ description: FULL }).expect(409);
@@ -62,20 +67,63 @@ describe('Alert-email jobs (e2e)', () => {
 
   it('keeps email-alert sources out of the board list and "Run now", and reports them on the Gmail card', async () => {
     const src = await t.prisma.jobSource.create({
-      data: { userId: me.user.id, key: 'email_alerts:indeed', name: 'Indeed', type: 'EMAIL_INBOX', config: { provider: 'email_alerts' }, isEnabled: true, lastRunAt: new Date(), lastRunStatus: 'SUCCESS' },
+      data: {
+        userId: me.user.id,
+        key: 'email_alerts:indeed',
+        name: 'Indeed',
+        type: 'EMAIL_INBOX',
+        config: { provider: 'email_alerts' },
+        isEnabled: true,
+        lastRunAt: new Date(),
+        lastRunStatus: 'SUCCESS',
+      },
     });
-    await t.prisma.discoveryRun.create({ data: { jobSourceId: src.id, status: 'SUCCESS', jobsFound: 6, jobsNew: 4, finishedAt: new Date() } });
+    await t.prisma.discoveryRun.create({
+      data: { jobSourceId: src.id, status: 'SUCCESS', jobsFound: 6, jobsNew: 4, finishedAt: new Date() },
+    });
     await t.prisma.emailMessage.createMany({
       data: [
-        { userId: me.user.id, gmailMessageId: 'a', sender: 'donotreply@jobalert.indeed.com', portal: 'indeed', receivedAt: new Date(), status: 'PARSED', parser: 'indeed', jobsFound: 6 },
-        { userId: me.user.id, gmailMessageId: 'b', sender: 'donotreply@jobalert.indeed.com', portal: 'indeed', receivedAt: new Date(), status: 'PARSED', parser: 'ai', jobsFound: 2, note: 'Indeed parser found no jobs — read by AI instead; the parser may be out of date' },
-        { userId: me.user.id, gmailMessageId: 'c', sender: 'jobs-noreply@linkedin.com', portal: 'linkedin', receivedAt: new Date(), status: 'NOT_ALERT', note: 'not a job alert (subject)' },
+        {
+          userId: me.user.id,
+          gmailMessageId: 'a',
+          sender: 'donotreply@jobalert.indeed.com',
+          portal: 'indeed',
+          receivedAt: new Date(),
+          status: 'PARSED',
+          parser: 'indeed',
+          jobsFound: 6,
+        },
+        {
+          userId: me.user.id,
+          gmailMessageId: 'b',
+          sender: 'donotreply@jobalert.indeed.com',
+          portal: 'indeed',
+          receivedAt: new Date(),
+          status: 'PARSED',
+          parser: 'ai',
+          jobsFound: 2,
+          note: 'Indeed parser found no jobs — read by AI instead; the parser may be out of date',
+          parserFailed: true,
+        },
+        {
+          userId: me.user.id,
+          gmailMessageId: 'c',
+          sender: 'jobs-noreply@linkedin.com',
+          portal: 'linkedin',
+          receivedAt: new Date(),
+          status: 'NOT_ALERT',
+          note: 'not a job alert (subject)',
+        },
       ],
     });
 
     const sources = await t.http().get('/api/v1/discovery/sources').set(me.auth).expect(200);
     expect(sources.body.map((s: { key: string }) => s.key)).not.toContain('email_alerts:indeed');
-    const run = await t.http().post('/api/v1/discovery/run').set(me.auth).expect((r) => expect([202, 200, 201]).toContain(r.status));
+    const run = await t
+      .http()
+      .post('/api/v1/discovery/run')
+      .set(me.auth)
+      .expect((r) => expect([202, 200, 201]).toContain(r.status));
     expect(run.body.queued).not.toContain('Indeed');
 
     const gmail = await t.http().get('/api/v1/gmail').set(me.auth).expect(200);
@@ -84,7 +132,17 @@ describe('Alert-email jobs (e2e)', () => {
       notAlerts: 1,
       deferred: 0,
       failed: 0,
-      portals: [{ portal: 'indeed', sourceId: src.id, label: 'Indeed', emails: 2, jobsFound: 8, parserWarnings: 1, lastRun: expect.objectContaining({ status: 'SUCCESS', jobsNew: 4 }) }],
+      portals: [
+        {
+          portal: 'indeed',
+          sourceId: src.id,
+          label: 'Indeed',
+          emails: 2,
+          jobsFound: 8,
+          parserWarnings: 1,
+          lastRun: expect.objectContaining({ status: 'SUCCESS', jobsNew: 4 }),
+        },
+      ],
     });
   });
 });

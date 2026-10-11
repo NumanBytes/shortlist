@@ -1,5 +1,6 @@
 import { getJson, postJson } from '../http.js';
 import { htmlToText, joinParts, toDate } from '../text.js';
+import { mapPostings } from '../postings.js';
 import type { Adapter, Posting, WorkMode } from '../types.js';
 
 // Workable's public careers-page API (what apply.workable.com itself calls).
@@ -35,7 +36,7 @@ export const workable: Adapter<{ provider: 'workable'; account: string }> = asyn
     if (!token) break;
   }
 
-  return listings.map((j): Posting => ({
+  return mapPostings(listings, ctx, (j): Posting => ({
     externalId: j.shortcode,
     title: j.title.trim(),
     company: ctx.sourceName,
@@ -46,7 +47,10 @@ export const workable: Adapter<{ provider: 'workable'; account: string }> = asyn
     description: null,
     loadDescription: async () => {
       const d = await getJson<WorkableDetail>(`https://apply.workable.com/api/v2/accounts/${acct}/jobs/${j.shortcode}`);
-      return [d.description, d.requirements, d.benefits].filter(Boolean).map((h) => htmlToText(h!)).join('\n\n');
+      return [d.description, d.requirements, d.benefits]
+        .filter(Boolean)
+        .map((h) => htmlToText(h!))
+        .join('\n\n');
     },
   }));
 };
