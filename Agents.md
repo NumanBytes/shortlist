@@ -1022,6 +1022,26 @@ The features:
   - **Resume review:** **copy as plain text** (for application forms that want pasted
     text, in the printed order, without removed bullets), tailor again, open the job.
 
+### 8.4.3 App icon and mark (2026-10-11)
+
+The first icon was a plain checkmark (favicon, home screen) and the in-app header used a
+different, stock `ListChecks` glyph, so the app had two marks and neither said anything
+about Shortlist. Seven directions were drawn on a Claude Design canvas at real sizes
+(16px tab to home screen, light and dark); the user chose **"the slice"**.
+- **The mark:** three list bars whose right ends sit on one diagonal cut line; only the
+  middle bar, in green, runs past it. "Many in, one picked", with the angled ends as the
+  brand detail. Plain bars, so it stays legible at 16px (the ring and monogram options
+  didn't).
+- **One geometry everywhere** (64-unit grid): `apps/web/public/favicon.svg` is the
+  source. The app icon is green on navy (`#0f172a`); in the app, `Logo.tsx` draws the
+  same paths with tokens (`accent` tile, `on-accent` bars), so dark mode follows. The
+  grey bars are solid colours rather than translucent white so no seams show.
+- **PNGs are generated, not hand-made:** `apps/web/icons/render.sh` rasterizes the SVGs
+  with headless Chrome (no image library). `apple-touch-icon.png` is full-bleed because
+  iOS rounds the corners itself and shows transparency as black. The maskable icon is a
+  separate full-bleed file with the mark scaled into the safe zone (centre circle, 40%
+  radius), because Android crops maskable icons to its own shape.
+
 ### 8.5 Other security decisions
 
 - **PWA service worker:** precaches the app shell only; `/api` is excluded from the
@@ -1937,6 +1957,7 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
 | 2026-10-05 | Roles/projects editing, Edit URL (`parseBoardAddress`), cancel tailoring (dedup id lookup; 409 once running), ··· menus incl. copy resume as text | §8.4.2 |
 | 2026-10-04 | Design fidelity pass (side-by-side with each board) + phase 3 screens; System/Light/Dark appearance (pre-paint, per device); single-source retry, today's spend, jobs this week | §8.4.1 — user doubted fidelity, asked for a theme switch |
 | 2026-10-04 | E2E tests use Redis database 15, never 0 | §15.3 — a running dev worker consumed the jobs e2e tests queued |
+| 2026-10-11 | App icon and in-app mark: "the slice" (three bars on one diagonal cut, the green one past it), one geometry for favicon, home screen and header; PNGs rendered from SVG by `icons/render.sh`; separate full-bleed maskable icon | §8.4.3 — user found the checkmark too basic; chosen from 7 drawn options |
 | 2026-10-04 | Mobile design implemented in the existing PWA (tokens, Geist, native-`<dialog>` sheets, pushed screens without tab bar, status sheet, `GET /jobs/counts`); fake progress steps, the sample resume and "Forgot password" not copied | §8.4.1 — user's Claude Design boards |
 | 2026-10-09 | Off-site backups: `offsite` Compose service (rclone image) copies the newest dump to Google Drive at 04:00, 30 days kept; scope `drive.file`; fails loudly on a missing/stale dump; optional dead man's switch ping | §4 — server and hosting account can both be lost |
 | 2026-10-08 | Host: AWS EC2 t4g.small (Graviton, Mumbai) on the 6-month free plan, then a budget VPS; guide has both as step 1A/1B; private repo cloned with a read-only deploy key; off-AWS backups next | §4 — Oracle Always Free kept failing ("Out of capacity"); user wants AWS experience |
