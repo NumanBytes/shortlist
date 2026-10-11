@@ -1,6 +1,6 @@
 import { Queue } from 'bullmq';
 import { queueJobOptions, safeJobId } from '@shortlist/shared';
-import { createRedis } from '../discovery/queue.js';
+import { createRedis } from '../redis.js';
 import { enqueueAnalyses } from './analysis.processor.js';
 
 // Against the real local Redis, on a throwaway queue.

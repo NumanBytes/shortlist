@@ -3,9 +3,6 @@ import {
   ResumeOutputSchema,
   assembleResume,
   mentionSpans,
-  placementFor,
-  requirementProfile,
-  resumeOverlap,
   type AssembleInput,
   type ResumeEvidence,
   type ResumeOutput,
@@ -73,23 +70,6 @@ const assemble = (output: Partial<ResumeOutput>, over: Partial<AssembleInput> = 
   });
 const roleBullets = (text: string, refs: string[], label: string | null = null) =>
   assemble({ experience: [{ role: 'R1', bullets: [bullet(text, refs, label)] }] });
-
-describe('placementFor (Agents.md §6.1)', () => {
-  it.each([
-    ['COMMERCIAL', 'PRODUCTION', recent, ['EXPERIENCE', 'PROJECTS', 'SKILLS']],
-    ['COMMERCIAL', 'WORKING', recent, ['EXPERIENCE', 'PROJECTS', 'SKILLS']],
-    ['COMMERCIAL', 'MAINTENANCE', recent, ['EXPERIENCE', 'PROJECTS']],
-    ['COMMERCIAL', 'EXPOSURE', recent, []],
-    ['PERSONAL', 'WORKING', recent, ['PROJECTS', 'SKILLS']],
-    ['ACADEMIC', 'WORKING', recent, ['PROJECTS', 'SKILLS']],
-    ['PERSONAL', 'EXPOSURE', recent, ['SKILLS']],
-    ['ACADEMIC', 'EXPOSURE', old, []],
-    ['PERSONAL', 'PRODUCTION', recent, []],
-    ['PERSONAL', 'MAINTENANCE', recent, []],
-  ] as const)('%s + %s', (context, depth, lastUsed, expected) => {
-    expect(placementFor({ context, depth, lastUsed }, NOW)).toEqual(expected);
-  });
-});
 
 describe('assembleResume — bullets', () => {
   it('keeps a bullet that cites its evidence, with the evidence IDs', () => {
@@ -242,32 +222,6 @@ describe('assembleResume — skills', () => {
   it("can't relabel strong skills as Learning, or a learning skill as strong", () => {
     const r = assemble({ skillGroups: [{ label: 'learning', skills: [S('React')] }], learning: [S('TypeScript')] });
     expect(r.content.skillGroups).toEqual([{ label: 'Other', skills: [{ id: 's-React', name: 'React' }, { id: 's-TypeScript', name: 'TypeScript' }] }]);
-  });
-});
-
-describe('reuse overlap (docs/resume.md §13.2)', () => {
-  const profile = requirementProfile([{ skillName: 'React.js' }, { skillName: 'TypeScript' }, { skillName: 'REST APIs' }, { skillName: 'AWS / GCP' }]);
-
-  it('normalizes names and splits alternatives', () => {
-    expect(profile).toEqual(['aws', 'gcp', 'react', 'restapi', 'typescript']);
-  });
-
-  it('measures the share of the new job covered and lists uncovered REQUIRED items', () => {
-    const r = resumeOverlap(
-      [
-        { skillName: 'React', importance: 'REQUIRED' },
-        { skillName: 'TypeScript', importance: 'REQUIRED' },
-        { skillName: 'GraphQL', importance: 'REQUIRED' },
-        { skillName: 'REST API', importance: 'PREFERRED' },
-      ],
-      profile,
-    );
-    expect(r.overlap).toBe(0.75);
-    expect(r.missingRequired).toEqual(['GraphQL']);
-  });
-
-  it('is zero for a job with no requirements (never reuse blindly)', () => {
-    expect(resumeOverlap([], profile).overlap).toBe(0);
   });
 });
 

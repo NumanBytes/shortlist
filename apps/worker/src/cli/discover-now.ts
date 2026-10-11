@@ -4,7 +4,7 @@
 import { DISCOVERY_QUEUE, DiscoveryJob } from '@shortlist/shared';
 import { Queue } from 'bullmq';
 import { loadEnv } from '../config/env.js';
-import { createRedis } from '../discovery/queue.js';
+import { createRedis } from '../redis.js';
 
 const env = loadEnv();
 const connection = createRedis(env.REDIS_URL);

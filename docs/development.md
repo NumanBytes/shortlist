@@ -37,7 +37,14 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
 - **Worker:** adapter tests serve **recorded real responses** (`test/fixtures/`) via a
   stubbed `fetch` — never the network; recapture a fixture when an adapter changes.
   Integration tests run `DiscoveryService` against the real database with fake adapters.
+- **Shared:** `packages/shared` tests its own pure code (scoring, resume placement and
+  overlap, board addresses, OAuth helpers and `SecretBox`) with Vitest. A test lives in the
+  package whose code it checks; the worker keeps the tests that run its prompt builder
+  together with `assembleResume()`, since they cite the refs the prompt hands out.
 - **Web:** Vitest + jsdom + Testing Library, `fetch` stubbed.
+- **Tests sit next to the file they test** (`JobRow.tsx` + `JobRow.test.tsx`) in every
+  package — never a separate `__tests__/` tree. Moving or deleting a file takes its test
+  along, and an untested file is visible at a glance (2026-10-12).
 - **Live verification:** significant features are also run end to end — real sources, a
   headless browser at phone size against the real API/worker — with temporary accounts
   deleted afterwards.
@@ -57,3 +64,24 @@ env with Zod at startup and refuses to start on bad config. Secrets are never co
   migration, and apply with `migrate deploy`.
 - **Never** pass the dev database as `--shadow-database-url`, and never run `migrate
   reset` against data you care about ([§1.3](../Agents.md)).
+
+### 15.5 Code layout (2026-10-12)
+
+Group code by feature; keep only what several features share in common folders.
+
+- **Web (`apps/web/src/`):** `features/<area>/` holds an area's page, the components only
+  it uses, and their tests — `auth`, `jobs` (with `job-detail/`), `evidence` (the review
+  screen), `profile`, `resume`, `sources`. `components/` holds only what more than one area
+  uses (`ui.tsx`, `Toast`, `Logo`, `PushLink`, `MoreMenu`, `ScoreRing`, `VerdictBadge`);
+  `layout/` the app frame (`AppShell`, `InstallPrompt`); `lib/` the API client, queries,
+  types and helpers, with React hooks in `lib/hooks/`; `test/` the test helpers. A
+  component that a second area starts using moves to `components/`. A feature may import
+  another's component (job detail shows `resume/ResumeSection`).
+- **API and worker:** one Nest module folder per feature (`jobs/`, `gmail/`, `discovery/`,
+  …). Wiring every feature needs lives at the root: the worker's BullMQ Redis connection is
+  registered in `worker.module.ts` (`createRedis()` in `src/redis.ts`), not inside one
+  feature module that the others silently depend on.
+- **Why:** the flat `components/` folder had grown to ~30 files mixing app-wide building
+  blocks with pieces used by one screen, and `pages/` split each page from its parts
+  (`JobDetailPage.tsx` beside `job-detail/`). By feature, everything a change touches is
+  in one folder. Rejected: moving tests into `__tests__/` (see §15.3).

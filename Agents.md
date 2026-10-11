@@ -35,7 +35,7 @@ and the alternatives that were rejected.
 | §10 Email job alerts | [docs/email-alerts.md](docs/email-alerts.md) | Gmail read-only OAuth, parsers and the model fallback, partial jobs |
 | §12 AI analysis and scoring | [docs/ai-scoring.md](docs/ai-scoring.md) | The model maps requirements; code scores; budget guard |
 | §13 Resume tailoring | [docs/resume.md](docs/resume.md) | Tailoring rules, the resume library, approval, printing, application kit |
-| §15 Development workflow | [docs/development.md](docs/development.md) | Conventions, testing, migrations |
+| §15 Development workflow | [docs/development.md](docs/development.md) | Conventions, testing, migrations, code layout |
 | §16 Decision log | [docs/decisions.md](docs/decisions.md) | Every decision, dated, with where it's described |
 | §17 Build state and roadmap | [docs/roadmap.md](docs/roadmap.md) | What's built, what's next, open decisions |
 | §18 Working agreements | this file | How the builder and assistants work together |

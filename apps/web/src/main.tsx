@@ -3,7 +3,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router';
 import { App } from './App';
-import { AuthProvider } from './auth/AuthProvider';
+import { AuthProvider } from './features/auth/AuthProvider';
 import { ToastProvider } from './components/Toast';
 import { ApiError } from './lib/api';
 import './index.css';
