@@ -10,9 +10,13 @@ updates:
     open-pull-requests-limit: 5
     groups:
       # The Prisma CLI and client must be the same version: updated apart, `prisma generate`
-      # fails (it bumped only @prisma/client to 7 in #34). Listed first, so it wins.
+      # fails (it bumped only @prisma/client to 7 in #34). Listed before
+      # minor-and-patch, so these groups win.
       prisma:
         patterns: ['prisma', '@prisma/*']
+      # Same for Vitest and its coverage plugin: #35 bumped only vitest, which breaks test:cov.
+      vitest:
+        patterns: ['vitest', '@vitest/*']
       minor-and-patch:
         update-types: [minor, patch]
     ignore:
