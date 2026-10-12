@@ -94,10 +94,14 @@ describe('JobRow', () => {
     expect(JSON.parse(fetchMock.mock.calls[1]![1]!.body as string)).toEqual({ status: 'DISCOVERED' });
   });
 
-  it("names a company board as 'company site' rather than repeating the company", () => {
+  it("names a company board from the user's list by its careers page", () => {
     row();
-    expect(screen.getByText('via company site')).toBeInTheDocument();
-    expect(screen.getAllByText(/Septem Systems/)).toHaveLength(1);
+    expect(screen.getByText('via Septem Systems careers')).toBeInTheDocument();
+  });
+
+  it('names the portal of a job-alert email', () => {
+    row({ ...job, source: 'linkedin', jobSource: { id: 's2', name: 'LinkedIn', type: 'EMAIL_INBOX' } });
+    expect(screen.getByText('via LinkedIn alert')).toBeInTheDocument();
   });
 
   it('shows why a job has no score yet', () => {

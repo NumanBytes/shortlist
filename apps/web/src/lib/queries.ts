@@ -95,7 +95,7 @@ export const useUpdateEvidence = () =>
 // ── Jobs & discovery ─────────────────────────────────────────────────────────
 export const jobKeys = {
   all: ['jobs'] as const,
-  list: (status?: JobStatus, sort: JobSort = 'score', sourceId?: string) =>
+  list: (status?: JobStatus, sort: JobSort = 'day', sourceId?: string) =>
     ['jobs', 'list', status ?? 'all', sort, sourceId ?? 'any'] as const,
   detail: (id: string) => ['jobs', 'detail', id] as const,
   sources: ['discovery', 'sources'] as const,
@@ -103,13 +103,15 @@ export const jobKeys = {
   aiUsage: ['ai', 'usage'] as const,
 };
 
-export type JobSort = 'score' | 'recent';
+// 'day': newest day first, best match within each day (grouped in the page from the API's
+// newest-first list). 'score': best match across every day.
+export type JobSort = 'day' | 'score';
 
-export const useJobs = (status?: JobStatus, sort: JobSort = 'score', sourceId?: string) =>
+export const useJobs = (status?: JobStatus, sort: JobSort = 'day', sourceId?: string) =>
   useQuery({
     queryKey: jobKeys.list(status, sort, sourceId),
     queryFn: () => {
-      const q = new URLSearchParams({ sort });
+      const q = new URLSearchParams({ sort: sort === 'day' ? 'recent' : 'score' });
       if (status) q.set('status', status);
       if (sourceId) q.set('sourceId', sourceId);
       return api<JobListItem[]>(`/jobs?${q}`);
