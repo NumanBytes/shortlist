@@ -31,8 +31,12 @@ export function placementFor(e: { context: Context; depth: Depth; lastUsed: Date
       return ['PROJECTS', 'SKILLS'];
     case 'EXPOSURE':
       return now.getTime() - e.lastUsed.getTime() < TWO_YEARS_MS ? ['SKILLS'] : [];
+    // Decided by the user 2026-10-13: personal work shipped to production is a project
+    // achievement and a listable skill — never an Experience bullet (it wasn't paid work).
+    case 'PRODUCTION':
+      return e.context === 'PERSONAL' ? ['PROJECTS', 'SKILLS'] : []; // ACADEMIC: open decision
     default:
-      return []; // PERSONAL/ACADEMIC + PRODUCTION/MAINTENANCE: open decision
+      return []; // PERSONAL/ACADEMIC + MAINTENANCE: open decision
   }
 }
 

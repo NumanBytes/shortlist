@@ -67,8 +67,9 @@ What is built, what comes next, and the open decisions.
 - **Career data completeness:** Git, REST APIs, npm, pnpm, prompting added
   (2026-10-02). Testing (Jest/Vitest in paid work) not stated — the user decides.
 - Whether prompt engineering at CloudCard is WORKING (seeded) or PRODUCTION — the user can raise it.
-- Placement rules for COMMERCIAL + EXPOSURE and PERSONAL + PRODUCTION / MAINTENANCE
-  ([§6.1](../Agents.md)). COMMERCIAL + WORKING decided 2026-10-02.
+- Placement rules for COMMERCIAL + EXPOSURE, PERSONAL + MAINTENANCE and ACADEMIC +
+  PRODUCTION / MAINTENANCE ([§6.1](../Agents.md)). COMMERCIAL + WORKING decided 2026-10-02;
+  PERSONAL + PRODUCTION decided 2026-10-13 (Projects and Skills).
 - The score threshold that gates tailoring ([§12.1](ai-scoring.md)) and the resume-reuse overlap threshold
   ([§13.2](resume.md)) — both runtime settings; initial values to be set when built.
 - Skill aliases ("React" vs "React.js") — needs a canonical-name mapping ([§5.2](architecture.md)).

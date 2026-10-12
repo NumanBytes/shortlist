@@ -16,7 +16,8 @@ describe('placementFor (Agents.md §6.1)', () => {
     ['ACADEMIC', 'WORKING', recent, ['PROJECTS', 'SKILLS']],
     ['PERSONAL', 'EXPOSURE', recent, ['SKILLS']],
     ['ACADEMIC', 'EXPOSURE', old, []],
-    ['PERSONAL', 'PRODUCTION', recent, []],
+    ['PERSONAL', 'PRODUCTION', recent, ['PROJECTS', 'SKILLS']],
+    ['ACADEMIC', 'PRODUCTION', recent, []],
     ['PERSONAL', 'MAINTENANCE', recent, []],
   ] as const)('%s + %s', (context, depth, lastUsed, expected) => {
     expect(placementFor({ context, depth, lastUsed }, NOW)).toEqual(expected);

@@ -164,9 +164,10 @@ these rules exactly.
 | PERSONAL/ACADEMIC + WORKING | Skills and Projects sections only — never an Experience bullet |
 | COMMERCIAL + WORKING | Skills section, and Experience bullets worded as what was actually done ("deployed through existing CI/CD pipelines", "small changes in Ruby") — never as having built or owned it (decided by the user 2026-10-02) |
 | PERSONAL/ACADEMIC + EXPOSURE | Skills section only if `lastUsed` < 2 years ago; otherwise omitted entirely |
+| PERSONAL + PRODUCTION | Projects and Skills sections — never an Experience bullet, since it wasn't paid work (decided by the user 2026-10-13: a shipped personal project like Shortlist is an achievement) |
 
-**Still open (ask before tailoring code assumes one):** COMMERCIAL + EXPOSURE and
-PERSONAL + PRODUCTION / MAINTENANCE.
+**Still open (ask before tailoring code assumes one):** COMMERCIAL + EXPOSURE,
+PERSONAL + MAINTENANCE and ACADEMIC + PRODUCTION / MAINTENANCE.
 
 ### 6.2 Hard rules for every AI generation step
 

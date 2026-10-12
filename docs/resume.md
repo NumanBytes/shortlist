@@ -205,9 +205,9 @@ depending on the posting.
   can appear (e.g. only exposure-level items), the resume notes it under removed items
   instead of failing.
 - Pinning changes nothing already generated: tailor again to apply it.
-- **Still open — why Shortlist never appears:** its PERSONAL + PRODUCTION items are placed
-  nowhere until the user decides that combination ([§6.1](../Agents.md), roadmap §17.3), so
-  only its working-level items can be bullets.
+- **Why Shortlist never appeared:** its PERSONAL + PRODUCTION items were placed nowhere
+  while that combination was undecided, so only its working-level items could be bullets.
+  Decided 2026-10-13: Projects and Skills ([§6.1](../Agents.md)).
 
 ### 13.8 The never-claim list (built 2026-10-13)
 
