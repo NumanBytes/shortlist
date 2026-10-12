@@ -1,10 +1,14 @@
 import { z } from 'zod';
+import { WebUrl } from './common.schema.js';
 
 // What a JobSource.config may contain, discriminated by `provider`. Validated when a
 // source is seeded/created and again by the worker before every run, so a malformed
 // row fails loudly as a FAILED DiscoveryRun instead of fetching the wrong thing.
 
 const slug = z.string().trim().min(1).max(100);
+// A hosted careers page's address, checked against the platform it claims to be on.
+const pageUrl = (test: (u: URL) => boolean, example: string) =>
+  WebUrl.refine((s) => test(new URL(s)), `Expected a link like ${example}`);
 const pages = z.number().int().min(1).max(20);
 
 // Providers the worker has an adapter for (Milestone 1).
@@ -14,6 +18,35 @@ export const ImplementedSourceConfigSchema = z.discriminatedUnion('provider', [
   z.object({ provider: z.literal('lever'), site: slug }).strict(),
   z.object({ provider: z.literal('smartrecruiters'), company: slug }).strict(),
   z.object({ provider: z.literal('workable'), account: slug }).strict(),
+  // Hosted careers pages without an API (Milestone 2, docs/discovery.md §9.3): the adapter
+  // reads the page the company links to, so its address is the whole config.
+  z
+    .object({
+      provider: z.literal('jazzhr'),
+      url: pageUrl(
+        (u) => /^[a-z0-9-]+\.applytojob\.com$/.test(u.hostname) && u.pathname.startsWith('/apply'),
+        'https://company.applytojob.com/apply',
+      ),
+    })
+    .strict(),
+  z
+    .object({
+      provider: z.literal('zohorecruit'),
+      url: pageUrl(
+        (u) => /^[a-z0-9-]+\.zohorecruit\.[a-z.]+$/.test(u.hostname) && /^\/jobs\/[^/]+\/?$/.test(u.pathname),
+        'https://company.zohorecruit.com/jobs/Careers',
+      ),
+    })
+    .strict(),
+  z
+    .object({
+      provider: z.literal('opencats'),
+      url: pageUrl(
+        (u) => u.searchParams.get('m') === 'careers' && u.searchParams.get('p') === 'showAll',
+        'https://hr.company.com/careers/index.php?m=careers&p=showAll',
+      ),
+    })
+    .strict(),
   // Remote-job aggregators with public APIs / feeds. Each requires attribution and a
   // link back to the original posting — the Jobs screen shows both.
   z.object({ provider: z.literal('remoteok') }).strict(),
@@ -28,9 +61,6 @@ export const ImplementedSourceConfigSchema = z.discriminatedUnion('provider', [
 // enabling one produces a FAILED run that says so. Milestone 2 = hosted ATS pages;
 // Milestone 3 = custom careers sites (change-detection + extraction) and email alerts.
 export const PLANNED_PROVIDERS = [
-  'jazzhr',
-  'zohorecruit',
-  'opencats',
   'simplicant',
   'webhr',
   'hirestream',

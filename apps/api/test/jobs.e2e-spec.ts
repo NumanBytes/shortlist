@@ -118,10 +118,10 @@ describe('Jobs & discovery (e2e)', () => {
         data: { jobSourceId: s.id, status: 'FAILED', errorMessage: 'HTTP 503', finishedAt: new Date() },
       });
       await source(me, {
-        key: 'zohorecruit:x',
+        key: 'simplicant:x',
         name: 'Planned Co',
         isEnabled: false,
-        config: { provider: 'zohorecruit', url: 'https://x.zohorecruit.com/jobs/Careers' },
+        config: { provider: 'simplicant', url: 'https://x.simplicant.com/' },
       });
       const res = await t.http().get('/api/v1/discovery/sources').set(me.auth).expect(200);
       const board = res.body.find((x: { id: string }) => x.id === s.id);
@@ -139,7 +139,7 @@ describe('Jobs & discovery (e2e)', () => {
       await t.http().patch(`/api/v1/discovery/sources/${s.id}`).set(me.auth).send({ isEnabled: false }).expect(200);
       const planned = await source(me, {
         isEnabled: false,
-        config: { provider: 'jazzhr', url: 'https://x.applytojob.com/apply' },
+        config: { provider: 'simplicant', url: 'https://x.simplicant.com/' },
       });
       const res = await t
         .http()

@@ -138,6 +138,101 @@ describe('aggregators', () => {
   });
 });
 
+// Hosted careers pages (Milestone 2): HTML captured 2026-10-13, trimmed, contact details removed.
+describe('hosted careers pages', () => {
+  it('jazzhr reads the list template, and the description from the job page’s JobPosting data', async () => {
+    const calls = serve([
+      [/northbay\.applytojob\.com\/apply$/, 'jazzhr-list.html'],
+      [/northbay\.applytojob\.com\/apply\/q91wjU5pCF\//, 'jazzhr-job.html'],
+    ]);
+    const postings = await ADAPTERS.jazzhr({ provider: 'jazzhr', url: 'https://northbay.applytojob.com/apply' }, ctx);
+    expectWellFormed(postings);
+    expect(postings[0]).toMatchObject({
+      externalId: 'q91wjU5pCF',
+      title: '.NET Developer',
+      location: 'Lahore, Punjab, Pakistan',
+      company: 'Test Co',
+      description: null,
+    });
+    expect(postings.find((p) => p.location === 'Remote')?.workMode).toBe('REMOTE');
+    expect(calls).toHaveLength(1); // descriptions only for survivors
+    expect(await postings[0]!.loadDescription!()).toMatch(/\.NET Developer/);
+  });
+
+  it('jazzhr reads a custom table template, once per job', async () => {
+    serve([[/venturedive\.applytojob\.com\/apply$/, 'jazzhr-table.html']]);
+    const postings = await ADAPTERS.jazzhr(
+      { provider: 'jazzhr', url: 'https://venturedive.applytojob.com/apply' },
+      ctx,
+    );
+    expectWellFormed(postings);
+    expect(postings).toHaveLength(4); // the page shows its table twice
+    expect(postings[0]).toMatchObject({ title: 'Network & System Support Engineer', location: 'Karachi, Pakistan' });
+  });
+
+  it('zohorecruit reads the hidden job list and the job page’s own record', async () => {
+    serve([
+      [/techlogix\.zohorecruit\.com\/jobs\/Careers---Lahore$/, 'zohorecruit-list.html'],
+      [/techlogix\.zohorecruit\.com\/jobs\/Careers---Lahore\/144136000023648189\//, 'zohorecruit-job.html'],
+    ]);
+    const postings = await ADAPTERS.zohorecruit(
+      { provider: 'zohorecruit', url: 'https://techlogix.zohorecruit.com/jobs/Careers---Lahore' },
+      ctx,
+    );
+    expectWellFormed(postings);
+    expect(postings[0]).toMatchObject({
+      title: 'Senior React Native Developer',
+      location: 'Lahore, Pakistan',
+      url: 'https://techlogix.zohorecruit.com/jobs/Careers---Lahore/144136000023648189/Senior-React-Native-Developer',
+    });
+    const description = await postings[0]!.loadDescription!();
+    expect(description).toMatch(/Senior React Native Developer/);
+    expect(description).not.toMatch(/<|\\x22/);
+  });
+
+  it('zohorecruit fails clearly when the careers site is gone, instead of reporting no jobs', async () => {
+    vi.stubGlobal('fetch', async () => new Response('<html><h2>not available</h2></html>', { status: 200 }));
+    await expect(
+      ADAPTERS.zohorecruit({ provider: 'zohorecruit', url: 'https://slashnext.zohorecruit.com/jobs/Careers' }, ctx),
+    ).rejects.toThrow(/No Zoho Recruit job list/);
+  });
+
+  it('opencats reads the table and the details page', async () => {
+    serve([
+      [/m=careers&p=showAll$/, 'opencats-list.html'],
+      [/m=careers&p=showJob&ID=229$/, 'opencats-job.html'],
+    ]);
+    const url = 'https://hr.intagleo.com/careers/index.php?m=careers&p=showAll';
+    const postings = await ADAPTERS.opencats({ provider: 'opencats', url }, ctx);
+    expectWellFormed(postings);
+    expect(postings[0]).toMatchObject({
+      externalId: '229',
+      title: 'Data Engineer- Yardi',
+      location: 'Lahore, Pakistan',
+      url: 'https://hr.intagleo.com/careers/index.php?m=careers&p=showJob&ID=229',
+    });
+    const description = await postings[0]!.loadDescription!();
+    expect(description).toMatch(/Data Migration Engineer/); // inside the template's HTML comment
+    expect(description).not.toMatch(/Apply to Position|<!--/);
+  });
+});
+
+describe('hosted careers pages — variants', () => {
+  it('opencats also reads installs that name jobs by slug', async () => {
+    serve([[/careers\.i2cinc\.com\/careers\/index\.php\?m=careers&p=showAll$/, 'opencats-slug-list.html']]);
+    const postings = await ADAPTERS.opencats(
+      { provider: 'opencats', url: 'https://careers.i2cinc.com/careers/index.php?m=careers&p=showAll' },
+      ctx,
+    );
+    expectWellFormed(postings);
+    expect(postings[0]).toMatchObject({
+      externalId: 'associate-client-success-manager-strategic-key-accounts-7',
+      title: 'Associate Client Success Manager - Strategic & Key Accounts',
+      location: 'Lahore, Punjab',
+    });
+  });
+});
+
 describe('errors', () => {
   it('surfaces HTTP failures instead of returning an empty list', async () => {
     serve([]); // every request 404s

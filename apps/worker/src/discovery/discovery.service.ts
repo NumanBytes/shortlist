@@ -9,10 +9,8 @@ import type { AdapterContext, AdapterRegistry, Posting } from './types.js';
 
 export const ADAPTER_REGISTRY = Symbol('ADAPTER_REGISTRY');
 
-// A failure retrying can't fix (bad config, provider not implemented yet). The
-// processor turns it into a non-retried job; transient errors (timeouts, 5xx) are
-// thrown as-is so the queue retries them with backoff.
-export class PermanentSourceError extends Error {}
+import { PermanentSourceError } from './errors.js';
+export { PermanentSourceError };
 
 export interface RunSummary {
   runId: string;
