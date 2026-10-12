@@ -157,6 +157,13 @@ and repeated email alerts into one.
   and the nightly fan-out had **no** deduplication id, so "Find new jobs" during the
   nightly run could fetch a source twice in parallel; for model calls, a mismatch would
   mean paying twice.
+- **Catch-up on start (2026-10-13):** a scheduler only looks forward, so a worker that
+  isn't running at 02:00 (a laptop asleep, a deploy at that minute) silently skips the
+  night — in development, the boards went 11 days without a run while Gmail checks
+  (every two hours) kept working. On start, `DiscoveryScheduler` checks Postgres for the
+  latest board run; if none started in the last 25 hours, it queues `discover-all` at once
+  (job id per hour, so two workers starting together queue one). Decided from the database,
+  not Redis, so it holds whatever the queue lost; a failed check logs and never stops the worker.
 - Worker concurrency: 3 sources in parallel (`WORKER_CONCURRENCY`).
 - BullMQ 6 requires a constructed `ioredis` client in ESM (`createRedis`); the worker's
   client waits for Redis to return (`maxRetriesPerRequest: null`).
