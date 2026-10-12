@@ -34,7 +34,7 @@ const aggregator = (key: string, name: string, config: JobSourceConfig): SeedJob
 // A hosted careers page (Milestone 2): the adapter reads the page itself. Same key scheme as
 // `planned`, so rows seeded before the adapter existed are the same rows.
 const hosted = (
-  provider: 'jazzhr' | 'zohorecruit' | 'opencats',
+  provider: 'jazzhr' | 'zohorecruit' | 'opencats' | 'simplicant',
   name: string,
   url: string,
   enabled = true,
@@ -85,7 +85,7 @@ export const JOB_SOURCES: SeedJobSource[] = [
   hosted('zohorecruit', 'Tintash', 'https://tintash.zohorecruit.com/jobs/new-openings'),
   hosted('opencats', 'Intagleo', 'https://hr.intagleo.com/careers/index.php?m=careers&p=showAll'),
   hosted('opencats', 'i2c', 'https://careers.i2cinc.com/careers/index.php?m=careers&p=showAll'),
-  planned('simplicant', '7Vals', 'https://7vals.simplicant.com/'),
+  hosted('simplicant', '7Vals', 'https://7vals.simplicant.com/'),
   planned('webhr', 'UWorx', 'https://uworx.webhr.co/jobs/home/'),
   planned('hirestream', 'Cogent Labs', 'https://cogent-labs.hirestream.io/careers/'),
   planned(

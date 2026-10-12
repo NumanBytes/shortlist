@@ -29,8 +29,8 @@ Each careers URL was fetched and classified by platform. All of it is recorded a
 |---|---|
 | **Enabled — public ATS APIs** | Motive (`greenhouse:gomotive`), Careem (Greenhouse), Educative, Kwanso (Lever), Septem Systems (SmartRecruiters), Programmers Force (Workable account `hr-force`) |
 | **Enabled — aggregators** | Remote OK, Remotive (software-dev), Arbeitnow, Himalayas, Jobicy, We Work Remotely (Full-Stack, Front-End) |
-| **Milestone 2 — built 2026-10-13** | VentureDive, NorthBay (JazzHR); ShopDev, Techlogix, Tintash (Zoho Recruit); Intagleo, i2c (OpenCATS) — enabled. SlashNext (Zoho) off: its careers site shows an error page |
-| **Milestone 2 — still planned** | 7Vals (Simplicant); UWorx (WebHR); Cogent Labs (Hirestream); Systemvent (SAP SuccessFactors); Code District (Pinpoint) |
+| **Milestone 2 — built 2026-10-13** | VentureDive, NorthBay (JazzHR); ShopDev, Techlogix, Tintash (Zoho Recruit); Intagleo, i2c (OpenCATS); 7Vals (Simplicant) — enabled. SlashNext (Zoho) off: its careers site shows an error page |
+| **Milestone 2 — still planned** | UWorx (WebHR) and Cogent Labs (Hirestream): JavaScript apps over private, undocumented APIs; Systemvent (SAP SuccessFactors); Code District (Pinpoint) |
 | **Milestone 3 — custom sites** | NetSol, Folio3, Synavos, BrainX, Coeus, Redmath, RipeSeed, Intech, SSI, Cinnova, Rolustech, Xavor, CodingCops, Nextbridge, The Developers Arena |
 | **Recorded with a note** | TCM (403 to automated requests), Qbatch (careers page 404), Conrad Labs (domain doesn't resolve) |
 | **Email alerts ([§10](email-alerts.md))** | LinkedIn, Wellfound, Rozee.pk, remote.co — plus Indeed, Glassdoor, Taraki from the user's inbox |
@@ -75,6 +75,14 @@ platform's host (`pageUrl()` in `job-source.schema.ts`). Probed live on 2026-10-
   `#careerContent`; Intagleo's template wraps part of it in an HTML comment, which is kept.
   i2c's own job links answer "No such position found" (even in a browser session), so its
   jobs have no description and pass stage B only if the title names the stack.
+- **Simplicant** (`<company>.simplicant.com`): server-rendered links `/jobs/<id>-<slug>/detail`
+  with title and location; a job is listed under "Featured" and its department, so ids are
+  deduped. Job pages embed a JobPosting (JSON-LD).
+- **Not built — WebHR, Hirestream:** both pages are JavaScript apps that render nothing
+  without running their bundle, and fetch jobs from private, undocumented endpoints
+  (`api.webhr.co/api/careers/` with RPC-style parameters; Hirestream's `api/v1/…`). An adapter
+  would mean reverse-engineering each for one company, and it would break silently when the
+  app changes — so they wait for a decision (or the company appears in alert emails).
 - `PermanentSourceError` moved to `discovery/errors.ts` so adapters can throw it.
 
 **One validation boundary for every adapter (2026-10-11).** Source responses are
@@ -253,9 +261,9 @@ the whole market for free.
 
 ### 9.12 Planned discovery work
 
-- **Milestone 2:** JazzHR, Zoho Recruit and OpenCATS built 2026-10-13 (8 companies, 7
-  enabled). Next: the single-company platforms (Simplicant, WebHR, Hirestream,
-  SuccessFactors, Pinpoint).
+- **Milestone 2:** JazzHR, Zoho Recruit, OpenCATS and Simplicant built 2026-10-13 (9
+  companies, 8 enabled). Left: WebHR and Hirestream (private APIs, see §9.3),
+  SuccessFactors and Pinpoint.
 - **Milestone 3 — custom careers sites:** a **generic change watcher** instead of 15
   hand-written scrapers (which would break on every redesign): fetch each page nightly
   and compare with the previous version (free); only when it changed, have Haiku extract

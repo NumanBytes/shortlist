@@ -47,6 +47,12 @@ export const ImplementedSourceConfigSchema = z.discriminatedUnion('provider', [
       ),
     })
     .strict(),
+  z
+    .object({
+      provider: z.literal('simplicant'),
+      url: pageUrl((u) => /^[a-z0-9-]+\.simplicant\.com$/.test(u.hostname), 'https://company.simplicant.com/'),
+    })
+    .strict(),
   // Remote-job aggregators with public APIs / feeds. Each requires attribution and a
   // link back to the original posting — the Jobs screen shows both.
   z.object({ provider: z.literal('remoteok') }).strict(),
@@ -61,7 +67,6 @@ export const ImplementedSourceConfigSchema = z.discriminatedUnion('provider', [
 // enabling one produces a FAILED run that says so. Milestone 2 = hosted ATS pages;
 // Milestone 3 = custom careers sites (change-detection + extraction) and email alerts.
 export const PLANNED_PROVIDERS = [
-  'simplicant',
   'webhr',
   'hirestream',
   'successfactors',

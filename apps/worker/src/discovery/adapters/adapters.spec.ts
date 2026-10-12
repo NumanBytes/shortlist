@@ -217,6 +217,25 @@ describe('hosted careers pages', () => {
   });
 });
 
+describe('hosted careers pages — simplicant', () => {
+  it('reads each job once, though the board lists it under Featured and its department', async () => {
+    serve([
+      [/7vals\.simplicant\.com\/$/, 'simplicant-list.html'],
+      [/7vals\.simplicant\.com\/jobs\/25252-software-engineer\/detail$/, 'simplicant-job.html'],
+    ]);
+    const postings = await ADAPTERS.simplicant({ provider: 'simplicant', url: 'https://7vals.simplicant.com/' }, ctx);
+    expectWellFormed(postings);
+    expect(new Set(postings.map((p) => p.externalId)).size).toBe(postings.length);
+    const se = postings.find((p) => p.externalId === '25252')!;
+    expect(se).toMatchObject({
+      title: 'Software Engineer',
+      location: 'Lahore, Punjab, Pakistan',
+      url: 'https://7vals.simplicant.com/jobs/25252-software-engineer/detail',
+    });
+    expect(await se.loadDescription!()).toMatch(/SaaS/);
+  });
+});
+
 describe('hosted careers pages — variants', () => {
   it('opencats also reads installs that name jobs by slug', async () => {
     serve([[/careers\.i2cinc\.com\/careers\/index\.php\?m=careers&p=showAll$/, 'opencats-slug-list.html']]);

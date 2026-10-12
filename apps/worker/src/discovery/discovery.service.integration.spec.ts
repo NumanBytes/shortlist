@@ -157,11 +157,11 @@ describe('DiscoveryService.runSource', () => {
   });
 
   it('fails a planned-but-unimplemented provider permanently, with a clear message', async () => {
-    const source = await newSource({ provider: 'simplicant', url: 'https://x.simplicant.com/' });
+    const source = await newSource({ provider: 'webhr', url: 'https://x.webhr.co/jobs/home/' });
     const { service, adapter } = serviceWith(async () => []);
     await expect(service.runSource(source.id)).rejects.toBeInstanceOf(PermanentSourceError);
     const run = await prisma.discoveryRun.findFirstOrThrow({ where: { jobSourceId: source.id } });
-    expect(run.errorMessage).toMatch(/No adapter for provider "simplicant"/);
+    expect(run.errorMessage).toMatch(/No adapter for provider "webhr"/);
     expect(adapter).not.toHaveBeenCalled();
   });
 

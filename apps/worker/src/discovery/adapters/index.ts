@@ -8,6 +8,7 @@ import { lever } from './lever.js';
 import { opencats } from './opencats.js';
 import { remoteok } from './remoteok.js';
 import { remotive } from './remotive.js';
+import { simplicant } from './simplicant.js';
 import { smartrecruiters } from './smartrecruiters.js';
 import { weworkremotely } from './weworkremotely.js';
 import { workable } from './workable.js';
@@ -24,6 +25,7 @@ export const ADAPTERS: AdapterRegistry = {
   jazzhr,
   zohorecruit,
   opencats,
+  simplicant,
   remoteok,
   remotive,
   arbeitnow,
