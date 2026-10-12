@@ -74,6 +74,8 @@ export function aiSettingsFromRow(
 export const SeniorityEnum = z.enum(['JUNIOR', 'MID', 'SENIOR', 'LEAD', 'UNKNOWN']);
 export const ImportanceEnum = z.enum(['REQUIRED', 'PREFERRED', 'BONUS']);
 
+export const MAX_SKILL_REFS = 100;
+
 export const JobAnalysisOutputSchema = z.object({
   seniority: SeniorityEnum,
   yearsRequired: z.number().int().min(0).max(40).nullable(),
@@ -86,8 +88,11 @@ export const JobAnalysisOutputSchema = z.object({
         isCore: z.boolean(),
         yearsRequired: z.number().int().min(0).max(40).nullable(),
         // Short references ("S3") into the verified-skill list sent with the request.
-        sameAs: z.array(z.string().max(10)).max(10),
-        relatedTo: z.array(z.string().max(10)).max(10),
+        // Unknown refs are dropped later, so the cap is only a sanity bound: a broad
+        // requirement ("Full stack development") can relate to more than 10 of the
+        // candidate's skills, and a cap of 10 failed the whole job (2026-10-13).
+        sameAs: z.array(z.string().max(10)).max(MAX_SKILL_REFS),
+        relatedTo: z.array(z.string().max(10)).max(MAX_SKILL_REFS),
       }),
     )
     .max(40),

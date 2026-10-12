@@ -118,3 +118,4 @@ Every design decision with its date and where it is described. Newest entries ar
 | 2026-10-04 | Add skill (with its first evidence) and Add evidence in the Evidence screen; always unverified | [§6.3](../Agents.md), user request |
 | 2026-10-02 | `TailoredResume` replaced by `ResumeVariant` + `JobResume`; reuse threshold is a setting (0.85) | [§5.2](architecture.md), [§13.2](resume.md), [§13.4](resume.md) |
 | 2026-10-02 | CV reconciled: title Software Engineer, Docker PRODUCTION + CI/CD WORKING, CV-only claims added unverified, context-less CV skills recorded PERSONAL/WORKING | User's answers ([§7.5](career-data.md)) |
+| 2026-10-13 | Analysis output: `sameAs`/`relatedTo` capped at 100 refs (was 10) — caps are sanity bounds, never set where a valid answer can exceed them | [§12.1](ai-scoring.md) — a production job failed scoring with "expected array to have <=10 items" |
