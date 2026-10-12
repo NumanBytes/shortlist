@@ -235,7 +235,14 @@ describe('JobAnalysisOutputSchema', () => {
       yearsRequired: null,
       redFlags: [],
       requirements: [
-        { skill: 'Full stack development', importance: 'REQUIRED', isCore: true, yearsRequired: null, sameAs: [], relatedTo: refs },
+        {
+          skill: 'Full stack development',
+          importance: 'REQUIRED',
+          isCore: true,
+          yearsRequired: null,
+          sameAs: [],
+          relatedTo: refs,
+        },
       ],
     };
     expect(JobAnalysisOutputSchema.safeParse(output).success).toBe(true);
