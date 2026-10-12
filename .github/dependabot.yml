@@ -9,8 +9,27 @@ updates:
       interval: weekly
     open-pull-requests-limit: 5
     groups:
+      # The Prisma CLI and client must be the same version: updated apart, `prisma generate`
+      # fails (it bumped only @prisma/client to 7 in #34). Listed before
+      # minor-and-patch, so these groups win.
+      prisma:
+        patterns: ['prisma', '@prisma/*']
+      # Same for Vitest and its coverage plugin: #35 bumped only vitest, which breaks test:cov.
+      vitest:
+        patterns: ['vitest', '@vitest/*']
       minor-and-patch:
         update-types: [minor, patch]
+    ignore:
+      # Prisma majors change the generator, config and connection setup: a planned
+      # upgrade with code changes, not a version bump.
+      - dependency-name: prisma
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@prisma/*'
+        update-types: ['version-update:semver-major']
+      # Node's types must match the Node version that runs the code (22, see the docker
+      # rule below); newer majors describe APIs Node 22 doesn't have.
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
 
   - package-ecosystem: github-actions
     directory: /
