@@ -156,6 +156,7 @@ export interface ResumeProject {
   id: string;
   name: string;
   workExperienceId: string | null;
+  isPinned: boolean; // always on the resume (docs/resume.md §13.7)
 }
 export interface ResumeRefs {
   evidence: Map<string, string>; // "E3" -> evidence id
@@ -320,6 +321,8 @@ export function checkBullet(
   return { ok: true, bullet: { label, text, evidenceIds: ids } };
 }
 
+const DEPTH_RANK: Record<Depth, number> = { PRODUCTION: 0, MAINTENANCE: 1, WORKING: 2, EXPOSURE: 3 };
+
 // Turns the model's output into stored resume content, keeping only what the checks allow.
 export function assembleResume(input: AssembleInput): AssembleResult {
   const now = input.now ?? new Date();
@@ -375,6 +378,11 @@ export function assembleResume(input: AssembleInput): AssembleResult {
 
   // Projects: the model's choice and order; a project with no surviving bullet is left out.
   const projectById = new Map(input.projects.map((p) => [p.id, p]));
+  const projectWhere = (p: ResumeProject): Where => ({
+    kind: 'PROJECTS',
+    projectId: p.id,
+    commercial: p.workExperienceId !== null,
+  });
   const seenProjects = new Set<string>();
   const projects: ResumeContent['projects'] = [];
   for (const x of input.output.projects) {
@@ -382,9 +390,32 @@ export function assembleResume(input: AssembleInput): AssembleResult {
     const p = id ? projectById.get(id) : undefined;
     if (!p || seenProjects.has(p.id)) continue;
     seenProjects.add(p.id);
-    const where: Where = { kind: 'PROJECTS', projectId: p.id, commercial: p.workExperienceId !== null };
-    const bullets = keep(x.bullets, where, p.name, MAX_BULLETS_PER_PROJECT);
+    const bullets = keep(x.bullets, projectWhere(p), p.name, MAX_BULLETS_PER_PROJECT);
     if (bullets.length) projects.push({ projectId: p.id, name: p.name, bullets });
+  }
+
+  // Pinned projects are always on the resume (docs/resume.md §13.7). If the model left one
+  // out, or the checks removed all its bullets, fall back to the user's own verified words
+  // for it — still checked like any bullet, so this can't claim more than they wrote.
+  for (const p of input.projects) {
+    if (!p.isPinned || projects.some((x) => x.projectId === p.id)) continue;
+    const refOf = new Map([...input.refs.evidence].map(([ref, id]) => [id, ref]));
+    const items = input.evidence
+      .filter((e) => e.projectId === p.id && refOf.has(e.id))
+      .sort((a, b) => DEPTH_RANK[a.depth] - DEPTH_RANK[b.depth] || b.lastUsed.getTime() - a.lastUsed.getTime());
+    const bullets: ResumeBullet[] = [];
+    for (const e of items) {
+      if (bullets.length >= MAX_BULLETS_PER_PROJECT) break;
+      const r = checkBullet({ label: null, text: e.whatIDid, evidence: [refOf.get(e.id)!] }, projectWhere(p), ctx);
+      if (r.ok) bullets.push(r.bullet);
+    }
+    if (bullets.length) projects.push({ projectId: p.id, name: p.name, bullets });
+    else
+      dropped.push({
+        where: p.name,
+        text: '(pinned project)',
+        reason: 'pinned, but none of its verified items can appear on a resume yet',
+      });
   }
 
   for (const b of [...experience, ...projects].flatMap((s) => s.bullets)) for (const id of b.evidenceIds) used.add(id);

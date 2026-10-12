@@ -23,8 +23,8 @@ const role = {
   isCurrent: true,
 };
 const projects = [
-  { id: 'bank', name: 'Bank Portal', workExperienceId: 'cc' },
-  { id: 'shortlist', name: 'Shortlist', workExperienceId: null },
+  { id: 'bank', name: 'Bank Portal', workExperienceId: 'cc', isPinned: false },
+  { id: 'shortlist', name: 'Shortlist', workExperienceId: null, isPinned: false },
 ];
 const ev = (id: string, skillName: string, over: Partial<ResumeEvidence> = {}): ResumeEvidence => ({
   id,
@@ -269,6 +269,28 @@ describe('assembleResume — bullets', () => {
     ]);
   });
 
+  it("keeps a pinned project the model left out, in the user's own verified words", () => {
+    const pinned = projects.map((p) => (p.id === 'shortlist' ? { ...p, isPinned: true } : p));
+    const r = assemble({ projects: [] }, { projects: pinned });
+    expect(r.content.projects).toEqual([
+      {
+        projectId: 'shortlist',
+        name: 'Shortlist',
+        bullets: [{ label: null, text: 'Use pnpm workspaces in Shortlist.', evidenceIds: ['pnpm'] }],
+      },
+    ]);
+    expect(r.evidenceIds).toContain('pnpm');
+  });
+
+  it('says so when a pinned project has nothing that can appear on a resume', () => {
+    const empty = { id: 'empty', name: 'Side Project', workExperienceId: null, isPinned: true };
+    const r = assemble({}, { projects: [...projects, empty] });
+    expect(r.content.projects).toEqual([]);
+    expect(r.content.dropped).toEqual([
+      expect.objectContaining({ where: 'Side Project', reason: expect.stringMatching(/pinned/) }),
+    ]);
+  });
+
   it('lists every role even with no surviving bullets, and caps bullets per role', () => {
     const many = Array.from({ length: 8 }, () =>
       bullet('Built React features that shipped to production.', [E('react')]),
@@ -356,6 +378,19 @@ describe('buildResumePrompt', () => {
     expect(prompt.system).toMatch(/Don't name the company or the role/);
     expect(prompt.system).toMatch(/not what they didn't do/);
     expect(prompt.system).not.toMatch(/Keep qualifiers/);
+  });
+
+  it('marks pinned projects and asks for every one of them', () => {
+    const p = buildResumePrompt({
+      job: { title: 'Frontend Engineer', company: 'Kwanso', rawJD: 'React.' },
+      requirements: [],
+      roles: [role],
+      projects: [{ ...projects[1]!, isPinned: true }],
+      evidence,
+      now: NOW,
+    });
+    expect(p.user).toContain('P1: Shortlist — personal — PINNED');
+    expect(p.system).toMatch(/Always include a PINNED project/);
   });
 
   it('wraps the posting as untrusted data', () => {

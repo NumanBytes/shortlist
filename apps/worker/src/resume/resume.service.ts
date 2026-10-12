@@ -178,7 +178,10 @@ export class ResumeService {
         orderBy: { lastUsed: 'desc' },
       }),
       this.prisma.workExperience.findMany({ where: { userId } }),
-      this.prisma.project.findMany({ where: { userId }, select: { id: true, name: true, workExperienceId: true } }),
+      this.prisma.project.findMany({
+        where: { userId },
+        select: { id: true, name: true, workExperienceId: true, isPinned: true },
+      }),
       this.prisma.skill.findMany({ where: { userId }, select: { name: true } }),
     ]);
     const evidence: ResumeEvidence[] = rows.map((e) => ({

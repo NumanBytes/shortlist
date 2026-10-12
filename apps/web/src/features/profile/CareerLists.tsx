@@ -1,4 +1,4 @@
-import { Briefcase, FolderKanban, GraduationCap } from 'lucide-react';
+import { Briefcase, FolderKanban, GraduationCap, Pin } from 'lucide-react';
 import { useState } from 'react';
 import { ProjectForm, RoleForm } from './CareerForms';
 import { Sheet, Skeleton } from '../../components/ui';
@@ -45,9 +45,19 @@ export function Projects() {
       {(projects.data ?? []).map((p) => (
         <Row
           key={p.id}
-          icon={<FolderKanban className="size-[18px]" />}
+          icon={
+            p.isPinned ? (
+              <Pin className="size-[18px]" aria-label="Always on your resume" />
+            ) : (
+              <FolderKanban className="size-[18px]" />
+            )
+          }
           title={p.name}
-          sub={p.description ?? undefined}
+          sub={
+            p.isPinned
+              ? `Always on your resume${p.description ? ` · ${p.description}` : ''}`
+              : (p.description ?? undefined)
+          }
           onClick={() => setEditing(p)}
         />
       ))}

@@ -124,6 +124,19 @@ describe('Projects (e2e)', () => {
       expect(await isVerified(ev)).toBe(false);
     });
 
+    it('pinning a project to every resume keeps its evidence verified (not a claim)', async () => {
+      const project = await newProject();
+      const ev = await verifiedEvidenceFor(project.id);
+      const res = await t
+        .http()
+        .patch(`/api/v1/projects/${project.id}`)
+        .set(me.auth)
+        .send({ isPinned: true })
+        .expect(200);
+      expect(res.body.isPinned).toBe(true);
+      expect(await isVerified(ev)).toBe(true);
+    });
+
     it('changing only a URL keeps it verified', async () => {
       const project = await newProject();
       const ev = await verifiedEvidenceFor(project.id);

@@ -42,7 +42,7 @@ experience — for each role (R-ref), 3 to 6 bullets, most relevant to this job 
 - Never add numbers, metrics, team sizes, outcomes, clients, technologies or responsibilities that the cited items don't state.
 - Match the strength of the evidence: "working" means used, worked with or contributed to — never built, designed, owned or led. "maintenance" means upgraded, fixed or maintained — never built or developed.
 
-projects — for projects (P-ref) whose evidence helps with this job: 1 to 3 bullets each, label null, citing only that project's items. Skip projects with nothing relevant. Order by relevance.
+projects — every project marked PINNED, plus any other project (P-ref) whose evidence helps with this job: 1 to 3 bullets each, label null, citing only that project's items. Always include a PINNED project, choosing the items of it that matter most for this job. Skip unpinned projects with nothing relevant. Order by relevance.
 
 skillGroups — group skills, given ONLY as their S-refs ("S4", never the skill's name), under short labels such as "Frontend", "UI & Styling", "Backend", "Databases", "Tools". Include the skills this job asks for and the candidate's other strong skills; leave out skills marked "learning". Order groups and skills by relevance to the job. Use only S-refs from the list.
 
@@ -72,7 +72,7 @@ export function buildResumePrompt(input: ResumePromptInput) {
     refs.projects.set(ref, p.id);
     projectRef.set(p.id, ref);
     const owner = p.workExperienceId && roleRef.get(p.workExperienceId);
-    return `${ref}: ${p.name}${owner ? ` — a project of ${owner}` : ' — personal'}`;
+    return `${ref}: ${p.name}${owner ? ` — a project of ${owner}` : ' — personal'}${p.isPinned ? ' — PINNED' : ''}`;
   });
 
   // Bullet material: items placeable in Experience or Projects AND anchored to a role or

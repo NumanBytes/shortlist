@@ -173,6 +173,9 @@ model Project {
   liveUrl          String?
   repoUrl          String?
   isShipped        Boolean         @default(false)
+  // Always on a tailored resume (docs/resume.md §13.7): tailoring only rewords and orders its
+  // bullets. Not a claim — changing it never un-verifies evidence.
+  isPinned         Boolean         @default(false)
   startDate        DateTime?
   endDate          DateTime?
 

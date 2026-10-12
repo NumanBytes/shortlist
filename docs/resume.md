@@ -175,3 +175,28 @@ follow-up drafts.
 When a resume is ready (tailored or reused), a Web Push notification: "Resume ready:
 <title> @ <company> — review and submit." Opening it shows the resume, the evidence
 behind each bullet, and the gaps.
+
+### 13.7 Pinned projects (built 2026-10-13)
+
+**The problem (user report, 2026-10-11):** each tailoring run chose projects afresh ("skip
+projects with nothing relevant"), so one draft for a frontend job kept only Manzil and
+the re-tailor ten minutes later kept the two banking projects and dropped Manzil. The user's
+view, adopted: projects are achievements, not keywords — the resume shouldn't lose them
+depending on the posting.
+
+- **`Project.isPinned`** — set with "Always on my resume" in the project's sheet on Profile.
+  It is **not a claim** (it says nothing about what was done), so it is not in the
+  project's `CLAIM_FIELDS` and never un-verifies evidence (an e2e test covers it).
+- **Tailoring:** the prompt marks pinned projects `PINNED` and asks for every one, choosing
+  that project's items that matter most for the job. Unpinned projects still appear only
+  when relevant.
+- **Code guarantees it, not the model:** if the model leaves a pinned project out, or the
+  checks remove all its bullets, `assembleResume()` falls back to the user's own verified
+  `whatIDid` for that project's placeable items (strongest depth first, up to 3) — each still
+  run through `checkBullet()`, so a fallback can't claim more than the user wrote. If none
+  can appear (e.g. only exposure-level items), the resume notes it under removed items
+  instead of failing.
+- Pinning changes nothing already generated: tailor again to apply it.
+- **Still open — why Shortlist never appears:** its PERSONAL + PRODUCTION items are placed
+  nowhere until the user decides that combination ([§6.1](../Agents.md), roadmap §17.3), so
+  only its working-level items can be bullets.

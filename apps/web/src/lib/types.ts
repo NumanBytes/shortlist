@@ -70,6 +70,7 @@ export interface Project {
   liveUrl: string | null;
   repoUrl: string | null;
   isShipped: boolean;
+  isPinned: boolean; // always on a tailored resume
   startDate: string | null;
   endDate: string | null;
 }
