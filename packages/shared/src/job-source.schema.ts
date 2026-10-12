@@ -53,6 +53,9 @@ export const ImplementedSourceConfigSchema = z.discriminatedUnion('provider', [
       url: pageUrl((u) => /^[a-z0-9-]+\.simplicant\.com$/.test(u.hostname), 'https://company.simplicant.com/'),
     })
     .strict(),
+  // A company's own careers page (Milestone 3, docs/discovery.md §9.14): read by the change
+  // watcher and, only when the page changed, by the model.
+  z.object({ provider: z.literal('careers_page'), url: WebUrl, note: z.string().max(300).optional() }).strict(),
   // Remote-job aggregators with public APIs / feeds. Each requires attribution and a
   // link back to the original posting — the Jobs screen shows both.
   z.object({ provider: z.literal('remoteok') }).strict(),
@@ -66,14 +69,7 @@ export const ImplementedSourceConfigSchema = z.discriminatedUnion('provider', [
 // Recorded now so the full source list lives in the database, but no adapter yet:
 // enabling one produces a FAILED run that says so. Milestone 2 = hosted ATS pages;
 // Milestone 3 = custom careers sites (change-detection + extraction) and email alerts.
-export const PLANNED_PROVIDERS = [
-  'webhr',
-  'hirestream',
-  'successfactors',
-  'pinpoint',
-  'careers_page',
-  'email_alerts',
-] as const;
+export const PLANNED_PROVIDERS = ['webhr', 'hirestream', 'successfactors', 'pinpoint', 'email_alerts'] as const;
 
 export const PlannedSourceConfigSchema = z
   .object({ provider: z.enum(PLANNED_PROVIDERS), url: z.url().optional(), note: z.string().max(300).optional() })

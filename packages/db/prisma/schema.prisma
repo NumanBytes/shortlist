@@ -77,6 +77,7 @@ enum AiPurpose {
   EXTRACT_EMAIL // jobs read out of an alert email no code parser handles (Haiku)
   TAILOR_RESUME // later (Sonnet)
   IMPORT_RESUME // roles, projects and quoted evidence read out of an uploaded resume (Sonnet)
+  EXTRACT_CAREERS_PAGE // openings read off a company careers page that changed (Haiku)
   DISCOVER_SOURCES // later (web search)
 }
 
@@ -261,12 +262,28 @@ model JobSource {
 
   discoveryRuns DiscoveryRun[]
   jobs          Job[]
+  pageSnapshot  CareersPageSnapshot?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([userId, key])
   @@index([userId])
+}
+
+// The change watcher's memory for one careers page (docs/discovery.md §9.14): a fingerprint of
+// the page's visible text and links, and the openings last read from it. A page whose
+// fingerprint hasn't changed is answered from here — no model call, no cost.
+model CareersPageSnapshot {
+  id          String    @id @default(uuid())
+  jobSourceId String    @unique
+  jobSource   JobSource @relation(fields: [jobSourceId], references: [id], onDelete: Cascade)
+
+  contentHash String // sha256 of the normalized page text + links
+  openings    Json // [{ title, location, workMode, url, details }] as last extracted and checked
+  extractedAt DateTime
+
+  updatedAt DateTime @updatedAt
 }
 
 // Opened in RUNNING state BEFORE the fetch starts — an empty or failed source must

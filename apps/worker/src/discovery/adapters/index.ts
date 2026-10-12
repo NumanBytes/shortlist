@@ -1,5 +1,6 @@
 import type { AdapterRegistry } from '../types.js';
 import { arbeitnow } from './arbeitnow.js';
+import { careersPage } from './careers-page.js';
 import { greenhouse } from './greenhouse.js';
 import { himalayas } from './himalayas.js';
 import { jazzhr } from './jazzhr.js';
@@ -26,6 +27,7 @@ export const ADAPTERS: AdapterRegistry = {
   zohorecruit,
   opencats,
   simplicant,
+  careers_page: careersPage,
   remoteok,
   remotive,
   arbeitnow,

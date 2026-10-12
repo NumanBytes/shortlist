@@ -10,6 +10,8 @@ export const AI_MODELS = {
   // Reading a whole resume into roles, projects and quoted evidence, once per import:
   // accuracy matters more than the few cents (docs/career-data.md §7.6).
   importResume: 'claude-sonnet-5-5',
+  // Listing the openings on a company careers page, only when the page changed (§9.14).
+  extractCareersPage: 'claude-haiku-4-5',
 } as const;
 
 // USD per million tokens. Batch API halves these (not used yet — §12.1).
