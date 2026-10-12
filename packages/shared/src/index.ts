@@ -13,3 +13,4 @@ export * from './scoring.js';
 export * from './profile.schema.js';
 export * from './resume.js';
 export * from './email.schema.js';
+export * from './never-claim.schema.js';

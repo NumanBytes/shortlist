@@ -75,6 +75,14 @@ export interface Project {
   endDate: string | null;
 }
 
+// A term tailoring must never put on the resume (docs/resume.md §13.8).
+export interface NeverClaim {
+  id: string;
+  term: string;
+  scope: 'ANYWHERE' | 'PAID_WORK';
+  note: string | null;
+}
+
 export type JobStatus =
   | 'DISCOVERED'
   | 'INTERESTED'

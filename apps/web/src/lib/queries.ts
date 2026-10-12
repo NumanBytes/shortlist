@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   CreateEducationInput,
+  CreateNeverClaimInput,
   CreateProjectInput,
   CreateWorkExperienceInput,
   UpdateProjectInput,
@@ -19,6 +20,7 @@ import type {
   DiscoveryStatus,
   DiscoverySource,
   Education,
+  NeverClaim,
   PublicUser,
   Evidence,
   JobDetail,
@@ -288,6 +290,28 @@ export function useDeleteEducation() {
   return useMutation({
     mutationFn: (id: string) => api(`/education/${id}`, { method: 'DELETE' }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: profileKeys.education }),
+  });
+}
+
+// ── Never-claim list (docs/resume.md §13.8) ─────────────────────────────────────
+export const neverClaimKey = ['never-claim'] as const;
+
+export const useNeverClaims = () =>
+  useQuery({ queryKey: neverClaimKey, queryFn: () => api<NeverClaim[]>('/never-claim') });
+
+export function useAddNeverClaim() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CreateNeverClaimInput) => api<NeverClaim>('/never-claim', { method: 'POST', body }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: neverClaimKey }),
+  });
+}
+
+export function useRemoveNeverClaim() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api(`/never-claim/${id}`, { method: 'DELETE' }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: neverClaimKey }),
   });
 }
 

@@ -46,7 +46,8 @@ Tailoring, the resume library, approval and printing, and the application kit.
   2. each cited item is allowed in that section **and** belongs there (a role's own items
      or its projects' items for Experience; that project's items for Projects) — personal
      work can't become an Experience bullet;
-  3. no "Azure" anywhere; no Node.js/Express in paid work ([§7.2](career-data.md));
+  3. no term on the user's **never-claim list** in its scope (§13.8) — for this user, no
+     "Azure" anywhere and no Node.js/Express in paid work ([§7.2](career-data.md));
   4. no number that isn't in the cited items' own words (no invented metrics). Numbers are
      compared **whole**: digits inside a word ("B2C", "HTML5", "2019") are not numbers.
      Found in code review (2026-10-03): a substring match let "2 years across 19 services"
@@ -207,3 +208,28 @@ depending on the posting.
 - **Still open — why Shortlist never appears:** its PERSONAL + PRODUCTION items are placed
   nowhere until the user decides that combination ([§6.1](../Agents.md), roadmap §17.3), so
   only its working-level items can be bullets.
+
+### 13.8 The never-claim list (built 2026-10-13)
+
+The known false claims ([§7.2](career-data.md)) were hardcoded in `checkBullet()` in shared
+code: "Azure" refused anywhere, Node.js/Express refused in paid work. That made one
+person's facts a rule for every user — someone who really used Azure would have had true
+bullets removed. They are now the user's data.
+
+- **`NeverClaim` rows** (`term`, `scope` ANYWHERE | PAID_WORK, optional `note`), managed under
+  "Never on my resume" on Profile (`GET/POST/DELETE /never-claim`). One entry per term and
+  scope, compared case-insensitively. Only the user changes the list; nothing generated
+  writes to it.
+- **Matching** (`mentionsTerm()`): a whole term, case-insensitive for names of 4+
+  characters, also without dots and without a trailing ".js" — "Node.js" catches "Node",
+  "NodeJS" and "Node.js". PAID_WORK applies to Experience and to projects done in a role.
+- **Refused whatever a bullet cites**, like before. The prompt also lists the terms, so the
+  model rarely writes bullets the check would throw away.
+- **No gap in protection:** the migration (`20261013010000_never_claim`) inserts the three
+  former hardcoded entries (Azure / ANYWHERE; Node.js and Express / PAID_WORK) for every user
+  with a CloudCard role, so the deployed instance keeps the same checks from its first
+  tailoring after the upgrade. The rule against naming an uncited technology still applies
+  on top: even with an empty list, "Azure" in a bullet is refused unless a cited item names it.
+- The seed guards (§7.3) still refuse Azure and commercial Node/Express in the seed file:
+  that file is this user's one-time bootstrap, not a rule for others.
+

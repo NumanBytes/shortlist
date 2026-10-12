@@ -116,6 +116,7 @@ model User {
   discoveryPrefs  DiscoveryPreferences?
   aiSettings      AiSettings?
   education       Education[]
+  neverClaims     NeverClaim[]
   aiUsage         AiUsage[]
   resumeVariants  ResumeVariant[]
   gmail           GmailConnection?
@@ -507,6 +508,30 @@ model AiUsage {
   @@index([userId, createdAt])
 }
 
+// Terms a generated resume must never contain — the user's own known false claims (docs/resume.md
+// §13.8). Data, not code: they were a hardcoded Azure / Node.js-at-work check in shared code
+// until 2026-10-13. Only the user edits the list; tailoring reads it and refuses any bullet
+// that mentions a term in its scope.
+model NeverClaim {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  term  String // matched as a whole term, case-insensitive; "Node.js" also matches "Node"
+  scope NeverClaimScope @default(ANYWHERE)
+  note  String? // why it's false, in the user's words
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, term, scope])
+  @@index([userId])
+}
+
+enum NeverClaimScope {
+  ANYWHERE // never on the resume
+  PAID_WORK // never in a bullet about paid work (Experience, or a project done in a role)
+}
+
 model Education {
   id     String @id @default(uuid())
   userId String
@@ -581,18 +606,18 @@ model EmailMessage {
   user           User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   gmailMessageId String
 
-  sender     String? // the From address
-  portal     String? // e.g. "indeed", "arc.dev" — which source its jobs are credited to
-  receivedAt DateTime
-  status     EmailStatus
-  parser     String? // "indeed" (code) or "ai" (model fallback)
-  note       String? // e.g. "Indeed parser found no jobs — read by AI": a parser may be out of date
+  sender       String? // the From address
+  portal       String? // e.g. "indeed", "arc.dev" — which source its jobs are credited to
+  receivedAt   DateTime
+  status       EmailStatus
+  parser       String? // "indeed" (code) or "ai" (model fallback)
+  note         String? // e.g. "Indeed parser found no jobs — read by AI": a parser may be out of date
   // A code parser found nothing in (or threw on) what should be an alert, so the model read
   // it: the portal probably changed its email layout. Counted on the Sources page.
-  parserFailed Boolean @default(false)
-  jobsFound  Int         @default(0)
-  error      String?
-  readAt     DateTime    @default(now())
+  parserFailed Boolean     @default(false)
+  jobsFound    Int         @default(0)
+  error        String?
+  readAt       DateTime    @default(now())
 
   @@unique([userId, gmailMessageId])
   @@index([userId, readAt])

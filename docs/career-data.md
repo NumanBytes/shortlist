@@ -56,6 +56,9 @@ CloudCard (role), Manzil and Shortlist (personal, not shipped).
   meant to turn this into real, verifiable evidence — **which the user must add in their
   own words** once they can explain each part; it is deliberately not seeded.
 
+Since 2026-10-13 these are enforced as the user's **never-claim list**
+([docs/resume.md §13.8](resume.md)), not by code that names them.
+
 ### 7.3 Seed guards and behaviour
 
 `findSeedProblems()` refuses to write anything if the data mentions Azure (in a skill

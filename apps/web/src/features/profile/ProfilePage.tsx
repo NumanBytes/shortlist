@@ -8,6 +8,7 @@ import { Account } from './Account';
 import { Budget } from './Budget';
 import { EducationList, Projects, Roles } from './CareerLists';
 import { ContactForm } from './ContactForm';
+import { NeverClaimList } from './NeverClaimList';
 
 const initialsOf = (name: string) =>
   name
@@ -44,6 +45,7 @@ export function ProfilePage() {
       <Roles />
       <Projects />
       <EducationList />
+      <NeverClaimList />
       <Budget />
       <Account />
 

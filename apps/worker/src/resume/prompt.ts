@@ -1,5 +1,6 @@
 import {
   placementFor,
+  type NeverClaimScope,
   type ResumeEvidence,
   type ResumeProject,
   type ResumeRefs,
@@ -22,6 +23,8 @@ export interface ResumePromptInput {
   roles: ResumeRole[];
   projects: ResumeProject[];
   evidence: ResumeEvidence[]; // verified only
+  // Told to the model so it doesn't write bullets the checks will refuse anyway.
+  neverClaim?: { term: string; scope: NeverClaimScope }[];
   now?: Date;
 }
 
@@ -111,6 +114,10 @@ export function buildResumePrompt(input: ResumePromptInput) {
       return `${ref}: ${s.name} — ${level(best)}`;
     });
 
+  const neverLines = (input.neverClaim ?? []).map((c) =>
+    c.scope === 'PAID_WORK' ? `- ${c.term} — in any Experience bullet or role project` : `- ${c.term} — anywhere`,
+  );
+
   const reqLines = input.requirements.map(
     (r) => `- ${r.skillName} (${r.importance.toLowerCase()}${r.isCore ? ', core' : ''})`,
   );
@@ -131,6 +138,9 @@ export function buildResumePrompt(input: ResumePromptInput) {
     '',
     'Skills that may be listed:',
     skillLines.join('\n') || '(none)',
+    '',
+    'Never mention (the candidate has never done these):',
+    neverLines.join('\n') || '(none)',
     '',
     'What the job asks for:',
     reqLines.join('\n') || '(not analysed)',

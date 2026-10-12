@@ -82,6 +82,13 @@ const evidence: ResumeEvidence[] = [
   }),
 ];
 
+// The user's never-claim list (docs/resume.md §13.8), as the migration carried it over.
+const NEVER_CLAIM = [
+  { term: 'Azure', scope: 'ANYWHERE' as const },
+  { term: 'Node.js', scope: 'PAID_WORK' as const },
+  { term: 'Express', scope: 'PAID_WORK' as const },
+];
+
 // The prompt's own refs, so tests cite exactly what the service would.
 const prompt = buildResumePrompt({
   job: { title: 'Frontend Engineer', company: 'Kwanso', rawJD: 'React and TypeScript.' },
@@ -104,6 +111,7 @@ const assemble = (output: Partial<ResumeOutput>, over: Partial<AssembleInput> = 
     projects,
     policedNames: [...evidence.map((e) => e.skillName), 'React.js', 'GraphQL', 'AWS / GCP / Azure', 'Go'],
     requirementAliases: [{ name: 'React.js', skillIds: ['s-React'] }],
+    neverClaim: NEVER_CLAIM,
     now: NOW,
     ...over,
   });
@@ -148,11 +156,28 @@ describe('assembleResume — bullets', () => {
     expect(r.content.dropped[0]!.reason).toMatch(/Node\.js item \(personal working\), which can't appear here/);
   });
 
-  it('refuses Azure anywhere and Node.js/Express in paid work (known false claims)', () => {
-    expect(roleBullets('Built React apps on Azure B2C.', [E('react')]).content.dropped[0]!.reason).toMatch(/Azure/);
-    expect(roleBullets('Built React frontends for an Express API.', [E('react')]).content.dropped[0]!.reason).toMatch(
-      /Node\.js\/Express/,
+  it("refuses the never-claim list's terms in their scope, whatever is cited", () => {
+    expect(roleBullets('Built React apps on Azure B2C.', [E('react')]).content.dropped[0]!.reason).toMatch(
+      /mentions Azure, which your never-claim list/,
     );
+    expect(roleBullets('Built React frontends for an Express API.', [E('react')]).content.dropped[0]!.reason).toMatch(
+      /mentions Express in paid work/,
+    );
+    expect(roleBullets('Built React frontends for a NodeJS API.', [E('react')]).content.dropped[0]!.reason).toMatch(
+      /Node\.js in paid work/,
+    );
+  });
+
+  it('applies paid-work terms only to paid work; the list is data, not code', () => {
+    const personal = (over: Partial<AssembleInput>) =>
+      assemble(
+        { projects: [{ project: 'P2', bullets: [bullet('Used pnpm workspaces in Shortlist.', [E('pnpm')])] }] },
+        over,
+      ).content.projects;
+    // A paid-work term may appear in a personal project; the same term ANYWHERE may not.
+    expect(personal({ neverClaim: [{ term: 'workspaces', scope: 'PAID_WORK' }] })).toHaveLength(1);
+    expect(personal({ neverClaim: [{ term: 'workspaces', scope: 'ANYWHERE' }] })).toHaveLength(0);
+    expect(personal({ neverClaim: [] })).toHaveLength(1);
   });
 
   it('refuses numbers the evidence never stated', () => {

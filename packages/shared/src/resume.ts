@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { NeverClaimScope } from './never-claim.schema.js';
 import { normalizeSkillName, type Context, type Depth, type Importance } from './scoring.js';
 
 // Resume tailoring (docs/resume.md §13). The model only words bullets and groups skills, citing
@@ -176,6 +177,8 @@ export interface AssembleInput {
   // Job requirement names → the user's skills the analysis matched exactly. Lets a bullet
   // citing React say "React.js" when the posting does.
   requirementAliases: { name: string; skillIds: string[] }[];
+  // The user's never-claim list (docs/resume.md §13.8): refused whatever a bullet cites.
+  neverClaim: { term: string; scope: NeverClaimScope }[];
   now?: Date;
 }
 
@@ -243,7 +246,15 @@ interface CheckContext {
   refs: ResumeRefs;
   policed: string[];
   aliases: { name: string; skillIds: string[] }[];
+  neverClaim: { term: string; scope: NeverClaimScope }[];
   now: Date;
+}
+
+// Whether a never-claim term appears: as a whole term, also without its dots
+// ("Node.js" catches "Node", "NodeJS" and "Node.js").
+export function mentionsTerm(text: string, term: string): boolean {
+  const undotted = (s: string) => s.replace(/\./g, '');
+  return [text, undotted(text)].some((t) => [term, undotted(term)].some((v) => mentionSpans(t, v).length > 0));
 }
 
 export function checkBullet(
@@ -277,10 +288,17 @@ export function checkBullet(
     }
   }
 
-  // Known false claims (docs/career-data.md §7.2) — refused whatever is cited.
-  if (/azure/i.test(full)) return { ok: false, reason: 'mentions Azure, a known false claim' };
-  if (where.commercial && /(?<![A-Za-z])(node(\.js)?|express(\.js)?)(?![A-Za-z])/i.test(full)) {
-    return { ok: false, reason: 'mentions Node.js/Express in paid work, where they were never used' };
+  // The user's known false claims (docs/resume.md §13.8) — refused whatever is cited.
+  for (const c of ctx.neverClaim) {
+    if (c.scope === 'PAID_WORK' && !where.commercial) continue;
+    if (mentionsTerm(full, c.term))
+      return {
+        ok: false,
+        reason:
+          c.scope === 'PAID_WORK'
+            ? `mentions ${c.term} in paid work, which your never-claim list rules out`
+            : `mentions ${c.term}, which your never-claim list rules out`,
+      };
   }
 
   const source = cited.map((e) => e.whatIDid).join('\n');
@@ -328,7 +346,14 @@ export function assembleResume(input: AssembleInput): AssembleResult {
   const now = input.now ?? new Date();
   const byId = new Map(input.evidence.map((e) => [e.id, e]));
   const policed = [...new Set(input.policedNames.flatMap(splitOptions))];
-  const ctx: CheckContext = { byId, refs: input.refs, policed, aliases: input.requirementAliases, now };
+  const ctx: CheckContext = {
+    byId,
+    refs: input.refs,
+    policed,
+    aliases: input.requirementAliases,
+    neverClaim: input.neverClaim,
+    now,
+  };
   const dropped: ResumeContent['dropped'] = [];
   const used = new Set<string>();
 

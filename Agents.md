@@ -178,7 +178,9 @@ PERSONAL + PRODUCTION / MAINTENANCE.
 3. Never add a skill the job asks for that the verified evidence doesn't support — it
    becomes a gap, never a claim.
 4. If "Azure B2C", or Node.js/Express presented as CloudCard experience, appears in any
-   generated output, it is a bug ([§7.2](docs/career-data.md)).
+   generated output, it is a bug ([§7.2](docs/career-data.md)). More generally, nothing on the
+   user's never-claim list may appear in its scope ([§13.8](docs/resume.md)) — the list is
+   the user's data, so these checks hold for any user, not only this one.
 
 ### 6.3 How verification is enforced in code
 

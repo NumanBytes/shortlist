@@ -40,7 +40,7 @@ const roles = [
 
 const setup = () =>
   mockFetch(undefined, (url) =>
-    url.endsWith('/education') || url.endsWith('/projects')
+    url.endsWith('/education') || url.endsWith('/projects') || url.endsWith('/never-claim')
       ? []
       : url.endsWith('/work-experiences')
         ? roles
