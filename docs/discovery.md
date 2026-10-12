@@ -248,6 +248,28 @@ the whole market for free.
 
 ---
 
+### 9.13 Onboarding and search settings (built 2026-10-13)
+
+Until now a new account searched with defaults tuned for one person (Lahore, frontend titles)
+and had no sources unless the seed scripts were run. Now:
+
+- **`/welcome`** — shown once to an account with nothing saved (no search settings, roles,
+  skills or sources; `GET /onboarding`), so existing accounts are never sent there. Three
+  skippable steps: import a resume ([docs/career-data.md §7.6](career-data.md)), what you're
+  looking for, and where to look.
+- **Search settings** (`GET`/`PUT /discovery/preferences`) — the rule filter's settings (§9.6)
+  as a form, also on Profile → "What I'm looking for". Saved whole, not patched: it's one form,
+  and a partial update could leave a filter the user never saw. A new user starts from
+  `STARTER_DISCOVERY_PREFERENCES` (no city, stack or titles — only near-universal exclusions and
+  the "worldwide" remote terms), not from `DEFAULT_DISCOVERY_PREFERENCES`, which stays the
+  fallback for accounts that never saved their own. Titles entered are also added to
+  `roleTitleTerms`, so alert emails without a description still pass on title.
+- **Remote boards in one tap** (`POST /discovery/sources/remote-boards`) — the aggregators,
+  now listed once in `REMOTE_BOARDS` (shared) and used by both onboarding and the seed;
+  idempotent, and never re-enables a board the user switched off.
+- Gmail alerts stay a pointer to the Sources page: each user needs the Google setup of
+  [docs/email-alerts.md §10.6](email-alerts.md), since the app is self-hosted (decided 2026-10-12).
+
 ## 11. Manual job intake — "Add a job" (planned, decided 2026-10-02)
 
 The universal fallback for everything automatic discovery can't reach: WhatsApp groups,

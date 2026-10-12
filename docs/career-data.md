@@ -108,3 +108,35 @@ database. Every discrepancy was put to the user, and nothing was resolved by gue
 
 Result: 63 evidence items, 19 verified, 44 to review. Tailoring only ever sees the
 verified ones.
+
+### 7.6 Importing a resume (built 2026-10-13)
+
+The seed (§7.1–7.3) only ever served one person. "Import from my resume" (Profile, and the
+first onboarding step, [docs/discovery.md §9.13](discovery.md)) lets any user start from their own CV.
+
+- **The PDF is read in the browser** with pdf.js (`apps/web/src/lib/pdf-text.ts`, loaded only
+  when used and kept out of the offline app shell). Only the text is sent, and it's shown in an
+  editable box first, which is also the fallback for scanned PDFs (paste the text). Chosen over
+  server-side parsing: no file-upload endpoint, the API does no slow work, and the file never
+  leaves the device.
+- **`POST /career-import`** (text, 200–30,000 chars) stores a `CareerImport` row and queues a job
+  on the `career` queue; one import at a time per user (409). `GET /career-import/latest` is
+  polled while it runs and never returns the text.
+- **The worker** (`apps/worker/src/career/`) asks Sonnet (`AI_MODELS.importResume`) through
+  `ResumeReader` (faked in tests) for roles, projects, items and listed skills. The call is
+  budget-checked (`BudgetGuard.checkMonthly`) and logged to `AiUsage` (`IMPORT_RESUME`) before its
+  output is used.
+- **Code decides what's kept** (`checkCareerExtraction()`, shared): a role's title and company,
+  a project's name and a skill's name must appear in the resume; **every `whatIDid` must be a
+  quote from the resume**, compared after normalizing only case, whitespace, bullet glyphs, curly
+  quotes and dashes (a PDF's text layer differs from the model's copy in exactly those). That keeps
+  §6.2 true: every bullet still traces to words the user wrote. Work under a role is COMMERCIAL;
+  work claimed as paid with no role becomes PERSONAL; a never-claim term (§13.8) in its scope is
+  dropped. Everything refused is listed with the reason ("left out").
+- **Writes are additive and unverified:** an existing role (same company and title), project
+  (name) or skill (name, any case) is reused, an identical item is skipped, nothing existing is
+  edited, and `isVerified` is never set. Skills named only in a skills list become skills with no
+  evidence, for the user to describe in their own words.
+- **The text is cleared** from the row as soon as the import finishes (done, deferred or failed);
+  counts and the left-out list remain.
+

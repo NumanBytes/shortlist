@@ -5,6 +5,7 @@ import { ConfigModule } from './config/config.module.js';
 import { DiscoveryModule } from './discovery/discovery.module.js';
 import { EducationModule } from './education/education.module.js';
 import { NeverClaimModule } from './never-claim/never-claim.module.js';
+import { CareerImportModule } from './career-import/career-import.module.js';
 import { EvidenceModule } from './evidence/evidence.module.js';
 import { HealthModule } from './health/health.module.js';
 import { JobsModule } from './jobs/jobs.module.js';
@@ -36,6 +37,7 @@ import { WorkExperienceModule } from './work-experience/work-experience.module.j
     GmailModule,
     EducationModule,
     NeverClaimModule,
+    CareerImportModule,
   ],
 })
 export class AppModule {}

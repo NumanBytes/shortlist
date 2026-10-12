@@ -14,3 +14,5 @@ export * from './profile.schema.js';
 export * from './resume.js';
 export * from './email.schema.js';
 export * from './never-claim.schema.js';
+export * from './career-import.schema.js';
+export * from './remote-boards.js';

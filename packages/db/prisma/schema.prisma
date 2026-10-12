@@ -76,6 +76,7 @@ enum AiPurpose {
   ANALYZE_JOB // requirement extraction + skill mapping (Haiku)
   EXTRACT_EMAIL // jobs read out of an alert email no code parser handles (Haiku)
   TAILOR_RESUME // later (Sonnet)
+  IMPORT_RESUME // roles, projects and quoted evidence read out of an uploaded resume (Sonnet)
   DISCOVER_SOURCES // later (web search)
 }
 
@@ -117,6 +118,7 @@ model User {
   aiSettings      AiSettings?
   education       Education[]
   neverClaims     NeverClaim[]
+  careerImports   CareerImport[]
   aiUsage         AiUsage[]
   resumeVariants  ResumeVariant[]
   gmail           GmailConnection?
@@ -525,6 +527,33 @@ model NeverClaim {
 
   @@unique([userId, term, scope])
   @@index([userId])
+}
+
+// One "import from my resume" (docs/career-data.md §7.6). The worker reads the text into
+// unverified roles, projects and evidence. The text is personal data, so it's cleared as soon
+// as the import finishes; the counts and what was dropped (and why) remain.
+model CareerImport {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  status  CareerImportStatus @default(PENDING)
+  text    String?            @db.Text // null once processed
+  created Json? // { roles, projects, skills, evidence } counts
+  dropped Json? // [{ what, reason }] — what the checks refused
+  error   String?
+
+  createdAt  DateTime  @default(now())
+  finishedAt DateTime?
+
+  @@index([userId, createdAt])
+}
+
+enum CareerImportStatus {
+  PENDING
+  DONE
+  DEFERRED // budget or configuration — retried by importing again
+  FAILED
 }
 
 enum NeverClaimScope {

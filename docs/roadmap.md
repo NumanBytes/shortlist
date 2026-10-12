@@ -38,6 +38,16 @@ What is built, what comes next, and the open decisions.
 
 ### 17.2 Roadmap (in order)
 
+**Daily-use fixes (2026-10-13, from the user's production use; branch `fix/daily-use-improvements`):**
+built — scoring no longer fails on broad requirements ([§12.1](ai-scoring.md)); Jobs grouped by day
+and sources named ([§8.4](web-design.md)); catch-up discovery on worker start ([§9.8](discovery.md));
+pinned projects ([§13.7](resume.md)); two-way resume reuse ([§13.2](resume.md)); the never-claim
+list ([§13.8](resume.md)); PERSONAL + PRODUCTION placement ([§6.1](../Agents.md)); resume import
+([§7.6](career-data.md)); onboarding and search settings ([§9.13](discovery.md)). **Next, in order:**
+Discovery Milestones 2 and 3 on their own branch (item 6 below), then **push notifications** on a
+separate branch (daily digest, instant strong-match and resume-ready pushes, broken-source alerts —
+designed with the user 2026-10-12).
+
 1. **User:** review the 44 unverified items from the CV reconciliation ([§7.5](career-data.md)) in the
    Evidence screen — fix the placeholder ones with Edit before verifying. Everything AI
    reads only verified evidence.

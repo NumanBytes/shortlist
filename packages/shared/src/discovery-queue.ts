@@ -43,6 +43,18 @@ export interface TailorResumeData {
   jobId: string;
 }
 
+// Resume import queue (docs/career-data.md §7.6): one model call per import, started by the user.
+export const CAREER_QUEUE = 'career';
+
+export const CareerJob = {
+  // Read an uploaded resume's text into unverified roles, projects and evidence.
+  Import: 'import-resume',
+} as const;
+
+export interface ImportResumeData {
+  importId: string;
+}
+
 // Email alerts queue (docs/email-alerts.md §10). Reading Gmail is I/O against one mailbox per user,
 // on its own schedule; kept apart so a slow mailbox never delays discovery or scoring.
 export const EMAIL_QUEUE = 'email';
@@ -86,6 +98,7 @@ export const dedupeId = {
   analyzeJob: (jobId: string) => `analyze-${jobId}`,
   tailorResume: (jobId: string) => `tailor-${jobId}`,
   checkEmail: (userId: string) => `email-${userId}`,
+  importResume: (userId: string) => `import-${userId}`,
 };
 
 const KEEP = {
@@ -116,6 +129,12 @@ export const queueJobOptions = {
     ...retry(60_000),
     jobId: `tailor__${jobId}__${safeJobId(batchId)}`,
     deduplication: { id: dedupeId.tailorResume(jobId) },
+  }),
+  // One import at a time per user; a second tap joins the one running.
+  importResume: (userId: string, importId: string) => ({
+    ...retry(60_000),
+    jobId: `import__${importId}`,
+    deduplication: { id: dedupeId.importResume(userId) },
   }),
   checkEmail: (userId: string, batchId: string) => ({
     ...retry(60_000),

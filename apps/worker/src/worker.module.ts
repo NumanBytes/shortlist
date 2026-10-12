@@ -1,6 +1,7 @@
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { AnalysisModule } from './analysis/analysis.module.js';
+import { CareerModule } from './career/career.module.js';
 import { ConfigModule, ENV } from './config/config.module.js';
 import type { Env } from './config/env.js';
 import { DiscoveryModule } from './discovery/discovery.module.js';
@@ -23,6 +24,7 @@ import { ResumeModule } from './resume/resume.module.js';
     AnalysisModule,
     ResumeModule,
     EmailModule,
+    CareerModule,
     HeartbeatModule,
   ],
 })

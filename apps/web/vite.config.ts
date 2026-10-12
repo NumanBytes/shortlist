@@ -31,6 +31,8 @@ export default defineConfig({
         // must never be served from a service-worker cache (a signed-out or
         // different user could see them), so /api is excluded from everything.
         navigateFallbackDenylist: [/^\/api\//],
+        // pdf.js (resume import only, ~1.5 MB) is fetched when used, not precached on every phone.
+        globIgnores: ['**/pdf*.js', '**/pdf*.mjs'],
         runtimeCaching: [],
       },
     }),

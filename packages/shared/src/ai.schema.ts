@@ -7,6 +7,9 @@ export const AI_MODELS = {
   tailorResume: 'claude-sonnet-5-5',
   // Reading jobs out of alert emails no code parser handles: short, structured, cheap.
   extractEmail: 'claude-haiku-4-5',
+  // Reading a whole resume into roles, projects and quoted evidence, once per import:
+  // accuracy matters more than the few cents (docs/career-data.md §7.6).
+  importResume: 'claude-sonnet-5-5',
 } as const;
 
 // USD per million tokens. Batch API halves these (not used yet — §12.1).

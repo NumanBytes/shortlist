@@ -2,6 +2,8 @@ import { Inject, Injectable, Logger, ServiceUnavailableException, type OnModuleD
 import {
   ANALYSIS_QUEUE,
   AnalysisJob,
+  CAREER_QUEUE,
+  CareerJob,
   DISCOVERY_QUEUE,
   DiscoveryJob,
   EMAIL_QUEUE,
@@ -14,6 +16,7 @@ import {
   queueJobOptions,
   type AnalyzeJobData,
   type CheckEmailData,
+  type ImportResumeData,
   type DiscoverSourceData,
   type TailorResumeData,
 } from '@shortlist/shared';
@@ -40,6 +43,7 @@ export class JobQueues implements OnModuleDestroy {
   private readonly analysis: Queue;
   private readonly resume: Queue;
   private readonly email: Queue;
+  private readonly career: Queue;
 
   constructor(@Inject(ENV) env: Env) {
     this.connection = new Redis(env.REDIS_URL, { maxRetriesPerRequest: 1, lazyConnect: true });
@@ -48,7 +52,9 @@ export class JobQueues implements OnModuleDestroy {
     this.analysis = new Queue(ANALYSIS_QUEUE, { connection: this.connection });
     this.resume = new Queue(RESUME_QUEUE, { connection: this.connection });
     this.email = new Queue(EMAIL_QUEUE, { connection: this.connection });
-    for (const q of [this.discovery, this.analysis, this.resume, this.email]) q.on('error', () => undefined);
+    this.career = new Queue(CAREER_QUEUE, { connection: this.connection });
+    for (const q of [this.discovery, this.analysis, this.resume, this.email, this.career])
+      q.on('error', () => undefined);
   }
 
   enqueueSources(sourceIds: string[], batchId: string): Promise<void> {
@@ -93,6 +99,16 @@ export class JobQueues implements OnModuleDestroy {
         EmailJob.Check,
         { userId } satisfies CheckEmailData,
         queueJobOptions.checkEmail(userId, String(Date.now())),
+      ),
+    );
+  }
+
+  enqueueResumeImport(userId: string, importId: string): Promise<void> {
+    return this.bounded(
+      this.career.add(
+        CareerJob.Import,
+        { importId } satisfies ImportResumeData,
+        queueJobOptions.importResume(userId, importId),
       ),
     );
   }
@@ -155,7 +171,9 @@ export class JobQueues implements OnModuleDestroy {
 
   async onModuleDestroy() {
     await Promise.all(
-      [this.discovery, this.analysis, this.resume, this.email].map((q) => q.close().catch(() => undefined)),
+      [this.discovery, this.analysis, this.resume, this.email, this.career].map((q) =>
+        q.close().catch(() => undefined),
+      ),
     );
     this.connection.disconnect();
   }

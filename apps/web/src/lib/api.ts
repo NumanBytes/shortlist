@@ -67,7 +67,7 @@ async function doRefresh(): Promise<AuthResponse | null> {
 
 // ── Requests ─────────────────────────────────────────────────────────────────
 interface RequestOptions {
-  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
 }
 
