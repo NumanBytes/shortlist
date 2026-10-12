@@ -134,6 +134,13 @@ Developer" often ask for the same things.
   the jobs each was used for); the threshold is a setting
   (`AiSettings.resumeReuseMinOverlap`, default 0.85). Only approved resumes are offered or
   accepted (409 otherwise) — reuse skips review, so the reused resume must already have had one.
+- **Two-way check (2026-10-13):** coverage alone was one-sided. In production, a "React
+  Developer (TypeScript)" posting whose analysis found only React and TypeScript was 100%
+  covered by the approved MERN resume (built for 18 requirements) and offered as a "100%
+  match", then reused. An offer now also needs **focus** — the share of the variant's own
+  profile the new job asks for — of at least `MIN_REUSE_FOCUS` (0.6), so reuse means "the
+  same kind of job". The card says "Covers 92% of this job's requirements" instead of
+  "92% match", which read like the score ring's number.
 - **Base variants (not built yet):** the user can create and pin a base resume per niche, each generated
   and reviewed once; most jobs then map to one of them.
 - **Why it's worth it:** the API saving is real but small (a Sonnet tailoring run costs

@@ -86,7 +86,7 @@ describe('ResumeSection', () => {
       reuse: [{ variantId: 'v9', overlap: 0.92, approvedAt: null, usedFor: ['Frontend Engineer at Kwanso'] }],
     });
     renderWithProviders(<ResumeSection job={job} />);
-    expect(await screen.findByText(/92% match/)).toBeInTheDocument();
+    expect(await screen.findByText(/Covers 92% of this job's requirements/)).toBeInTheDocument();
     expect(screen.getByText(/Used for Frontend Engineer at Kwanso/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Reuse resume' }));
     await waitFor(() => expect(bodyOf(fetch, 'POST')).toEqual({ mode: 'reuse', variantId: 'v9' }));

@@ -49,6 +49,18 @@ describe('reuse overlap (docs/resume.md §13.2)', () => {
     expect(r.missingRequired).toEqual(['GraphQL']);
   });
 
+  it("measures how much of the resume's own profile the new job asks for", () => {
+    // A resume built for 5 names; a job asking for 2 of them is fully covered but off-focus.
+    const narrow = resumeOverlap(
+      [
+        { skillName: 'React', importance: 'REQUIRED' },
+        { skillName: 'TypeScript', importance: 'REQUIRED' },
+      ],
+      profile,
+    );
+    expect(narrow).toMatchObject({ overlap: 1, focus: 0.4 });
+  });
+
   it('is zero for a job with no requirements (never reuse blindly)', () => {
     expect(resumeOverlap([], profile).overlap).toBe(0);
   });

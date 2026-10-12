@@ -480,20 +480,29 @@ export function requirementProfile(requirements: { skillName: string }[]): strin
   return [...new Set(requirements.flatMap((r) => splitOptions(r.skillName).map(normalizeSkillName)))].sort();
 }
 
+// The share of the variant's own profile the new job must ask for before it is offered.
+// Coverage alone is one-sided: a 2-requirement "React, TypeScript" posting is 100% covered
+// by a resume built for an 18-requirement MERN role, which was offered as a "100% match"
+// (production, 2026-10-12). Requiring the job to ask for most of what the resume was built
+// for makes reuse mean "the same kind of job".
+export const MIN_REUSE_FOCUS = 0.6;
+
 export function resumeOverlap(
   job: { skillName: string; importance: Importance }[],
   profile: string[],
-): { overlap: number; missingRequired: string[] } {
+): { overlap: number; focus: number; missingRequired: string[] } {
   const have = new Set(profile);
   const jobNames = requirementProfile(job);
-  if (jobNames.length === 0) return { overlap: 0, missingRequired: [] };
+  if (jobNames.length === 0 || have.size === 0) return { overlap: 0, focus: 0, missingRequired: [] };
   const covered = jobNames.filter((n) => have.has(n)).length;
   const missingRequired = job
     .filter(
       (r) => r.importance === 'REQUIRED' && !splitOptions(r.skillName).some((o) => have.has(normalizeSkillName(o))),
     )
     .map((r) => r.skillName);
-  return { overlap: covered / jobNames.length, missingRequired };
+  // overlap: how much of the new job the variant covers; focus: how much of the variant
+  // the new job asks for.
+  return { overlap: covered / jobNames.length, focus: covered / have.size, missingRequired };
 }
 
 // ── API request bodies ────────────────────────────────────────────────────────

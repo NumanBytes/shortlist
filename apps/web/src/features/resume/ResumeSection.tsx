@@ -281,7 +281,10 @@ function Body({ job, resume }: { job: JobDetail; resume: JobResume }) {
             <div className="min-w-0">
               <p className="font-semibold text-fg">Reuse your approved resume</p>
               <p className="text-[13px] text-muted">
-                <span className="font-semibold text-accent-fg">{Math.round(r.overlap * 100)}% match</span>
+                {/* Not a score: how much of this job's requirement list the resume was built for. */}
+                <span className="font-semibold text-accent-fg">
+                  Covers {Math.round(r.overlap * 100)}% of this job's requirements
+                </span>
                 {r.approvedAt && ` · approved ${shortDate(r.approvedAt)}`}
               </p>
               {r.usedFor.length > 0 && <p className="truncate text-xs text-muted">Used for {r.usedFor.join(', ')}</p>}
