@@ -113,7 +113,12 @@ from reaching `main`.
   exception: Dependabot proposes only patch and minor updates of the `node` image. A new
   Node major is a deliberate upgrade to an even-numbered LTS release, changing `.nvmrc`,
   the Dockerfile and local development together, so production never runs a Node
-  version that isn't tested locally (it first proposed 22 → 25, a short-lived release). A vulnerable
+  version that isn't tested locally (it first proposed 22 → 25, a short-lived release).
+  The same goes for `@types/node`, pinned to `^22` so the types describe the Node that
+  actually runs (it had drifted to 24). Prisma's CLI and client are one Dependabot group,
+  because updated apart `prisma generate` fails (likewise `vitest` and `@vitest/*`: a
+  coverage plugin on another major breaks `test:cov`), and Prisma majors are skipped: a major
+  changes the generator, config and connection setup, so it's a planned upgrade. A vulnerable
   package nested inside a dependency that hasn't updated yet is pinned with a pnpm
   `overrides` entry in `pnpm-workspace.yaml`, with the advisory id and when to drop it.
 
