@@ -46,6 +46,16 @@ const hosted = (
   enabled,
 });
 
+// A company's own careers page (Milestone 3): the change watcher reads it. Same key scheme as
+// `planned`, so rows seeded before the watcher existed are the same rows.
+const careersPage = (name: string, url: string, note?: string, enabled = true): SeedJobSource => ({
+  key: `careers_page:${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+  name,
+  type: 'MANUAL',
+  config: { provider: 'careers_page', url, ...(note ? { note } : {}) },
+  enabled,
+});
+
 // Recorded for later milestones; disabled until the provider has an adapter.
 const planned = (
   provider: (typeof PLANNED_PROVIDERS)[number],
@@ -55,7 +65,7 @@ const planned = (
 ): SeedJobSource => ({
   key: `${provider}:${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
   name,
-  type: provider === 'email_alerts' ? 'EMAIL_INBOX' : provider === 'careers_page' ? 'MANUAL' : 'ATS_BOARD',
+  type: provider === 'email_alerts' ? 'EMAIL_INBOX' : 'ATS_BOARD',
   config: { provider, ...(url ? { url } : {}), ...(note ? { note } : {}) },
   enabled: false,
 });
@@ -95,38 +105,38 @@ export const JOB_SOURCES: SeedJobSource[] = [
   ),
   planned('pinpoint', 'Code District', 'https://codedistrict.com/job-details?2096874'),
 
-  // ── Milestone 3: custom careers sites (change-detection + extraction) ────
-  planned(
-    'careers_page',
+  // ── Milestone 3: custom careers sites (change watcher + model, built 2026-10-13) ──
+  careersPage(
     'NetSol Technologies',
     'https://careers.netsoltech.com/?post_type=noo_job&action=live_search&location=lahore',
   ),
-  planned('careers_page', 'Folio3', 'https://folio3.com/careers/'),
-  planned('careers_page', 'Synavos', 'https://synavos.com/careers/'),
-  planned('careers_page', 'BrainX', 'https://careers.brainxtech.com/'),
-  planned('careers_page', 'Coeus Solutions', 'https://www.coeus-solutions.com/careers/'),
-  planned('careers_page', 'Redmath', 'https://redmath.com/'),
-  planned('careers_page', 'RipeSeed', 'https://ripeseed.io/'),
-  planned('careers_page', 'Intech', 'https://www.intechww.com/careers/'),
-  planned('careers_page', 'SSI', 'https://www.ssidecisions.com/careers/'),
-  planned('careers_page', 'Cinnova', 'https://careers.cinnova.pk/current-openings/'),
-  planned('careers_page', 'Rolustech', 'https://www.rolustech.com/jobs'),
-  planned('careers_page', 'Xavor', 'https://www.xavor.com/careers/'),
-  planned('careers_page', 'CodingCops', 'https://codingcops.com/about/'),
-  planned('careers_page', 'Nextbridge', 'https://nextbridge.com/careers/'),
-  planned('careers_page', 'The Developers Arena', 'https://www.thedevelopersarena.com/apply'),
-  planned(
-    'careers_page',
-    'The TCM Group',
-    'https://thetcmgroup.com/about/careers/',
-    'Returned 403 to automated requests (2026-10-01)',
+  careersPage('Folio3', 'https://folio3.com/careers/'),
+  careersPage('Synavos', 'https://synavos.com/careers/'),
+  careersPage('BrainX', 'https://careers.brainxtech.com/'),
+  careersPage('Coeus Solutions', 'https://www.coeus-solutions.com/careers/'),
+  careersPage('Redmath', 'https://redmath.com/'),
+  careersPage('RipeSeed', 'https://ripeseed.io/careers'),
+  careersPage('Intech', 'https://www.intechww.com/careers/'),
+  careersPage('SSI', 'https://www.ssidecisions.com/careers/'),
+  careersPage('Cinnova', 'https://careers.cinnova.pk/current-openings/'),
+  careersPage('Rolustech', 'https://www.rolustech.com/jobs'),
+  careersPage('Xavor', 'https://www.xavor.com/careers/'),
+  careersPage('Nextbridge', 'https://nextbridge.com/careers/'),
+  // Off — nothing a page reader can use (probed 2026-10-13):
+  careersPage('CodingCops', 'https://codingcops.com/about/', 'No careers page: /careers is a 404', false),
+  careersPage(
+    'The Developers Arena',
+    'https://www.thedevelopersarena.com/apply',
+    'A JavaScript app: the page has no content without running it',
+    false,
   ),
-  planned('careers_page', 'Qbatch', 'https://qbatch.com/careers/', 'Careers page returned 404 (2026-10-01)'),
-  planned(
-    'careers_page',
+  careersPage('The TCM Group', 'https://thetcmgroup.com/about/careers/', 'Returns 403 to automated requests', false),
+  careersPage('Qbatch', 'https://qbatch.com/careers/', 'Careers page returns 404', false),
+  careersPage(
     'Conrad Labs',
     'https://conradlabs.recruitease.simplisti.cc/recruitment/job-posts',
     'Domain did not resolve (2026-10-01)',
+    false,
   ),
 
   // ── Milestone 3: job-alert emails (portals that forbid scraping / have no API) ──

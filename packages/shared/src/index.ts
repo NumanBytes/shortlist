@@ -16,3 +16,4 @@ export * from './email.schema.js';
 export * from './never-claim.schema.js';
 export * from './career-import.schema.js';
 export * from './remote-boards.js';
+export * from './careers-page.schema.js';

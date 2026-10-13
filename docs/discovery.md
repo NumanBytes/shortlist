@@ -31,7 +31,7 @@ Each careers URL was fetched and classified by platform. All of it is recorded a
 | **Enabled — aggregators** | Remote OK, Remotive (software-dev), Arbeitnow, Himalayas, Jobicy, We Work Remotely (Full-Stack, Front-End) |
 | **Milestone 2 — built 2026-10-13** | VentureDive, NorthBay (JazzHR); ShopDev, Techlogix, Tintash (Zoho Recruit); Intagleo, i2c (OpenCATS); 7Vals (Simplicant) — enabled. SlashNext (Zoho) off: its careers site shows an error page |
 | **Milestone 2 — still planned** | UWorx (WebHR) and Cogent Labs (Hirestream): JavaScript apps over private, undocumented APIs; Systemvent (SAP SuccessFactors); Code District (Pinpoint) |
-| **Milestone 3 — custom sites** | NetSol, Folio3, Synavos, BrainX, Coeus, Redmath, RipeSeed, Intech, SSI, Cinnova, Rolustech, Xavor, CodingCops, Nextbridge, The Developers Arena |
+| **Milestone 3 — custom sites, built 2026-10-13** | NetSol, Folio3, Synavos, BrainX, Coeus, Redmath, RipeSeed (now `/careers`), Intech, SSI, Cinnova, Rolustech, Xavor, Nextbridge — enabled (§9.14). Off: CodingCops (no careers page), The Developers Arena (JavaScript app) |
 | **Recorded with a note** | TCM (403 to automated requests), Qbatch (careers page 404), Conrad Labs (domain doesn't resolve) |
 | **Email alerts ([§10](email-alerts.md))** | LinkedIn, Wellfound, Rozee.pk, remote.co — plus Indeed, Glassdoor, Taraki from the user's inbox |
 | **Not a source** | Turing — a vetting marketplace (apply once, get matched), not a job feed |
@@ -194,8 +194,11 @@ and repeated email alerts into one.
   isn't running at 02:00 (a laptop asleep, a deploy at that minute) silently skips the
   night — in development, the boards went 11 days without a run while Gmail checks
   (every two hours) kept working. On start, `DiscoveryScheduler` checks Postgres for the
-  latest board run; if none started in the last 25 hours, it queues `discover-all` at once
-  (job id per hour, so two workers starting together queue one). Decided from the database,
+  latest board run; if none started in the last 25 hours, it queues a catch-up `discover-all`
+  **5 minutes later** (job id per hour, so two workers starting together queue one). The
+  catch-up re-checks when it runs and steps aside if a run has started since: an overdue
+  nightly job kept in Redis may run at startup too, and both would fetch everything (code
+  review 2026-10-13 — "the scheduler only looks forward" had been assumed, not verified). Decided from the database,
   not Redis, so it holds whatever the queue lost; a failed check logs and never stops the worker.
 - Worker concurrency: 3 sources in parallel (`WORKER_CONCURRENCY`).
 - BullMQ 6 requires a constructed `ioredis` client in ESM (`createRedis`); the worker's
@@ -269,7 +272,7 @@ the whole market for free.
 - **Milestone 2:** JazzHR, Zoho Recruit, OpenCATS and Simplicant built 2026-10-13 (9
   companies, 8 enabled). Left: WebHR and Hirestream (private APIs, see §9.3),
   SuccessFactors and Pinpoint.
-- **Milestone 3 — custom careers sites:** a **generic change watcher** instead of 15
+- **Milestone 3 — custom careers sites (built 2026-10-13, §9.14):** a **generic change watcher** instead of 15
   hand-written scrapers (which would break on every redesign): fetch each page nightly
   and compare with the previous version (free); only when it changed, have Haiku extract
   the listings (~$0.001 per changed page). One adapter for every custom site, and the
@@ -305,6 +308,50 @@ and had no sources unless the seed scripts were run. Now:
   idempotent, and never re-enables a board the user switched off.
 - Gmail alerts stay a pointer to the Sources page: each user needs the Google setup of
   [docs/email-alerts.md §10.6](email-alerts.md), since the app is self-hosted (decided 2026-10-12).
+
+### 9.14 Custom careers pages — the change watcher (built 2026-10-13)
+
+The `careers_page` provider reads any company's own careers page with one adapter
+(`discovery/careers-page/`), as decided 2026-10-02 (§9.12): the cheap check in front of the
+expensive one.
+
+1. **Fetch and reduce** (`pageText()`): scripts, styles, menus and footers are dropped, and a
+   `<header>` only when it looks like the site's (no heading in it, or a menu / banner role /
+   site class) — a job card's `<article><header><h3>…` keeps its title (code review 2026-10-13); every link becomes a short ref (`Shopify Developer [L4]`), so the model can point
+   at a job's page without writing a URL. Text is capped at 24,000 characters, and only the
+   links that text shows are sent (Intech's page has 331).
+2. **Fingerprint** (`fingerprint()`): sha256 of the reduced text and links, ignoring
+   phrases that change daily on their own ("Posted 10 months ago").
+3. **Unchanged** → the openings stored in `CareersPageSnapshot` are returned. No model call,
+   no cost — most nights for most pages.
+4. **Changed or never read** → Haiku (`AI_MODELS.extractCareersPage`) lists the openings
+   through `CareersPageExtractor` (faked in tests), after `BudgetGuard.checkMonthly`, logged to
+   `AiUsage` (`EXTRACT_CAREERS_PAGE`) before its output is used.
+5. **Code keeps only what's on the page** (`checkOpenings()`): a title must appear as written;
+   a link must be one of the page's refs **and public** (else the posting links to the careers
+   page itself);
+   `details` — the page's own text about a job — are kept only if quoted. A page the model
+   says lists no openings gives none (an EMPTY run).
+6. **Descriptions:** the quoted details, or the job's own page (its JSON-LD JobPosting, else
+   its reduced text), fetched only for jobs that pass stage A — through `getPublicText()`, which
+   resolves the host and refuses private, loopback and link-local addresses at every redirect
+   hop (`public-url.ts`). Those links come from a third-party page via the model, so a hostile
+   page could otherwise point the worker at its own network, e.g. the cloud metadata service
+   (SSRF, code review 2026-10-13). Postings go through `mapPostings()`, like every adapter's.
+
+**Failures stay visible:** a page with almost no text without JavaScript fails the run
+("can't be read this way") without a model call. Over budget or out of credit, a changed page
+keeps its last reading (logged) and is re-read on a later run — deferred, never dropped; a
+page never read yet fails the run with the reason instead of looking empty. Invalid or cut-off
+model output fails the run without retry, and the page's fingerprint is remembered
+(`failedHash`): while the page is unchanged it isn't sent to the model — or billed — again,
+and the run says why; once it changes, it gets one more try.
+
+Cost: a first reading of all 13 pages is roughly 30,000 input tokens (about 3 US cents);
+afterwards only pages that changed are read.
+
+Adapters that need more than the page (the database, the model) get it through the context
+(`AdapterContext.careersPage`), so the registry stays one plain function per provider.
 
 ## 11. Manual job intake — "Add a job" (planned, decided 2026-10-02)
 

@@ -1,7 +1,8 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { ImplementedSourceConfigSchema, PlannedSourceConfigSchema } from '@shortlist/shared';
 import type { DiscoveryRunStatus } from '@shortlist/db';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { CareersPageService } from './careers-page/careers-page.service.js';
 import { compileFilter } from './filter.js';
 import { storeJobs } from './job-store.js';
 import { loadPreferences } from './preferences.js';
@@ -32,6 +33,7 @@ export class DiscoveryService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(ADAPTER_REGISTRY) private readonly adapters: AdapterRegistry,
+    @Optional() private readonly careersPage?: CareersPageService,
   ) {}
 
   async runSource(sourceId: string): Promise<RunSummary> {
@@ -52,6 +54,9 @@ export class DiscoveryService {
       const adapter = this.adapters[config.provider] as (c: typeof config, ctx: AdapterContext) => Promise<Posting[]>;
       const postings = await adapter(config, {
         sourceName: source.name,
+        sourceId: source.id,
+        userId: source.userId,
+        careersPage: this.careersPage,
         onSkipped: (reason) => {
           count('invalid posting');
           this.logger.warn(`${source.name}: skipped ${reason}`);

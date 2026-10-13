@@ -19,8 +19,19 @@ export interface Posting {
   loadDescription?: () => Promise<string>;
 }
 
+// What a careers page needs beyond the page itself (docs/discovery.md §9.14).
+export interface CareersPageReader {
+  read(
+    source: { sourceId: string; userId: string; name: string; url: string },
+    ctx: AdapterContext,
+  ): Promise<Posting[]>;
+}
+
 export interface AdapterContext {
   sourceName: string; // JobSource.name — used as the company for single-company boards
+  sourceId?: string;
+  userId?: string;
+  careersPage?: CareersPageReader; // only the careers_page adapter uses it
   // Told about each item mapPostings had to drop, so the run can report it.
   onSkipped?: (reason: string) => void;
 }
