@@ -1,3 +1,4 @@
+import { vapidKeysValid } from '@shortlist/shared/node';
 import { z } from 'zod';
 
 // Every environment variable the worker needs. Invalid config = refuse to start.
@@ -36,6 +37,19 @@ const EnvSchema = z
     // How often connected inboxes are checked. Alerts arrive through the day; every two
     // hours keeps new jobs fresh without hammering the API (each check is a few requests).
     GMAIL_CHECK_CRON: z.string().default('15 */2 * * *'),
+
+    // Web Push (docs/notifications.md §19). Optional as a group: without them nothing is
+    // pushed, and notifications are still recorded. Generate a pair with
+    // `pnpm --filter @shortlist/worker vapid:keys`; the public key also goes to the API.
+    VAPID_PUBLIC_KEY: z.string().min(1).optional(),
+    VAPID_PRIVATE_KEY: z.string().min(1).optional(),
+    // A contact the push services can reach: mailto:you@example.com or an https URL.
+    VAPID_SUBJECT: z
+      .string()
+      .regex(/^(mailto:|https:\/\/)/, 'VAPID_SUBJECT must be a mailto: or https:// URL')
+      .optional(),
+    // The morning digest, in DISCOVERY_TZ: after the nightly discovery (02:00) and scoring (03:00).
+    DIGEST_CRON: z.string().default('0 8 * * *'),
   })
   .superRefine((env, ctx) => {
     const google = [env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET, env.TOKEN_ENCRYPTION_KEY];
@@ -45,6 +59,19 @@ const EnvSchema = z
         path: ['GOOGLE_CLIENT_ID'],
         message: 'Set all of GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and TOKEN_ENCRYPTION_KEY, or none',
       });
+    }
+    const vapid = [env.VAPID_PUBLIC_KEY, env.VAPID_PRIVATE_KEY, env.VAPID_SUBJECT];
+    if (vapid.some(Boolean) && !vapid.every(Boolean)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['VAPID_PUBLIC_KEY'],
+        message: 'Set all of VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY and VAPID_SUBJECT, or none',
+      });
+    } else if (
+      env.VAPID_PUBLIC_KEY &&
+      !vapidKeysValid({ publicKey: env.VAPID_PUBLIC_KEY, privateKey: env.VAPID_PRIVATE_KEY! })
+    ) {
+      ctx.addIssue({ code: 'custom', path: ['VAPID_PRIVATE_KEY'], message: 'VAPID keys are not a matching pair' });
     }
   });
 

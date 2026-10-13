@@ -139,6 +139,11 @@ export const queueJobOptions = {
     jobId: `import__${importId}__${safeJobId(attemptId)}`,
     deduplication: { id: dedupeId.importResume(importId) },
   }),
+  // One send per notification however often it's asked for: the job id is the notification's.
+  notifySend: (notificationId: string) => ({
+    ...retry(30_000),
+    jobId: `notify__${notificationId}`,
+  }),
   checkEmail: (userId: string, batchId: string) => ({
     ...retry(60_000),
     jobId: `email__${userId}__${safeJobId(batchId)}`,

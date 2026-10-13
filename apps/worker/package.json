@@ -17,7 +17,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "capture:emails": "node dist/cli/capture-emails.js",
     "scrub:email": "node dist/cli/scrub-email.js",
-    "preview:resume": "node dist/cli/preview-resume.js"
+    "preview:resume": "node dist/cli/preview-resume.js",
+    "vapid:keys": "node dist/cli/vapid-keys.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.132.1",

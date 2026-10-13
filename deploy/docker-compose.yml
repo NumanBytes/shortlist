@@ -15,6 +15,7 @@ x-server: &server
     TOKEN_ENCRYPTION_KEY: ${TOKEN_ENCRYPTION_KEY:-}
     GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
     GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+    VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
 
 services:
   # Same major version as development (18), so a local dump restores cleanly (README §6).
@@ -78,6 +79,8 @@ services:
       <<: *server-env
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       DISCOVERY_TZ: ${DISCOVERY_TZ:-Asia/Karachi}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-}
     depends_on:
       migrate: { condition: service_completed_successfully }
       redis: { condition: service_healthy }
