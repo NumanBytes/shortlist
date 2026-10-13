@@ -51,6 +51,12 @@ const EnvSchema = z
     // Gmail job alerts (docs/email-alerts.md §10). Optional as a group: without them the app works and
     // "Connect Gmail" says it isn't configured. The redirect URI must match the one
     // registered on the Google OAuth client exactly.
+    // Web Push (docs/notifications.md §19): the public half of the worker's VAPID key pair,
+    // handed to browsers when they subscribe. Unset = notifications can't be turned on.
+    VAPID_PUBLIC_KEY: z
+      .string()
+      .regex(/^[A-Za-z0-9_-]{87}$/, 'VAPID_PUBLIC_KEY must be a base64url P-256 public key')
+      .optional(),
     GOOGLE_CLIENT_ID: z.string().min(1).optional(),
     GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
     GOOGLE_REDIRECT_URI: z.url().optional(),

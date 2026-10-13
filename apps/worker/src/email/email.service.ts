@@ -1,5 +1,5 @@
 import { InjectQueue } from '@nestjs/bullmq';
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { ANALYSIS_QUEUE, EmailExtractionSchema, costUsd, emailSourceKey } from '@shortlist/shared';
 import { GoogleApiError, SecretBox, type GmailApi, type GoogleOAuth } from '@shortlist/shared/node';
 import type { Queue } from 'bullmq';
@@ -11,6 +11,7 @@ import { compileFilter } from '../discovery/filter.js';
 import { storeJobs } from '../discovery/job-store.js';
 import { loadPreferences } from '../discovery/preferences.js';
 import type { Posting } from '../discovery/types.js';
+import { Notifier } from '../notifications/notifier.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { portalFor, toAlertEmail, type AlertEmail, type EmailParser, type EmailPosting } from './alert-email.js';
 import { EMAIL_EXTRACTOR, buildExtractionPrompt, checkExtracted, type EmailExtractor } from './extract.js';
@@ -61,6 +62,7 @@ export class EmailService {
     @Inject(SECRET_BOX) private readonly box: SecretBox | null,
     @Inject(EMAIL_EXTRACTOR) private readonly extractor: EmailExtractor,
     @InjectQueue(ANALYSIS_QUEUE) private readonly analysisQueue: Queue,
+    @Optional() private readonly notifier?: Notifier,
   ) {}
 
   async check(userId: string): Promise<CheckOutcome> {
@@ -328,6 +330,13 @@ export class EmailService {
       where: { userId },
       data: { status: 'NEEDS_RECONNECT', lastError: reason, lastCheckedAt: new Date(), lastCheckStatus: 'FAILED' },
     });
+    await this.notifier?.problem(
+      userId,
+      `gmail-reconnect:${new Date().toISOString().slice(0, 10)}`,
+      'Gmail needs reconnecting',
+      `${reason}. Job alerts stop arriving until you do.`,
+      '/sources',
+    );
   }
 
   async failed(userId: string, reason: string) {

@@ -39,6 +39,7 @@ and the alternatives that were rejected.
 | §16 Decision log | [docs/decisions.md](docs/decisions.md) | Every decision, dated, with where it's described |
 | §17 Build state and roadmap | [docs/roadmap.md](docs/roadmap.md) | What's built, what's next, open decisions |
 | §18 Working agreements | this file | How the builder and assistants work together |
+| §19 Push notifications | [docs/notifications.md](docs/notifications.md) | Hand-rolled Web Push, what is sent and when, settings, setup |
 
 ---
 

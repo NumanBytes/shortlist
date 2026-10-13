@@ -178,11 +178,12 @@ Per job, ready for the user to submit themselves: the tailored (or reused) PDF; 
 screening questions (years of experience computed from verified dates); outreach and
 follow-up drafts.
 
-### 13.6 Notifications (planned)
+### 13.6 Notifications (built 2026-10-13)
 
-When a resume is ready (tailored or reused), a Web Push notification: "Resume ready:
-<title> @ <company> — review and submit." Opening it shows the resume, the evidence
-behind each bullet, and the gaps.
+When a tailored resume is ready, a Web Push notification: "Resume ready: <title> — <company>,
+review it, then apply on their site." Tapping it opens the resume. How push works, and the
+other notifications: [docs/notifications.md §19](notifications.md). (A reused resume needs no
+notification: it's ready the moment the user picks it.)
 
 ### 13.7 Pinned projects (built 2026-10-13)
 

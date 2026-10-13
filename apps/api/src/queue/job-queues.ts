@@ -8,6 +8,9 @@ import {
   DiscoveryJob,
   EMAIL_QUEUE,
   EmailJob,
+  NOTIFICATIONS_QUEUE,
+  NotifyJob,
+  type NotifySendData,
   NIGHTLY_DISCOVERY_SCHEDULER_ID,
   RESUME_QUEUE,
   WORKER_HEARTBEAT_KEY,
@@ -44,6 +47,7 @@ export class JobQueues implements OnModuleDestroy {
   private readonly resume: Queue;
   private readonly email: Queue;
   private readonly career: Queue;
+  private readonly notifications: Queue;
 
   constructor(@Inject(ENV) env: Env) {
     this.connection = new Redis(env.REDIS_URL, { maxRetriesPerRequest: 1, lazyConnect: true });
@@ -53,8 +57,8 @@ export class JobQueues implements OnModuleDestroy {
     this.resume = new Queue(RESUME_QUEUE, { connection: this.connection });
     this.email = new Queue(EMAIL_QUEUE, { connection: this.connection });
     this.career = new Queue(CAREER_QUEUE, { connection: this.connection });
-    for (const q of [this.discovery, this.analysis, this.resume, this.email, this.career])
-      q.on('error', () => undefined);
+    this.notifications = new Queue(NOTIFICATIONS_QUEUE, { connection: this.connection });
+    for (const q of this.all()) q.on('error', () => undefined);
   }
 
   enqueueSources(sourceIds: string[], batchId: string): Promise<void> {
@@ -111,6 +115,20 @@ export class JobQueues implements OnModuleDestroy {
         queueJobOptions.importResume(importId, String(Date.now())),
       ),
     );
+  }
+
+  enqueueNotification(notificationId: string): Promise<void> {
+    return this.bounded(
+      this.notifications.add(
+        NotifyJob.Send,
+        { notificationId } satisfies NotifySendData,
+        queueJobOptions.notifySend(notificationId),
+      ),
+    );
+  }
+
+  private all() {
+    return [this.discovery, this.analysis, this.resume, this.email, this.career, this.notifications];
   }
 
   private async bounded(add: Promise<unknown> | null): Promise<void> {
@@ -170,11 +188,7 @@ export class JobQueues implements OnModuleDestroy {
   }
 
   async onModuleDestroy() {
-    await Promise.all(
-      [this.discovery, this.analysis, this.resume, this.email, this.career].map((q) =>
-        q.close().catch(() => undefined),
-      ),
-    );
+    await Promise.all(this.all().map((q) => q.close().catch(() => undefined)));
     this.connection.disconnect();
   }
 }

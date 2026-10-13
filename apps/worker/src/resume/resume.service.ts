@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import {
   ResumeOutputSchema,
   assembleResume,
@@ -10,6 +10,7 @@ import {
 import { BudgetGuard } from '../analysis/budget-guard.js';
 import { OutOfCreditError, PermanentAnalyzerError } from '../analysis/job-analyzer.js';
 import { parseModelOutput } from '../analysis/model-output.js';
+import { Notifier } from '../notifications/notifier.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { buildResumePrompt } from './prompt.js';
 import { RESUME_WRITER, type ResumeWriter } from './resume-writer.js';
@@ -49,6 +50,7 @@ export class ResumeService {
     private readonly prisma: PrismaService,
     private readonly budget: BudgetGuard,
     @Inject(RESUME_WRITER) private readonly writer: ResumeWriter,
+    @Optional() private readonly notifier?: Notifier,
   ) {}
 
   async tailor(jobId: string): Promise<TailorOutcome> {
@@ -89,6 +91,7 @@ export class ResumeService {
     this.logger.log(
       `Resume for ${job.title} @ ${job.company}: ${draft.bullets} bullets, ${content.dropped.length} dropped ($${cost.toFixed(4)})`,
     );
+    await this.notifier?.resumeReady(jobId, variant.id);
     return {
       status: 'READY',
       variantId: variant.id,

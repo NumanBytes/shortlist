@@ -254,6 +254,14 @@ poor reputation because phishers use them too. Click **Site is legitimate**. If 
 check it at <https://transparencyreport.google.com/safe-browsing/search> and request a
 review.
 
+## Push notifications (optional)
+
+Generate a VAPID key pair once (on your laptop: `pnpm --filter @shortlist/worker build &&
+pnpm --filter @shortlist/worker vapid:keys`), put the three lines in `deploy/.env`, and restart
+with `docker compose up -d`. Then on the phone: Profile → Notifications → Turn on → Send a test
+(docs/notifications.md §19). Keep the same pair afterwards — a new one makes every device turn
+notifications on again.
+
 ## Updating after new code is merged
 
 ```bash

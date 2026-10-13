@@ -75,6 +75,24 @@ export interface Project {
   endDate: string | null;
 }
 
+// A device that receives push notifications (docs/notifications.md §19).
+export interface PushDevice {
+  id: string;
+  userAgent: string | null;
+  createdAt: string;
+  lastSentAt: string | null;
+}
+
+export interface NotificationItem {
+  id: string;
+  kind: 'DIGEST' | 'STRONG_MATCH' | 'RESUME_READY' | 'PROBLEM' | 'TEST';
+  title: string;
+  body: string;
+  url: string;
+  createdAt: string;
+  readAt: string | null;
+}
+
 export interface Onboarding {
   needed: boolean;
   hasPreferences: boolean;

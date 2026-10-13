@@ -109,22 +109,25 @@ model User {
   linkedinUrl  String?
   githubUrl    String?
 
-  refreshTokens   RefreshToken[]
-  workExperiences WorkExperience[]
-  skills          Skill[]
-  projects        Project[]
-  jobSources      JobSource[]
-  jobs            Job[]
-  discoveryPrefs  DiscoveryPreferences?
-  aiSettings      AiSettings?
-  education       Education[]
-  neverClaims     NeverClaim[]
-  careerImports   CareerImport[]
-  aiUsage         AiUsage[]
-  resumeVariants  ResumeVariant[]
-  gmail           GmailConnection?
-  oauthStates     OAuthState[]
-  emailMessages   EmailMessage[]
+  refreshTokens        RefreshToken[]
+  workExperiences      WorkExperience[]
+  skills               Skill[]
+  projects             Project[]
+  jobSources           JobSource[]
+  jobs                 Job[]
+  discoveryPrefs       DiscoveryPreferences?
+  aiSettings           AiSettings?
+  education            Education[]
+  neverClaims          NeverClaim[]
+  careerImports        CareerImport[]
+  pushSubscriptions    PushSubscription[]
+  notifications        Notification[]
+  notificationSettings NotificationSettings?
+  aiUsage              AiUsage[]
+  resumeVariants       ResumeVariant[]
+  gmail                GmailConnection?
+  oauthStates          OAuthState[]
+  emailMessages        EmailMessage[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -576,6 +579,76 @@ enum CareerImportStatus {
   DONE
   DEFERRED // budget or configuration — retried by importing again
   FAILED
+}
+
+// ── Notifications (docs/notifications.md §19) ────────────────────────────────────────────
+
+// One browser/device that agreed to receive pushes. The endpoint is the push service's URL for
+// that device (FCM, Mozilla, Apple); p256dh and auth are the device's keys the message is
+// encrypted for. A 404/410 from the push service means it's gone: the row is deleted.
+model PushSubscription {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  endpoint   String    @unique
+  p256dh     String
+  auth       String
+  userAgent  String? // shown as "Chrome on Android" so the user can tell devices apart
+  lastSentAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// Every notification, sent or not. The unique key per user is the idempotency guard: the same
+// event ("digest:2026-10-13", "job:<id>:strong-match") can be produced twice — a retried job,
+// two runs — but is stored, and pushed, once.
+model Notification {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  key   String
+  kind  NotificationKind
+  title String
+  body  String
+  url   String // in-app path opened on tap, e.g. /jobs/<id>
+
+  createdAt   DateTime  @default(now())
+  sentAt      DateTime? // null: not pushed (no device, disabled, quiet hours)
+  deliveredTo Int       @default(0) // devices the push service accepted it for
+  readAt      DateTime?
+
+  @@unique([userId, key])
+  @@index([userId, createdAt])
+}
+
+enum NotificationKind {
+  DIGEST // the morning summary of new jobs
+  STRONG_MATCH // a job from an alert email that scored above the threshold
+  RESUME_READY
+  PROBLEM // something stopped working: Gmail, a source, the AI budget
+  TEST
+}
+
+// What a user wants pushed. Defaults are on; quiet hours hold instant pushes overnight (the
+// morning digest covers them). Hours are in the server's DISCOVERY_TZ.
+model NotificationSettings {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  digest         Boolean @default(true)
+  strongMatch    Boolean @default(true)
+  strongMatchMin Int     @default(80) // score at or above which an alert job is pushed at once
+  resumeReady    Boolean @default(true)
+  problems       Boolean @default(true)
+  quietStart     Int?    @default(23) // hour 0-23; null = no quiet hours
+  quietEnd       Int?    @default(8)
+
+  updatedAt DateTime @updatedAt
 }
 
 enum NeverClaimScope {

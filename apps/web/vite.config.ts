@@ -10,6 +10,11 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      // Our own service worker (src/sw/sw.ts): it handles Web Push as well as the offline app
+      // shell (docs/notifications.md §19.5). The plugin injects the precache manifest into it.
+      strategies: 'injectManifest',
+      srcDir: 'src/sw',
+      filename: 'sw.ts',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
         name: 'Shortlist',
@@ -26,15 +31,9 @@ export default defineConfig({
           { src: 'pwa-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
-      workbox: {
-        // Cache the app shell only. API responses are private, per-user data and
-        // must never be served from a service-worker cache (a signed-out or
-        // different user could see them), so /api is excluded from everything.
-        navigateFallbackDenylist: [/^\/api\//],
-        // pdf.js (resume import only, ~1.5 MB) is fetched when used, not precached on every phone.
-        globIgnores: ['**/pdf*.js', '**/pdf*.mjs'],
-        runtimeCaching: [],
-      },
+      // Cache the app shell only (the /api exclusion is in sw.ts). pdf.js (resume import only,
+      // ~1.5 MB) is fetched when used, not precached on every phone.
+      injectManifest: { globIgnores: ['**/pdf*.js', '**/pdf*.mjs'] },
     }),
   ],
   server: {

@@ -10,6 +10,7 @@ import { EducationList, Projects, Roles } from './CareerLists';
 import { JobSearch } from './JobSearch';
 import { ContactForm } from './ContactForm';
 import { NeverClaimList } from './NeverClaimList';
+import { Notifications } from './Notifications';
 
 const initialsOf = (name: string) =>
   name
@@ -44,6 +45,7 @@ export function ProfilePage() {
       {profile.data ? <Identity profile={profile.data} /> : <Skeleton className="mx-auto h-40 w-64" />}
 
       <JobSearch />
+      <Notifications />
       <Roles />
       <Projects />
       <EducationList />

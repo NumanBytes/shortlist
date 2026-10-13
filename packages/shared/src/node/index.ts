@@ -2,3 +2,4 @@
 // the API and worker — never by the web app, which bundles "@shortlist/shared" only.
 export * from './google.js';
 export * from './secret-box.js';
+export * from './web-push.js';
