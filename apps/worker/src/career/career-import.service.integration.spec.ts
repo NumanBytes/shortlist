@@ -144,7 +144,7 @@ describe('CareerImportService.run', () => {
     expect(await prisma.workExperience.count({ where: { userId: user.id } })).toBe(1);
   });
 
-  it('defers without a model call when over budget, and clears the text', async () => {
+  it('defers without a model call when over budget, keeping the text so it can be retried', async () => {
     const { user, reader, svc, start } = await setup();
     // This month's spend already over any budget.
     await prisma.aiUsage.create({
@@ -163,7 +163,13 @@ describe('CareerImportService.run', () => {
     expect(reader.calls).toBe(0);
     expect(await prisma.careerImport.findUniqueOrThrow({ where: { id: row.id } })).toMatchObject({
       status: 'DEFERRED',
-      text: null,
+      text: RESUME, // deferred, never dropped
     });
+  });
+
+  it('allows only one pending import per user, even when two are created at once', async () => {
+    const { start } = await setup();
+    const results = await Promise.allSettled([start(), start()]);
+    expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
   });
 });

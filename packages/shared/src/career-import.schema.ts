@@ -136,6 +136,41 @@ export function normalizeForQuote(s: string): string {
     .replace(/[.;,]+$/, '');
 }
 
+// Characters a PDF's text layer and the model's copy may disagree on — matched as one class.
+const FLEX: Record<string, string> = {
+  "'": "['\u2018\u2019\u201A\u2032]",
+  '"': '["\u201C\u201D\u201E\u2033]',
+  '-': '[-\u2010-\u2015\u2212]',
+};
+const escapeRe = (c: string) => c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const SENTENCE_END = /[.!?;:|]/;
+const BULLET = /[\u2022\u25CF\u25AA\u25E6\u2023\u2043\u00B7*\-\u2013\u2014]/;
+
+// Whether `quote` is a WHOLE sentence or bullet of `text`, not a piece of one. A fragment can
+// say the opposite of its sentence — "lead the migration" is inside "Did not lead the migration"
+// (code review 2026-10-13) — so a quote must start where a sentence, line item or bullet starts,
+// and end where one ends. A line break inside the quote is fine (PDFs wrap long bullets); a
+// line break before it only counts as a start when the quote begins with a capital or digit,
+// since a wrapped line continues mid-sentence in lower case.
+export function isWholeQuote(text: string, quote: string): boolean {
+  const words = normalizeForQuote(quote).split(' ').filter(Boolean);
+  if (words.length === 0) return false;
+  const pattern = words.map((w) => escapeRe(w).replace(/['"-]/g, (c) => FLEX[c]!)).join('\\s+');
+  for (const m of text.matchAll(new RegExp(`${pattern}[.;!?]?`, 'gi'))) {
+    const before = text.slice(0, m.index).replace(/[ \t]+$/, '');
+    const prev = before.at(-1);
+    const starts =
+      prev === undefined ||
+      SENTENCE_END.test(prev) ||
+      BULLET.test(prev) ||
+      ((prev === '\n' || prev === '\r') && /^[A-Z0-9]/.test(m[0]));
+    const after = text.slice(m.index + m[0].length).replace(/^[ \t]+/, '');
+    const ends = /[.;!?]$/.test(m[0]) || after === '' || /^[\r\n]/.test(after) || SENTENCE_END.test(after[0]!);
+    if (starts && ends) return true;
+  }
+  return false;
+}
+
 export interface CheckedRole {
   ref: string;
   title: string;
@@ -229,7 +264,7 @@ export function checkCareerExtraction(
     const what = `${i.skill}: "${i.whatIDid}"`;
     // The user's own words are the only source a resume bullet may come from (Agents.md §6.2),
     // so an item must be a quote — never a paraphrase the user didn't write.
-    if (normalizeForQuote(i.whatIDid).length < 15 || !inText(i.whatIDid)) {
+    if (normalizeForQuote(i.whatIDid).length < 15 || !isWholeQuote(resumeText, i.whatIDid)) {
       dropped.push({ what, reason: "it isn't a quote from your resume" });
       continue;
     }

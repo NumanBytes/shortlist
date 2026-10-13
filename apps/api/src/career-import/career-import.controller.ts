@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Post } from '@nestjs/common';
 import { ImportResumeSchema, type ImportResumeInput } from '@shortlist/shared';
 import { CurrentUser, type AuthUser } from '../auth/current-user.decorator.js';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
@@ -11,6 +11,11 @@ export class CareerImportController {
   @Post()
   start(@CurrentUser() user: AuthUser, @Body(new ZodValidationPipe(ImportResumeSchema)) body: ImportResumeInput) {
     return this.imports.start(user.id, body);
+  }
+
+  @Post(':id/retry')
+  retry(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.imports.retry(user.id, id);
   }
 
   // The most recent import (or null), polled while one runs.

@@ -156,6 +156,21 @@ describe('ResumeService.tailor', () => {
     expect(Number(usage.costUsd)).toBeCloseTo(0.025); // 5000 × $2/M + 1500 × $10/M
   });
 
+  // The false-claim checks are the user's NeverClaim rows (docs/resume.md §13.8), read from the
+  // database at tailoring time: a row must block a bullet end to end, and reach the prompt.
+  it("refuses a bullet that mentions a term on the user's never-claim list", async () => {
+    const { user, job } = await setup();
+    await prisma.neverClaim.create({ data: { userId: user.id, term: 'frontend', scope: 'PAID_WORK' } });
+    const { svc, writer } = service();
+    writer.next = (p) => ({ text: output(p.user) });
+
+    const outcome = await svc.tailor(job.id);
+
+    expect(writer.prompts[0]!.user).toContain('- frontend — in any Experience bullet or role project');
+    // Both generated bullets are refused (one for the term, one for GraphQL): nothing is left.
+    expect(outcome).toMatchObject({ status: 'FAILED' });
+  });
+
   // Code review: generatedAt was stamped when the variant was saved, after the model call.
   // Evidence edited and re-verified during the call then predated the resume, so it looked
   // current while carrying the old wording. It must be stamped when the evidence was read.
