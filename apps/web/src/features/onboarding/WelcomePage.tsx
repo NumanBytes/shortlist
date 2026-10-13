@@ -8,6 +8,10 @@ import { ResumeImport } from '../profile/ResumeImport';
 import { SearchSettingsForm } from '../profile/SearchSettingsForm';
 
 const STEPS = ['resume', 'search', 'sources'] as const;
+
+// Set when onboarding is finished, even with every step skipped, so the gate in App.tsx never
+// sends the user back to it. A UI flag on this device only — nothing private.
+export const ONBOARDING_DONE_KEY = 'shortlist:onboarding-done';
 type Step = (typeof STEPS)[number];
 
 // First run for a new account (docs/discovery.md §9.13): your career from your resume, what
@@ -18,7 +22,10 @@ export function WelcomePage() {
   const navigate = useNavigate();
   const step: Step = STEPS.includes(params.get('step') as Step) ? (params.get('step') as Step) : 'resume';
   const go = (s: Step) => setParams({ step: s });
-  const finish = () => void navigate('/', { replace: true });
+  const finish = () => {
+    localStorage.setItem(ONBOARDING_DONE_KEY, '1');
+    void navigate('/', { replace: true });
+  };
   const n = STEPS.indexOf(step) + 1;
 
   return (
@@ -47,7 +54,14 @@ export function WelcomePage() {
         </>
       )}
 
-      {step === 'search' && <SearchStep onDone={() => go('sources')} />}
+      {step === 'search' && (
+        <>
+          <SearchStep onDone={() => go('sources')} />
+          <Button variant="ghost" className="w-full" onClick={() => go('sources')}>
+            Skip for now
+          </Button>
+        </>
+      )}
 
       {step === 'sources' && <SourcesStep onDone={finish} />}
     </main>

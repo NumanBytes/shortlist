@@ -66,3 +66,17 @@ describe('reuse overlap (docs/resume.md §13.2)', () => {
     expect(resumeOverlap([], profile).overlap).toBe(0);
   });
 });
+
+describe('mentionsTerm (never-claim matching, docs/resume.md §13.8)', () => {
+  it('matches the term as a whole word, with or without dots', async () => {
+    const { mentionsTerm } = await import('./resume.js');
+    expect(mentionsTerm('Shipped on Azure B2C', 'Azure')).toBe(true);
+    expect(mentionsTerm('An Azure-based login', 'Azure')).toBe(true);
+    expect(mentionsTerm('A NodeJS service', 'Node.js')).toBe(true);
+    expect(mentionsTerm('Built the Express.js API', 'Express')).toBe(true);
+    // Whole words only, so "expressive" isn't Express — and "AzureAD" isn't Azure: a user who
+    // needs that refused adds it as its own entry.
+    expect(mentionsTerm('An expressive UI', 'Express')).toBe(false);
+    expect(mentionsTerm('Signed in with AzureAD', 'Azure')).toBe(false);
+  });
+});

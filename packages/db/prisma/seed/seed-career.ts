@@ -10,7 +10,7 @@
 //   context + depth, so rewording an item won't cause the original to be re-added.
 import { PrismaClient } from '@prisma/client';
 import { CAREER_DATA } from './career-data.ts';
-import { findSeedProblems } from './guards.ts';
+import { KNOWN_FALSE_CLAIMS, findSeedProblems } from './guards.ts';
 
 const dryRun = process.argv.includes('--dry-run');
 
@@ -28,7 +28,7 @@ async function main() {
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) throw new Error(`No account for ${email}. Register it through the API first.`);
 
-    const counts: Counts = { workExperiences: 0, projects: 0, skills: 0, evidence: 0, skipped: 0 };
+    const counts: Counts = { workExperiences: 0, projects: 0, skills: 0, evidence: 0, neverClaims: 0, skipped: 0 };
 
     await prisma.$transaction(async (tx) => {
       const workIds = new Map<string, string>();
@@ -99,6 +99,19 @@ async function main() {
         }
       }
 
+      // Tailoring refuses these in its own check (docs/resume.md §13.8) — only if the account has them.
+      for (const c of KNOWN_FALSE_CLAIMS) {
+        const found = await tx.neverClaim.findFirst({
+          where: { userId: user.id, scope: c.scope, term: { equals: c.term, mode: 'insensitive' } },
+        });
+        if (found) {
+          counts.skipped++;
+        } else {
+          await tx.neverClaim.create({ data: { userId: user.id, ...c } });
+          counts.neverClaims++;
+        }
+      }
+
       // A dry run does all the reads and writes, reports, then throws to roll back —
       // so the plan it prints is exactly what a real run would do.
       if (dryRun) {
@@ -120,13 +133,14 @@ interface Counts {
   projects: number;
   skills: number;
   evidence: number;
+  neverClaims: number;
   skipped: number;
 }
 
 function report(email: string, c: Counts, dry: boolean) {
   console.log(`${dry ? 'Dry run — would create' : 'Created'} for ${email}:`);
   console.log(
-    `  ${c.workExperiences} work experiences, ${c.projects} projects, ${c.skills} skills, ${c.evidence} evidence`,
+    `  ${c.workExperiences} work experiences, ${c.projects} projects, ${c.skills} skills, ${c.evidence} evidence, ${c.neverClaims} never-claim entries`,
   );
   console.log(`  ${c.skipped} already present (left untouched)`);
   if (!dry && c.evidence > 0) {

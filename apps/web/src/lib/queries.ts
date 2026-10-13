@@ -377,6 +377,14 @@ export function useStartImport() {
   });
 }
 
+export function useRetryImport() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api<CareerImport>(`/career-import/${id}/retry`, { method: 'POST' }),
+    onSuccess: (row) => queryClient.setQueryData(onboardingKeys.import, row),
+  });
+}
+
 // ── Resumes ──────────────────────────────────────────────────────────────────
 export const resumeKeys = { job: (jobId: string) => ['jobs', 'resume', jobId] as const };
 

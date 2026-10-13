@@ -7,7 +7,8 @@ export type NeverClaimScope = z.infer<typeof NeverClaimScopeEnum>;
 
 export const CreateNeverClaimSchema = z
   .object({
-    term: z.string().trim().min(1, 'Enter the term to keep off your resume').max(60),
+    // 2+ characters: a one-letter term ("a") would refuse nearly every bullet.
+    term: z.string().trim().min(2, 'Enter the term to keep off your resume').max(60),
     scope: NeverClaimScopeEnum.default('ANYWHERE'),
     note: z.string().trim().min(1).max(300).nullable().optional(),
   })

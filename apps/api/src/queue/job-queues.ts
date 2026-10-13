@@ -103,12 +103,12 @@ export class JobQueues implements OnModuleDestroy {
     );
   }
 
-  enqueueResumeImport(userId: string, importId: string): Promise<void> {
+  enqueueResumeImport(importId: string): Promise<void> {
     return this.bounded(
       this.career.add(
         CareerJob.Import,
         { importId } satisfies ImportResumeData,
-        queueJobOptions.importResume(userId, importId),
+        queueJobOptions.importResume(importId, String(Date.now())),
       ),
     );
   }

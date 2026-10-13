@@ -98,7 +98,7 @@ export const dedupeId = {
   analyzeJob: (jobId: string) => `analyze-${jobId}`,
   tailorResume: (jobId: string) => `tailor-${jobId}`,
   checkEmail: (userId: string) => `email-${userId}`,
-  importResume: (userId: string) => `import-${userId}`,
+  importResume: (importId: string) => `import-${importId}`,
 };
 
 const KEEP = {
@@ -130,11 +130,14 @@ export const queueJobOptions = {
     jobId: `tailor__${jobId}__${safeJobId(batchId)}`,
     deduplication: { id: dedupeId.tailorResume(jobId) },
   }),
-  // One import at a time per user; a second tap joins the one running.
-  importResume: (userId: string, importId: string) => ({
+  // Per import, not per user: a per-user id once let BullMQ drop a second import's job and
+  // leave its row pending forever (code review 2026-10-13). "One at a time per user" is the
+  // database's job (a partial unique index). A deferred import can be retried, so each
+  // attempt gets its own job id.
+  importResume: (importId: string, attemptId: string) => ({
     ...retry(60_000),
-    jobId: `import__${importId}`,
-    deduplication: { id: dedupeId.importResume(userId) },
+    jobId: `import__${importId}__${safeJobId(attemptId)}`,
+    deduplication: { id: dedupeId.importResume(importId) },
   }),
   checkEmail: (userId: string, batchId: string) => ({
     ...retry(60_000),

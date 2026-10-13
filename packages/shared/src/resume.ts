@@ -426,16 +426,17 @@ export function assembleResume(input: AssembleInput): AssembleResult {
   // Pinned projects are always on the resume (docs/resume.md §13.7). If the model left one
   // out, or the checks removed all its bullets, fall back to the user's own verified words
   // for it — still checked like any bullet, so this can't claim more than they wrote.
+  const refOf = new Map([...input.refs.evidence].map(([ref, id]) => [id, ref]));
   for (const p of input.projects) {
     if (!p.isPinned || projects.some((x) => x.projectId === p.id)) continue;
-    const refOf = new Map([...input.refs.evidence].map(([ref, id]) => [id, ref]));
+    const where = projectWhere(p);
     const items = input.evidence
       .filter((e) => e.projectId === p.id && refOf.has(e.id))
       .sort((a, b) => DEPTH_RANK[a.depth] - DEPTH_RANK[b.depth] || b.lastUsed.getTime() - a.lastUsed.getTime());
     const bullets: ResumeBullet[] = [];
     for (const e of items) {
       if (bullets.length >= MAX_BULLETS_PER_PROJECT) break;
-      const r = checkBullet({ label: null, text: e.whatIDid, evidence: [refOf.get(e.id)!] }, projectWhere(p), ctx);
+      const r = checkBullet({ label: null, text: e.whatIDid, evidence: [refOf.get(e.id)!] }, where, ctx);
       if (r.ok) bullets.push(r.bullet);
     }
     if (bullets.length) projects.push({ projectId: p.id, name: p.name, bullets });

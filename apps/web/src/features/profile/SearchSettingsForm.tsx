@@ -1,4 +1,8 @@
-import { DiscoveryPreferencesSchema, type DiscoveryPreferencesInput } from '@shortlist/shared';
+import {
+  DiscoveryPreferencesSchema,
+  STARTER_DISCOVERY_PREFERENCES,
+  type DiscoveryPreferencesInput,
+} from '@shortlist/shared';
 import { useState, type FormEvent } from 'react';
 import { Button, INPUT, Switch, TextField } from '../../components/ui';
 import { ApiError } from '../../lib/api';
@@ -45,7 +49,8 @@ export function SearchSettingsForm({
       titleExclude: list(v.titleExclude),
       stackKeywords: list(v.stackKeywords),
       // Alert emails carry no description; a title naming one of these roles still passes.
-      roleTitleTerms: [...new Set([...initial.roleTitleTerms, ...titles])],
+      // Rebuilt from the current titles each save, so a removed title stops letting jobs in.
+      roleTitleTerms: [...new Set([...STARTER_DISCOVERY_PREFERENCES.roleTitleTerms, ...titles])],
       onsiteLocations: list(v.onsiteLocations),
       allowRemote: v.allowRemote,
       remoteAllowRegions: list(v.remoteAllowRegions),

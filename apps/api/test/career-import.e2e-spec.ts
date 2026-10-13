@@ -34,4 +34,34 @@ describe('Resume import (e2e)', () => {
     expect(latest.body).toMatchObject({ id: res.body.id, status: 'PENDING' });
     expect(latest.body).not.toHaveProperty('text');
   });
+
+  it('two imports started at once: one runs, the other is refused', async () => {
+    const user = await t.register();
+    const send = () => t.http().post('/api/v1/career-import').set(user.auth).send({ text: RESUME });
+    const codes = (await Promise.all([send(), send()])).map((r) => r.status).sort((a, b) => a - b);
+    expect(codes).toEqual([201, 409]);
+  });
+
+  it('a pending import that never finished does not block the next one', async () => {
+    const user = await t.register();
+    const stuck = await t.prisma.careerImport.create({
+      data: { userId: user.user.id, text: RESUME, createdAt: new Date(Date.now() - 2 * 3600_000) },
+    });
+    await t.http().post('/api/v1/career-import').set(user.auth).send({ text: RESUME }).expect(201);
+    expect(await t.prisma.careerImport.findUniqueOrThrow({ where: { id: stuck.id } })).toMatchObject({
+      status: 'FAILED',
+      text: null,
+    });
+  });
+
+  it('retries a deferred import with its kept text, and only a deferred one', async () => {
+    const user = await t.register();
+    const deferred = await t.prisma.careerImport.create({
+      data: { userId: user.user.id, text: RESUME, status: 'DEFERRED', error: 'Monthly AI budget reached' },
+    });
+    const res = await t.http().post(`/api/v1/career-import/${deferred.id}/retry`).set(user.auth).expect(201);
+    expect(res.body).toMatchObject({ id: deferred.id, status: 'PENDING', error: null });
+    await t.http().post(`/api/v1/career-import/${deferred.id}/retry`).set(user.auth).expect(404);
+    await t.http().post(`/api/v1/career-import/${deferred.id}/retry`).set(me.auth).expect(404); // not yours
+  });
 });

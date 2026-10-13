@@ -5,6 +5,16 @@ import type { CareerData } from './career-data.ts';
 const FORBIDDEN_TEXT = [/azure/i];
 const NEVER_COMMERCIAL = new Set(['node.js', 'express.js', 'mongodb']);
 
+// The same false claims as the account's never-claim list (docs/resume.md §13.8), which is
+// what tailoring enforces. The seed writes these with the career data, so a fresh account
+// can never be tailored without them; the 2026-10-13 migration added them to accounts that
+// existed then. Kept beside the guards so the two lists can't drift apart (tested).
+export const KNOWN_FALSE_CLAIMS: { term: string; scope: 'ANYWHERE' | 'PAID_WORK'; note: string }[] = [
+  { term: 'Azure', scope: 'ANYWHERE', note: "Never worked with Azure; CloudCard's B2C layer is not Azure B2C." },
+  { term: 'Node.js', scope: 'PAID_WORK', note: 'Node.js was never used at CloudCard.' },
+  { term: 'Express', scope: 'PAID_WORK', note: 'Express was never used at CloudCard.' },
+];
+
 // Returns every problem found; an empty array means the data is safe to seed.
 export function findSeedProblems(data: CareerData): string[] {
   const problems: string[] = [];
