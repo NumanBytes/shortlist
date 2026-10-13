@@ -279,9 +279,14 @@ model CareersPageSnapshot {
   jobSourceId String    @unique
   jobSource   JobSource @relation(fields: [jobSourceId], references: [id], onDelete: Cascade)
 
-  contentHash String // sha256 of the normalized page text + links
+  contentHash String // sha256 of the normalized page text + links, at the last good reading
   openings    Json // [{ title, location, workMode, url, details }] as last extracted and checked
-  extractedAt DateTime
+  extractedAt DateTime? // null = never read successfully
+
+  // A reading that failed (invalid or cut-off model output) is remembered by the page's
+  // fingerprint, so an unchanged page isn't sent to the model — and billed — again every night.
+  failedHash String?
+  failure    String?
 
   updatedAt DateTime @updatedAt
 }

@@ -8,5 +8,5 @@ export const careersPage: Adapter<{ provider: 'careers_page'; url: string; note?
   if (!ctx.careersPage || !ctx.sourceId || !ctx.userId) {
     throw new PermanentSourceError('Careers pages need the page reader, which this worker was started without');
   }
-  return ctx.careersPage.read({ sourceId: ctx.sourceId, userId: ctx.userId, name: ctx.sourceName, url });
+  return ctx.careersPage.read({ sourceId: ctx.sourceId, userId: ctx.userId, name: ctx.sourceName, url }, ctx);
 };

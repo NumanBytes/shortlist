@@ -12,6 +12,7 @@ import { ENV } from '../config/config.module.js';
 import type { Env } from '../config/env.js';
 import { enqueueAnalyses } from '../analysis/analysis.processor.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { lastBoardRunStart, needsCatchUp, type DiscoverAllData } from './discovery.scheduler.js';
 import { DiscoveryService, PermanentSourceError } from './discovery.service.js';
 
 @Processor(DISCOVERY_QUEUE)
@@ -48,6 +49,14 @@ export class DiscoveryProcessor extends WorkerHost implements OnModuleInit {
   // itself is retried, re-adding the same ids is a no-op instead of duplicate runs. A
   // source already queued or running (a "Find new jobs" tap) is joined, not run twice.
   private async fanOut(job: Job) {
+    // A catch-up re-checks when it runs: the missed nightly run may have started meanwhile.
+    if (
+      (job.data as DiscoverAllData | undefined)?.catchUp &&
+      !needsCatchUp(await lastBoardRunStart(this.prisma), new Date())
+    ) {
+      this.logger.log('Catch-up skipped: discovery has run since this worker started');
+      return { enqueued: 0, skipped: 'ran since' };
+    }
     const sources = await this.prisma.jobSource.findMany({
       where: { isEnabled: true, type: { not: 'EMAIL_INBOX' } },
       select: { id: true },

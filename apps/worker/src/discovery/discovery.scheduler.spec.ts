@@ -34,7 +34,11 @@ describe('DiscoveryScheduler', () => {
   it('queues a catch-up run on start when a night was missed', async () => {
     const { queue, scheduler } = make(new Date(Date.now() - 3 * 86_400_000));
     await scheduler.onApplicationBootstrap();
-    expect(queue.add).toHaveBeenCalledWith(DiscoveryJob.All, {}, { jobId: expect.stringMatching(/^catch-up__/) });
+    expect(queue.add).toHaveBeenCalledWith(
+      DiscoveryJob.All,
+      { catchUp: true },
+      expect.objectContaining({ jobId: expect.stringMatching(/^catch-up__/), delay: 5 * 60_000, attempts: 3 }),
+    );
   });
 
   it("doesn't when the boards ran recently, or none is enabled", async () => {

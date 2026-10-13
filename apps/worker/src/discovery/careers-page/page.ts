@@ -13,10 +13,23 @@ export interface PageText {
 
 const MAX_TEXT = 24_000;
 
+// A job card's own <article><header><h3>Senior Engineer</h3></header> is content and must stay
+// (code review 2026-10-13: stripping every <header> lost such titles). So a <header> goes only
+// when it looks like the site's: no heading in it, or a menu, a banner role, or a
+// site/masthead/navbar class or id. Footers always go — a card's footer holds an Apply button
+// at most, never the job's title.
+const SITE_CHROME = /<nav\b|role=["']banner["']|(class|id)=["'][^"']*\b(site|masthead|navbar|top-?bar)/i;
+
 function stripChrome(html: string): string {
-  return html
-    .replace(/<!--[\s\S]*?-->/g, ' ')
-    .replace(/<(script|style|noscript|svg|template|iframe|head|nav|header|footer)\b[\s\S]*?<\/\1>/gi, ' ');
+  return (
+    html
+      .replace(/<!--[\s\S]*?-->/g, ' ')
+      // Headers first, while a site header still contains the <nav> it's recognised by.
+      .replace(/<header\b([^>]*)>([\s\S]*?)<\/header>/gi, (whole, attrs: string, inner: string) =>
+        /<h[1-6]\b/i.test(inner) && !SITE_CHROME.test(`<x ${attrs}>${inner}`) ? whole : ' ',
+      )
+      .replace(/<(script|style|noscript|svg|template|iframe|head|nav|footer)\b[\s\S]*?<\/\1>/gi, ' ')
+  );
 }
 
 export function pageText(html: string, pageUrl: string): PageText {

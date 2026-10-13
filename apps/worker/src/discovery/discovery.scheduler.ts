@@ -12,6 +12,22 @@ export const NIGHTLY_SCHEDULER_ID = NIGHTLY_DISCOVERY_SCHEDULER_ID;
 // night was missed.
 export const CATCH_UP_AFTER_MS = 25 * 3600_000;
 
+export const CATCH_UP_DELAY_MS = 5 * 60_000;
+
+export interface DiscoverAllData {
+  catchUp?: boolean; // queued by a worker that started after a missed night
+}
+
+// When the latest board (not email) run started, across enabled sources.
+export async function lastBoardRunStart(prisma: PrismaService): Promise<Date | null> {
+  const last = await prisma.discoveryRun.findFirst({
+    where: { jobSource: { isEnabled: true, type: { not: 'EMAIL_INBOX' } } },
+    orderBy: { startedAt: 'desc' },
+    select: { startedAt: true },
+  });
+  return last?.startedAt ?? null;
+}
+
 // Whether a worker that just started should run discovery now rather than wait for tonight.
 export function needsCatchUp(lastStartedAt: Date | null, now: Date): boolean {
   return !lastStartedAt || now.getTime() - lastStartedAt.getTime() > CATCH_UP_AFTER_MS;
@@ -43,25 +59,31 @@ export class DiscoveryScheduler implements OnApplicationBootstrap {
     await this.catchUp();
   }
 
-  // A worker that isn't running at 02:00 (a laptop asleep, a deploy at that minute) misses
-  // the night, and the scheduler only ever looks forward. So on start, if no board has been
-  // run for over a day, run them all now (docs/discovery.md §9.8). Decided from Postgres, not
-  // Redis, so it's right whatever the queue lost. Failing here must not stop the worker.
+  // A worker that isn't running at 02:00 (a laptop asleep, a deploy at that minute) may miss
+  // the night — whether BullMQ later runs the overdue job depends on what Redis kept. So on
+  // start, if no board has been run for over a day, queue a catch-up (docs/discovery.md §9.8).
+  // Decided from Postgres, not Redis, so it's right whatever the queue lost. Failing here must
+  // not stop the worker.
   private async catchUp() {
     try {
-      const last = await this.prisma.discoveryRun.findFirst({
-        where: { jobSource: { isEnabled: true, type: { not: 'EMAIL_INBOX' } } },
-        orderBy: { startedAt: 'desc' },
-        select: { startedAt: true },
-      });
       const anyEnabled = await this.prisma.jobSource.count({
         where: { isEnabled: true, type: { not: 'EMAIL_INBOX' } },
       });
+      const last = await lastBoardRunStart(this.prisma);
       const now = new Date();
-      if (!anyEnabled || !needsCatchUp(last?.startedAt ?? null, now)) return;
-      // One id per hour: two workers starting together queue one catch-up, not two.
-      await this.queue.add(DiscoveryJob.All, {}, { jobId: `catch-up__${now.toISOString().slice(0, 13)}` });
-      this.logger.log(`No discovery run since ${last?.startedAt.toISOString() ?? 'ever'} — running one now`);
+      if (!anyEnabled || !needsCatchUp(last, now)) return;
+      // Queued with a delay, and re-checked when it runs (DiscoveryProcessor): if the missed
+      // nightly job is still in Redis, BullMQ may run it now too, and by then its runs will
+      // have started — so the catch-up steps aside instead of fetching everything twice
+      // (code review 2026-10-13). One id per hour: two workers starting together queue one.
+      const data: DiscoverAllData = { catchUp: true };
+      await this.queue.add(DiscoveryJob.All, data, {
+        jobId: `catch-up__${now.toISOString().slice(0, 13)}`,
+        delay: CATCH_UP_DELAY_MS,
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 60_000 },
+      });
+      this.logger.log(`No discovery run since ${last?.toISOString() ?? 'ever'} — catching up shortly`);
     } catch (err) {
       this.logger.warn(`Couldn't check for a missed discovery run: ${(err as Error).message}`);
     }

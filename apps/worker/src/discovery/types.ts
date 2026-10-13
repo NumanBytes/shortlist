@@ -21,7 +21,10 @@ export interface Posting {
 
 // What a careers page needs beyond the page itself (docs/discovery.md §9.14).
 export interface CareersPageReader {
-  read(source: { sourceId: string; userId: string; name: string; url: string }): Promise<Posting[]>;
+  read(
+    source: { sourceId: string; userId: string; name: string; url: string },
+    ctx: AdapterContext,
+  ): Promise<Posting[]>;
 }
 
 export interface AdapterContext {

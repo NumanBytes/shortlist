@@ -1,5 +1,6 @@
 import { normalizeForQuote, type CareersPageExtraction } from '@shortlist/shared';
 import { workModeOf } from '../../email/alert-email.js';
+import { looksPublic } from '../public-url.js';
 import type { WorkMode } from '../types.js';
 import type { PageText } from './page.js';
 
@@ -31,7 +32,10 @@ export function checkOpenings(
   if (!out.listsOpenings) return { openings, dropped };
   for (const j of out.jobs) {
     const title = j.title.trim();
-    const url = (j.link && page.links.get(j.link.trim())) || pageUrl;
+    // A link must be one of the page's own, and public: a hostile page can't make a job's
+    // Apply link (or its description fetch) point into the worker's network.
+    const link = j.link ? page.links.get(j.link.trim()) : undefined;
+    const url = link && looksPublic(link) ? link : pageUrl;
     const key = `${normalizeForQuote(title)}|${url}`;
     if (!onPage(title)) {
       dropped.push({ title, reason: 'title not on the page' });

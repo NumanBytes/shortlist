@@ -75,8 +75,13 @@ async function setup() {
   });
   const extractor = new FakeExtractor();
   const svc = new CareersPageService(prisma, new BudgetGuard(prisma), extractor);
-  const read = () => svc.read({ sourceId: source.id, userId: user.id, name: 'BrainX', url: URL_ });
-  return { user, source, extractor, read };
+  const skipped: string[] = [];
+  const read = () =>
+    svc.read(
+      { sourceId: source.id, userId: user.id, name: 'BrainX', url: URL_ },
+      { sourceName: 'BrainX', onSkipped: (r) => skipped.push(r) },
+    );
+  return { user, source, extractor, read, skipped };
 }
 
 describe('CareersPageService.read', () => {
@@ -138,5 +143,25 @@ describe('CareersPageService.read', () => {
     page = '<html><body><div id="root"></div><script src="/app.js"></script></body></html>';
     await expect(read()).rejects.toThrow(/without JavaScript/);
     expect(extractor.calls).toBe(0);
+  });
+
+  it('a reading that failed is not paid for again while the page is unchanged', async () => {
+    const { extractor, read } = await setup();
+    extractor.extract = async () => {
+      extractor.calls++;
+      return {
+        model: 'claude-haiku-4-5-20251001',
+        text: '{"listsOpenings": tr', // cut off
+        stopReason: 'max_tokens',
+        usage: { inputTokens: 6000, outputTokens: 6000, cacheReadTokens: 0, cacheWriteTokens: 0 },
+      };
+    };
+    await expect(read()).rejects.toThrow(/max_tokens/);
+    await expect(read()).rejects.toThrow(/Unchanged since its last reading failed/);
+    expect(extractor.calls).toBe(1);
+
+    page = HTML.replace('Graphic Designer', 'Senior Graphic Designer'); // changed: worth one more try
+    await expect(read()).rejects.toThrow(/max_tokens/);
+    expect(extractor.calls).toBe(2);
   });
 });

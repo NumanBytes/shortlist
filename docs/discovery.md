@@ -194,8 +194,11 @@ and repeated email alerts into one.
   isn't running at 02:00 (a laptop asleep, a deploy at that minute) silently skips the
   night — in development, the boards went 11 days without a run while Gmail checks
   (every two hours) kept working. On start, `DiscoveryScheduler` checks Postgres for the
-  latest board run; if none started in the last 25 hours, it queues `discover-all` at once
-  (job id per hour, so two workers starting together queue one). Decided from the database,
+  latest board run; if none started in the last 25 hours, it queues a catch-up `discover-all`
+  **5 minutes later** (job id per hour, so two workers starting together queue one). The
+  catch-up re-checks when it runs and steps aside if a run has started since: an overdue
+  nightly job kept in Redis may run at startup too, and both would fetch everything (code
+  review 2026-10-13 — "the scheduler only looks forward" had been assumed, not verified). Decided from the database,
   not Redis, so it holds whatever the queue lost; a failed check logs and never stops the worker.
 - Worker concurrency: 3 sources in parallel (`WORKER_CONCURRENCY`).
 - BullMQ 6 requires a constructed `ioredis` client in ESM (`createRedis`); the worker's
@@ -312,8 +315,9 @@ The `careers_page` provider reads any company's own careers page with one adapte
 (`discovery/careers-page/`), as decided 2026-10-02 (§9.12): the cheap check in front of the
 expensive one.
 
-1. **Fetch and reduce** (`pageText()`): scripts, styles, menus, headers and footers are
-   dropped; every link becomes a short ref (`Shopify Developer [L4]`), so the model can point
+1. **Fetch and reduce** (`pageText()`): scripts, styles, menus and footers are dropped, and a
+   `<header>` only when it looks like the site's (no heading in it, or a menu / banner role /
+   site class) — a job card's `<article><header><h3>…` keeps its title (code review 2026-10-13); every link becomes a short ref (`Shopify Developer [L4]`), so the model can point
    at a job's page without writing a URL. Text is capped at 24,000 characters, and only the
    links that text shows are sent (Intech's page has 331).
 2. **Fingerprint** (`fingerprint()`): sha256 of the reduced text and links, ignoring
@@ -324,17 +328,24 @@ expensive one.
    through `CareersPageExtractor` (faked in tests), after `BudgetGuard.checkMonthly`, logged to
    `AiUsage` (`EXTRACT_CAREERS_PAGE`) before its output is used.
 5. **Code keeps only what's on the page** (`checkOpenings()`): a title must appear as written;
-   a link must be one of the page's refs (else the posting links to the careers page itself);
+   a link must be one of the page's refs **and public** (else the posting links to the careers
+   page itself);
    `details` — the page's own text about a job — are kept only if quoted. A page the model
    says lists no openings gives none (an EMPTY run).
 6. **Descriptions:** the quoted details, or the job's own page (its JSON-LD JobPosting, else
-   its reduced text), fetched only for jobs that pass stage A.
+   its reduced text), fetched only for jobs that pass stage A — through `getPublicText()`, which
+   resolves the host and refuses private, loopback and link-local addresses at every redirect
+   hop (`public-url.ts`). Those links come from a third-party page via the model, so a hostile
+   page could otherwise point the worker at its own network, e.g. the cloud metadata service
+   (SSRF, code review 2026-10-13). Postings go through `mapPostings()`, like every adapter's.
 
 **Failures stay visible:** a page with almost no text without JavaScript fails the run
 ("can't be read this way") without a model call. Over budget or out of credit, a changed page
 keeps its last reading (logged) and is re-read on a later run — deferred, never dropped; a
-page never read yet fails the run with the reason instead of looking empty. Invalid model
-output fails without retry (the same page would cost again).
+page never read yet fails the run with the reason instead of looking empty. Invalid or cut-off
+model output fails the run without retry, and the page's fingerprint is remembered
+(`failedHash`): while the page is unchanged it isn't sent to the model — or billed — again,
+and the run says why; once it changes, it gets one more try.
 
 Cost: a first reading of all 13 pages is roughly 30,000 input tokens (about 3 US cents);
 afterwards only pages that changed are read.

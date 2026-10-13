@@ -20,4 +20,27 @@ describe('DiscoveryProcessor', () => {
     expect(analysisQueue.addBulk).toHaveBeenCalled();
     expect(runSource).toHaveBeenCalledTimes(1); // not retried
   });
+
+  it('a catch-up steps aside when the missed nightly run has started since', async () => {
+    const queue = { addBulk: vi.fn(async () => undefined) };
+    const prisma = {
+      discoveryRun: { findFirst: vi.fn(async () => ({ startedAt: new Date() })) },
+      jobSource: { findMany: vi.fn(async () => [{ id: 's1' }]) },
+    };
+    const processor = new DiscoveryProcessor(
+      {} as DiscoveryService,
+      prisma as never,
+      queue as never,
+      {} as never,
+      { WORKER_CONCURRENCY: 1 } as never,
+    );
+    const catchUp = { name: 'discover-all', id: 'c1', data: { catchUp: true } } as unknown as Job;
+    await expect(processor.process(catchUp)).resolves.toMatchObject({ enqueued: 0 });
+    expect(queue.addBulk).not.toHaveBeenCalled();
+
+    // The nightly job itself always fans out.
+    const nightly = { name: 'discover-all', id: 'repeat:n:1', data: {} } as unknown as Job;
+    await processor.process(nightly);
+    expect(queue.addBulk).toHaveBeenCalledTimes(1);
+  });
 });

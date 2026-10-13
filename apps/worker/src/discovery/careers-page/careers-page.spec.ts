@@ -29,6 +29,17 @@ describe('pageText', () => {
     expect([...p.links.values()]).toEqual(['https://acme.test/j/1']);
   });
 
+  it("keeps a job card's own <header>, and drops the site's", () => {
+    const p = pageText(
+      `<header class="site-header"><a href="/">Home</a></header>
+       <main><article><header><h3>Senior React Developer</h3></header><p>Lahore</p></article></main>
+       <footer role="contentinfo">© Acme</footer>`,
+      'https://acme.test/careers',
+    );
+    expect(p.text).toContain('Senior React Developer');
+    expect(p.text).not.toMatch(/Home|© Acme/);
+  });
+
   it('ignores "posted N days ago" when deciding whether the page changed', () => {
     const at = (age: string) =>
       fingerprint(pageText(`<main><a href="/j/1">React Developer</a> Posted ${age} ago</main>`, 'https://a.test/'));
@@ -88,6 +99,19 @@ describe('checkOpenings', () => {
       URL_,
     );
     expect(invented.openings[0]!.details).toBeNull();
+  });
+
+  it("won't link a job to an internal address, even when the page offers one", () => {
+    const hostile = pageText(
+      '<main><a href="http://169.254.169.254/latest/meta-data/">Shopify Developer (Experienced)</a></main>',
+      URL_,
+    );
+    const { openings } = checkOpenings(
+      { listsOpenings: true, jobs: [job({ link: 'L1' })] },
+      { ...hostile, text: `${hostile.text}\n${page.text}` },
+      URL_,
+    );
+    expect(openings[0]!.url).toBe(URL_);
   });
 
   it('keeps nothing from a page the model says lists no openings', () => {
