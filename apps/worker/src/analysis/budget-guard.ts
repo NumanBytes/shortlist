@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { aiSettingsFromRow, type AiSettingsInput } from '@shortlist/shared';
+import { Notifier } from '../notifications/notifier.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 export type BudgetDecision = { allowed: true } | { allowed: false; reason: string };
@@ -12,7 +13,10 @@ const DAY_MS = 24 * 3600 * 1000;
 // at most that many calls; the Console's prepaid balance is the hard stop behind this.
 @Injectable()
 export class BudgetGuard {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly notifier?: Notifier,
+  ) {}
 
   async settingsFor(userId: string): Promise<AiSettingsInput> {
     const row = await this.prisma.aiSettings.findUnique({ where: { userId } });
@@ -40,10 +44,16 @@ export class BudgetGuard {
     const settings = await this.settingsFor(userId);
     const spent = await this.monthToDateUsd(userId, now);
     if (spent >= settings.monthlyBudgetUsd) {
-      return {
-        allowed: false,
-        reason: `Monthly AI budget reached ($${spent.toFixed(2)} of $${settings.monthlyBudgetUsd.toFixed(2)})`,
-      };
+      const reason = `Monthly AI budget reached ($${spent.toFixed(2)} of $${settings.monthlyBudgetUsd.toFixed(2)})`;
+      // Once a month: scoring and tailoring wait until the budget is raised or the month turns.
+      await this.notifier?.problem(
+        userId,
+        `budget:${now.toISOString().slice(0, 7)}`,
+        'AI budget reached',
+        `${reason}. New jobs wait unscored until you raise it on Profile or the month turns.`,
+        '/profile',
+      );
+      return { allowed: false, reason };
     }
     return { allowed: true };
   }

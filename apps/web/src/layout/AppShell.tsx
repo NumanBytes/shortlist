@@ -1,4 +1,5 @@
 import { Briefcase, ChevronRight, LogOut, Mail, Radar, ShieldCheck, UserRound } from 'lucide-react';
+import { useClearNotificationBadge } from '../lib/hooks/useClearNotificationBadge';
 import { useState, type ReactNode } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router';
 import { useAuth } from '../features/auth/AuthProvider';
@@ -220,6 +221,7 @@ function TailoringPill() {
 const isPushedScreen = (path: string) => /^\/jobs\/[^/]+/.test(path);
 
 export function AppShell() {
+  useClearNotificationBadge();
   const { pathname } = useLocation();
   const toReview = useToReview();
   const jobsHref = useJobsHref();

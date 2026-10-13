@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Optional, Logger } from '@nestjs/common';
 import {
   JobAnalysisOutputSchema,
   commercialYears,
@@ -9,6 +9,7 @@ import {
   type ScoringRequirement,
   type ScoringSkill,
 } from '@shortlist/shared';
+import { Notifier } from '../notifications/notifier.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { BudgetGuard } from './budget-guard.js';
 import { JOB_ANALYZER, OutOfCreditError, PermanentAnalyzerError, type JobAnalyzer } from './job-analyzer.js';
@@ -40,6 +41,7 @@ export class AnalysisService {
     private readonly prisma: PrismaService,
     private readonly budget: BudgetGuard,
     @Inject(JOB_ANALYZER) private readonly analyzer: JobAnalyzer,
+    @Optional() private readonly notifier?: Notifier,
   ) {}
 
   async analyzeJob(jobId: string): Promise<AnalysisOutcome> {
@@ -105,6 +107,7 @@ export class AnalysisService {
     this.logger.log(
       `${job.title} @ ${job.company}: ${score.overallScore} ${score.verdict} ($${cost.toFixed(4)}${prompt.truncated ? ', description truncated' : ''})`,
     );
+    await this.notifier?.strongMatch(jobId);
     return { status: 'DONE', overallScore: score.overallScore, verdict: score.verdict, costUsd: cost };
   }
 

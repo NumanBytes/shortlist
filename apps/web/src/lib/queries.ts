@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
+  NotificationSettingsInput,
   DiscoveryPreferencesInput,
   ImportResumeInput,
   CreateEducationInput,
@@ -24,6 +25,8 @@ import type {
   CareerImport,
   Education,
   NeverClaim,
+  NotificationItem,
+  PushDevice,
   Onboarding,
   PublicUser,
   Evidence,
@@ -384,6 +387,45 @@ export function useRetryImport() {
     onSuccess: (row) => queryClient.setQueryData(onboardingKeys.import, row),
   });
 }
+
+// ── Notifications (docs/notifications.md §19) ──────────────────────────────────────
+export const notificationKeys = {
+  config: ['notifications', 'config'] as const,
+  settings: ['notifications', 'settings'] as const,
+  devices: ['notifications', 'devices'] as const,
+  recent: ['notifications', 'recent'] as const,
+};
+
+export const useNotificationConfig = () =>
+  useQuery({
+    queryKey: notificationKeys.config,
+    queryFn: () => api<{ configured: boolean; publicKey: string | null }>('/notifications/config'),
+    staleTime: Infinity,
+  });
+
+export const useNotificationSettings = () =>
+  useQuery({
+    queryKey: notificationKeys.settings,
+    queryFn: () => api<NotificationSettingsInput>('/notifications/settings'),
+  });
+
+export function useSaveNotificationSettings() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: NotificationSettingsInput) =>
+      api<NotificationSettingsInput>('/notifications/settings', { method: 'PUT', body }),
+    onSuccess: (data) => queryClient.setQueryData(notificationKeys.settings, data),
+  });
+}
+
+export const usePushDevices = () =>
+  useQuery({ queryKey: notificationKeys.devices, queryFn: () => api<PushDevice[]>('/notifications/devices') });
+
+export const useRecentNotifications = () =>
+  useQuery({ queryKey: notificationKeys.recent, queryFn: () => api<NotificationItem[]>('/notifications') });
+
+export const useSendTestNotification = () =>
+  useMutation({ mutationFn: () => api('/notifications/test', { method: 'POST' }) });
 
 // ── Resumes ──────────────────────────────────────────────────────────────────
 export const resumeKeys = { job: (jobId: string) => ['jobs', 'resume', jobId] as const };

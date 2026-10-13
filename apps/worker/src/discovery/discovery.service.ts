@@ -1,6 +1,7 @@
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { ImplementedSourceConfigSchema, PlannedSourceConfigSchema } from '@shortlist/shared';
 import type { DiscoveryRunStatus } from '@shortlist/db';
+import { Notifier } from '../notifications/notifier.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CareersPageService } from './careers-page/careers-page.service.js';
 import { compileFilter } from './filter.js';
@@ -34,6 +35,7 @@ export class DiscoveryService {
     private readonly prisma: PrismaService,
     @Inject(ADAPTER_REGISTRY) private readonly adapters: AdapterRegistry,
     @Optional() private readonly careersPage?: CareersPageService,
+    @Optional() private readonly notifier?: Notifier,
   ) {}
 
   async runSource(sourceId: string): Promise<RunSummary> {
@@ -118,8 +120,29 @@ export class DiscoveryService {
       const message = err instanceof Error ? err.message : String(err);
       await this.finish(run.id, source.id, 'FAILED', { errorMessage: message.slice(0, 1000) });
       this.logger.error(`${source.name}: FAILED — ${message}`);
+      await this.reportIfBroken(source, message);
       throw err;
     }
+  }
+
+  // One failure is often a blip; three runs in a row means the source is broken and the user
+  // should know — a dead source otherwise looks exactly like "no new jobs" (docs/notifications.md §19.4).
+  private async reportIfBroken(source: { id: string; userId: string; name: string }, message: string) {
+    if (!this.notifier) return;
+    const last = await this.prisma.discoveryRun.findMany({
+      where: { jobSourceId: source.id },
+      orderBy: { startedAt: 'desc' },
+      take: 3,
+      select: { status: true },
+    });
+    if (last.length < 3 || last.some((r) => r.status !== 'FAILED')) return;
+    await this.notifier.problem(
+      source.userId,
+      `source-failing:${source.id}:${new Date().toISOString().slice(0, 10)}`,
+      `${source.name} has failed 3 runs in a row`,
+      message.slice(0, 200),
+      `/sources`,
+    );
   }
 
   private parseConfig(raw: unknown) {
