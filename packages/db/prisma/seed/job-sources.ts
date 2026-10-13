@@ -5,7 +5,7 @@
 // Turing is intentionally absent: it's a vetting marketplace (apply once, get matched),
 // not a job board, so there is nothing to fetch.
 import type { JobSourceType } from '@prisma/client';
-import { REMOTE_BOARDS, type JobSourceConfig } from '@shortlist/shared';
+import { PLANNED_PROVIDERS, REMOTE_BOARDS, type JobSourceConfig } from '@shortlist/shared';
 
 export interface SeedJobSource {
   key: string;
@@ -31,9 +31,24 @@ const aggregator = (key: string, name: string, config: JobSourceConfig): SeedJob
   enabled: true,
 });
 
+// A hosted careers page (Milestone 2): the adapter reads the page itself. Same key scheme as
+// `planned`, so rows seeded before the adapter existed are the same rows.
+const hosted = (
+  provider: 'jazzhr' | 'zohorecruit' | 'opencats' | 'simplicant',
+  name: string,
+  url: string,
+  enabled = true,
+): SeedJobSource => ({
+  key: `${provider}:${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+  name,
+  type: 'ATS_BOARD',
+  config: { provider, url },
+  enabled,
+});
+
 // Recorded for later milestones; disabled until the provider has an adapter.
 const planned = (
-  provider: Extract<JobSourceConfig, { url?: string }>['provider'],
+  provider: (typeof PLANNED_PROVIDERS)[number],
   name: string,
   url?: string,
   note?: string,
@@ -59,15 +74,18 @@ export const JOB_SOURCES: SeedJobSource[] = [
   ...REMOTE_BOARDS.map((b) => aggregator(b.key, b.name, b.config)),
 
   // ── Milestone 2: hosted ATS pages (one parser per platform) ──────────────
-  planned('jazzhr', 'VentureDive', 'https://venturedive.applytojob.com/apply'),
-  planned('jazzhr', 'NorthBay Solutions', 'https://northbay.applytojob.com/apply'),
-  planned('zohorecruit', 'ShopDev', 'https://shopdev.zohorecruit.com/jobs/Careers'),
-  planned('zohorecruit', 'Techlogix', 'https://techlogix.zohorecruit.com/jobs/Careers---Lahore'),
-  planned('zohorecruit', 'SlashNext', 'https://slashnext.zohorecruit.com/jobs/Careers'),
-  planned('zohorecruit', 'Tintash', 'https://games.tintash.com/careers/'),
-  planned('opencats', 'Intagleo', 'https://hr.intagleo.com/careers/index.php?m=careers&p=showAll'),
-  planned('opencats', 'i2c', 'https://careers.i2cinc.com/careers/index.php?m=careers&p=showAll'),
-  planned('simplicant', '7Vals', 'https://7vals.simplicant.com/'),
+  // Built 2026-10-13; probed live that day.
+  hosted('jazzhr', 'VentureDive', 'https://venturedive.applytojob.com/apply'),
+  hosted('jazzhr', 'NorthBay Solutions', 'https://northbay.applytojob.com/apply'),
+  hosted('zohorecruit', 'ShopDev', 'https://shopdev.zohorecruit.com/jobs/Careers'),
+  hosted('zohorecruit', 'Techlogix', 'https://techlogix.zohorecruit.com/jobs/Careers---Lahore'),
+  // Its Zoho careers site answers with an error page (2026-10-13): off until it's back.
+  hosted('zohorecruit', 'SlashNext', 'https://slashnext.zohorecruit.com/jobs/Careers', false),
+  // games.tintash.com/careers links out to this Zoho site.
+  hosted('zohorecruit', 'Tintash', 'https://tintash.zohorecruit.com/jobs/new-openings'),
+  hosted('opencats', 'Intagleo', 'https://hr.intagleo.com/careers/index.php?m=careers&p=showAll'),
+  hosted('opencats', 'i2c', 'https://careers.i2cinc.com/careers/index.php?m=careers&p=showAll'),
+  hosted('simplicant', '7Vals', 'https://7vals.simplicant.com/'),
   planned('webhr', 'UWorx', 'https://uworx.webhr.co/jobs/home/'),
   planned('hirestream', 'Cogent Labs', 'https://cogent-labs.hirestream.io/careers/'),
   planned(
