@@ -143,3 +143,25 @@ export const DEFAULT_DISCOVERY_PREFERENCES: DiscoveryPreferencesInput = {
   ],
   maxPostingAgeDays: 30,
 };
+
+// Where onboarding starts a new user (docs/discovery.md §9.13): nothing about any one person's
+// city, stack or titles — they fill those in — only exclusions true for nearly everyone
+// (far-senior titles, German student posts) and the remote terms that mean "worldwide".
+export const STARTER_DISCOVERY_PREFERENCES: DiscoveryPreferencesInput = {
+  titleInclude: [],
+  titleExclude: ['principal', 'staff', 'director', 'head of', 'vp', 'werkstudent', 'praktikum'],
+  stackKeywords: [],
+  roleTitleTerms: ['software', 'developer', 'engineer'],
+  onsiteLocations: [],
+  allowRemote: true,
+  remoteAllowRegions: [
+    'worldwide',
+    'anywhere',
+    'anywhere in the world',
+    'global',
+    'globally',
+    'international',
+    'remote',
+  ],
+  maxPostingAgeDays: 30,
+};

@@ -12,6 +12,8 @@ const fields = {
   liveUrl: WebUrl.nullable(),
   repoUrl: WebUrl.nullable(),
   isShipped: z.boolean(),
+  // Always on a tailored resume (docs/resume.md §13.7). Not a claim: never un-verifies evidence.
+  isPinned: z.boolean(),
   startDate: PastDate.nullable(),
   endDate: PastDate.nullable(),
   // Set when the project was done as part of a paid role; null = personal project.
@@ -25,6 +27,7 @@ export const CreateProjectSchema = z
     liveUrl: fields.liveUrl.optional(),
     repoUrl: fields.repoUrl.optional(),
     isShipped: fields.isShipped.default(false),
+    isPinned: fields.isPinned.default(false),
     startDate: fields.startDate.optional(),
     endDate: fields.endDate.optional(),
     workExperienceId: fields.workExperienceId.optional(),

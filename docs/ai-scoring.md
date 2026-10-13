@@ -84,6 +84,11 @@ became five separate gaps, pulling a fitting role below the SKIP line.
 - **Hand-written JSON schema** for structured output: the SDK's Zod converter turned
   enums into descriptions (not enforced by the API). A test keeps it in sync with the
   Zod schema, which still validates every response before storage.
+- **Array caps are sanity bounds, not filters** (2026-10-13): a cap that a legitimate
+  answer can exceed fails the whole job after its cost is paid. `sameAs`/`relatedTo` were
+  capped at 10, and a broad requirement ("Full stack development") related to more of the
+  user's skills than that, so the job sat unscored ("Scoring failed"). They are now capped at
+  `MAX_SKILL_REFS` (100); unknown refs are still dropped, so a long list can't introduce a skill.
 - **Errors by type:** 429/5xx/network → retried by the SDK (×2) and the queue (×3,
   backoff); 400/401/403/404 → FAILED, not retried; **out of credit → DEFERRED** (runs
   after a top-up); invalid/truncated (`max_tokens`)/refused output → FAILED, not retried

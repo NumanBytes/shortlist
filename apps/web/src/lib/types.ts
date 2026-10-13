@@ -70,8 +70,35 @@ export interface Project {
   liveUrl: string | null;
   repoUrl: string | null;
   isShipped: boolean;
+  isPinned: boolean; // always on a tailored resume
   startDate: string | null;
   endDate: string | null;
+}
+
+export interface Onboarding {
+  needed: boolean;
+  hasPreferences: boolean;
+  hasCareerData: boolean;
+  hasSources: boolean;
+}
+
+// One "import from my resume" run. The text itself is never sent back.
+export interface CareerImport {
+  id: string;
+  status: 'PENDING' | 'DONE' | 'DEFERRED' | 'FAILED';
+  created: { roles: number; projects: number; skills: number; evidence: number } | null;
+  dropped: { what: string; reason: string }[] | null;
+  error: string | null;
+  createdAt: string;
+  finishedAt: string | null;
+}
+
+// A term tailoring must never put on the resume (docs/resume.md §13.8).
+export interface NeverClaim {
+  id: string;
+  term: string;
+  scope: 'ANYWHERE' | 'PAID_WORK';
+  note: string | null;
 }
 
 export type JobStatus =

@@ -226,3 +226,25 @@ describe('JSON schema stays in sync with the Zod schema', () => {
     );
   });
 });
+
+describe('JobAnalysisOutputSchema', () => {
+  it('accepts a broad requirement related to more than 10 skills', () => {
+    const refs = Array.from({ length: 15 }, (_, i) => `S${i + 1}`);
+    const output = {
+      seniority: 'MID',
+      yearsRequired: null,
+      redFlags: [],
+      requirements: [
+        {
+          skill: 'Full stack development',
+          importance: 'REQUIRED',
+          isCore: true,
+          yearsRequired: null,
+          sameAs: [],
+          relatedTo: refs,
+        },
+      ],
+    };
+    expect(JobAnalysisOutputSchema.safeParse(output).success).toBe(true);
+  });
+});

@@ -7,7 +7,9 @@ import type { PublicUser } from '../../lib/types';
 import { Account } from './Account';
 import { Budget } from './Budget';
 import { EducationList, Projects, Roles } from './CareerLists';
+import { JobSearch } from './JobSearch';
 import { ContactForm } from './ContactForm';
+import { NeverClaimList } from './NeverClaimList';
 
 const initialsOf = (name: string) =>
   name
@@ -41,9 +43,11 @@ export function ProfilePage() {
 
       {profile.data ? <Identity profile={profile.data} /> : <Skeleton className="mx-auto h-40 w-64" />}
 
+      <JobSearch />
       <Roles />
       <Projects />
       <EducationList />
+      <NeverClaimList />
       <Budget />
       <Account />
 

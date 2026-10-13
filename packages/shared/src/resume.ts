@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { NeverClaimScope } from './never-claim.schema.js';
 import { normalizeSkillName, type Context, type Depth, type Importance } from './scoring.js';
 
 // Resume tailoring (docs/resume.md §13). The model only words bullets and groups skills, citing
@@ -30,8 +31,12 @@ export function placementFor(e: { context: Context; depth: Depth; lastUsed: Date
       return ['PROJECTS', 'SKILLS'];
     case 'EXPOSURE':
       return now.getTime() - e.lastUsed.getTime() < TWO_YEARS_MS ? ['SKILLS'] : [];
+    // Decided by the user 2026-10-13: personal work shipped to production is a project
+    // achievement and a listable skill — never an Experience bullet (it wasn't paid work).
+    case 'PRODUCTION':
+      return e.context === 'PERSONAL' ? ['PROJECTS', 'SKILLS'] : []; // ACADEMIC: open decision
     default:
-      return []; // PERSONAL/ACADEMIC + PRODUCTION/MAINTENANCE: open decision
+      return []; // PERSONAL/ACADEMIC + MAINTENANCE: open decision
   }
 }
 
@@ -156,6 +161,7 @@ export interface ResumeProject {
   id: string;
   name: string;
   workExperienceId: string | null;
+  isPinned: boolean; // always on the resume (docs/resume.md §13.7)
 }
 export interface ResumeRefs {
   evidence: Map<string, string>; // "E3" -> evidence id
@@ -175,6 +181,8 @@ export interface AssembleInput {
   // Job requirement names → the user's skills the analysis matched exactly. Lets a bullet
   // citing React say "React.js" when the posting does.
   requirementAliases: { name: string; skillIds: string[] }[];
+  // The user's never-claim list (docs/resume.md §13.8): refused whatever a bullet cites.
+  neverClaim: { term: string; scope: NeverClaimScope }[];
   now?: Date;
 }
 
@@ -242,7 +250,15 @@ interface CheckContext {
   refs: ResumeRefs;
   policed: string[];
   aliases: { name: string; skillIds: string[] }[];
+  neverClaim: { term: string; scope: NeverClaimScope }[];
   now: Date;
+}
+
+// Whether a never-claim term appears: as a whole term, also without its dots
+// ("Node.js" catches "Node", "NodeJS" and "Node.js").
+export function mentionsTerm(text: string, term: string): boolean {
+  const undotted = (s: string) => s.replace(/\./g, '');
+  return [text, undotted(text)].some((t) => [term, undotted(term)].some((v) => mentionSpans(t, v).length > 0));
 }
 
 export function checkBullet(
@@ -276,10 +292,17 @@ export function checkBullet(
     }
   }
 
-  // Known false claims (docs/career-data.md §7.2) — refused whatever is cited.
-  if (/azure/i.test(full)) return { ok: false, reason: 'mentions Azure, a known false claim' };
-  if (where.commercial && /(?<![A-Za-z])(node(\.js)?|express(\.js)?)(?![A-Za-z])/i.test(full)) {
-    return { ok: false, reason: 'mentions Node.js/Express in paid work, where they were never used' };
+  // The user's known false claims (docs/resume.md §13.8) — refused whatever is cited.
+  for (const c of ctx.neverClaim) {
+    if (c.scope === 'PAID_WORK' && !where.commercial) continue;
+    if (mentionsTerm(full, c.term))
+      return {
+        ok: false,
+        reason:
+          c.scope === 'PAID_WORK'
+            ? `mentions ${c.term} in paid work, which your never-claim list rules out`
+            : `mentions ${c.term}, which your never-claim list rules out`,
+      };
   }
 
   const source = cited.map((e) => e.whatIDid).join('\n');
@@ -320,12 +343,21 @@ export function checkBullet(
   return { ok: true, bullet: { label, text, evidenceIds: ids } };
 }
 
+const DEPTH_RANK: Record<Depth, number> = { PRODUCTION: 0, MAINTENANCE: 1, WORKING: 2, EXPOSURE: 3 };
+
 // Turns the model's output into stored resume content, keeping only what the checks allow.
 export function assembleResume(input: AssembleInput): AssembleResult {
   const now = input.now ?? new Date();
   const byId = new Map(input.evidence.map((e) => [e.id, e]));
   const policed = [...new Set(input.policedNames.flatMap(splitOptions))];
-  const ctx: CheckContext = { byId, refs: input.refs, policed, aliases: input.requirementAliases, now };
+  const ctx: CheckContext = {
+    byId,
+    refs: input.refs,
+    policed,
+    aliases: input.requirementAliases,
+    neverClaim: input.neverClaim,
+    now,
+  };
   const dropped: ResumeContent['dropped'] = [];
   const used = new Set<string>();
 
@@ -375,6 +407,11 @@ export function assembleResume(input: AssembleInput): AssembleResult {
 
   // Projects: the model's choice and order; a project with no surviving bullet is left out.
   const projectById = new Map(input.projects.map((p) => [p.id, p]));
+  const projectWhere = (p: ResumeProject): Where => ({
+    kind: 'PROJECTS',
+    projectId: p.id,
+    commercial: p.workExperienceId !== null,
+  });
   const seenProjects = new Set<string>();
   const projects: ResumeContent['projects'] = [];
   for (const x of input.output.projects) {
@@ -382,9 +419,33 @@ export function assembleResume(input: AssembleInput): AssembleResult {
     const p = id ? projectById.get(id) : undefined;
     if (!p || seenProjects.has(p.id)) continue;
     seenProjects.add(p.id);
-    const where: Where = { kind: 'PROJECTS', projectId: p.id, commercial: p.workExperienceId !== null };
-    const bullets = keep(x.bullets, where, p.name, MAX_BULLETS_PER_PROJECT);
+    const bullets = keep(x.bullets, projectWhere(p), p.name, MAX_BULLETS_PER_PROJECT);
     if (bullets.length) projects.push({ projectId: p.id, name: p.name, bullets });
+  }
+
+  // Pinned projects are always on the resume (docs/resume.md §13.7). If the model left one
+  // out, or the checks removed all its bullets, fall back to the user's own verified words
+  // for it — still checked like any bullet, so this can't claim more than they wrote.
+  const refOf = new Map([...input.refs.evidence].map(([ref, id]) => [id, ref]));
+  for (const p of input.projects) {
+    if (!p.isPinned || projects.some((x) => x.projectId === p.id)) continue;
+    const where = projectWhere(p);
+    const items = input.evidence
+      .filter((e) => e.projectId === p.id && refOf.has(e.id))
+      .sort((a, b) => DEPTH_RANK[a.depth] - DEPTH_RANK[b.depth] || b.lastUsed.getTime() - a.lastUsed.getTime());
+    const bullets: ResumeBullet[] = [];
+    for (const e of items) {
+      if (bullets.length >= MAX_BULLETS_PER_PROJECT) break;
+      const r = checkBullet({ label: null, text: e.whatIDid, evidence: [refOf.get(e.id)!] }, where, ctx);
+      if (r.ok) bullets.push(r.bullet);
+    }
+    if (bullets.length) projects.push({ projectId: p.id, name: p.name, bullets });
+    else
+      dropped.push({
+        where: p.name,
+        text: '(pinned project)',
+        reason: 'pinned, but none of its verified items can appear on a resume yet',
+      });
   }
 
   for (const b of [...experience, ...projects].flatMap((s) => s.bullets)) for (const id of b.evidenceIds) used.add(id);
@@ -449,20 +510,29 @@ export function requirementProfile(requirements: { skillName: string }[]): strin
   return [...new Set(requirements.flatMap((r) => splitOptions(r.skillName).map(normalizeSkillName)))].sort();
 }
 
+// The share of the variant's own profile the new job must ask for before it is offered.
+// Coverage alone is one-sided: a 2-requirement "React, TypeScript" posting is 100% covered
+// by a resume built for an 18-requirement MERN role, which was offered as a "100% match"
+// (production, 2026-10-12). Requiring the job to ask for most of what the resume was built
+// for makes reuse mean "the same kind of job".
+export const MIN_REUSE_FOCUS = 0.6;
+
 export function resumeOverlap(
   job: { skillName: string; importance: Importance }[],
   profile: string[],
-): { overlap: number; missingRequired: string[] } {
+): { overlap: number; focus: number; missingRequired: string[] } {
   const have = new Set(profile);
   const jobNames = requirementProfile(job);
-  if (jobNames.length === 0) return { overlap: 0, missingRequired: [] };
+  if (jobNames.length === 0 || have.size === 0) return { overlap: 0, focus: 0, missingRequired: [] };
   const covered = jobNames.filter((n) => have.has(n)).length;
   const missingRequired = job
     .filter(
       (r) => r.importance === 'REQUIRED' && !splitOptions(r.skillName).some((o) => have.has(normalizeSkillName(o))),
     )
     .map((r) => r.skillName);
-  return { overlap: covered / jobNames.length, missingRequired };
+  // overlap: how much of the new job the variant covers; focus: how much of the variant
+  // the new job asks for.
+  return { overlap: covered / jobNames.length, focus: covered / have.size, missingRequired };
 }
 
 // ── API request bodies ────────────────────────────────────────────────────────

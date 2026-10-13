@@ -56,6 +56,9 @@ CloudCard (role), Manzil and Shortlist (personal, not shipped).
   meant to turn this into real, verifiable evidence — **which the user must add in their
   own words** once they can explain each part; it is deliberately not seeded.
 
+Since 2026-10-13 these are enforced as the user's **never-claim list**
+([docs/resume.md §13.8](resume.md)), not by code that names them.
+
 ### 7.3 Seed guards and behaviour
 
 `findSeedProblems()` refuses to write anything if the data mentions Azure (in a skill
@@ -105,3 +108,50 @@ database. Every discrepancy was put to the user, and nothing was resolved by gue
 
 Result: 63 evidence items, 19 verified, 44 to review. Tailoring only ever sees the
 verified ones.
+
+### 7.6 Importing a resume (built 2026-10-13)
+
+The seed (§7.1–7.3) only ever served one person. "Import from my resume" (Profile, and the
+first onboarding step, [docs/discovery.md §9.13](discovery.md)) lets any user start from their own CV.
+
+- **The PDF is read in the browser** with pdf.js (`apps/web/src/lib/pdf-text.ts`, loaded only
+  when used and kept out of the offline app shell). Only the text is sent, and it's shown in an
+  editable box first, which is also the fallback for scanned PDFs (paste the text). Chosen over
+  server-side parsing: no file-upload endpoint, the API does no slow work, and the file never
+  leaves the device.
+- **`POST /career-import`** (text, 200–30,000 chars) stores a `CareerImport` row and queues a job
+  on the `career` queue; one import at a time per user (409). `GET /career-import/latest` is
+  polled while it runs and never returns the text.
+- **The worker** (`apps/worker/src/career/`) asks Sonnet (`AI_MODELS.importResume`) through
+  `ResumeReader` (faked in tests) for roles, projects, items and listed skills. The call is
+  budget-checked (`BudgetGuard.checkMonthly`) and logged to `AiUsage` (`IMPORT_RESUME`) before its
+  output is used.
+- **Code decides what's kept** (`checkCareerExtraction()`, shared): a role's title and company,
+  a project's name and a skill's name must appear in the resume; **every `whatIDid` must be a
+  quote from the resume**, compared after normalizing only case, whitespace, bullet glyphs, curly
+  quotes and dashes (a PDF's text layer differs from the model's copy in exactly those). That keeps
+  §6.2 true: every bullet still traces to words the user wrote. **A quote must be a whole
+  sentence or bullet** (`isWholeQuote()`, code review 2026-10-13): a fragment can say the
+  opposite of its sentence ("lead the migration" inside "Did not lead the migration"). It must
+  start where a sentence, bullet or line item starts and end where one ends; a line break
+  inside it is fine (PDFs wrap bullets), and one before it counts only if the quote starts
+  with a capital or digit (a wrapped line continues in lower case). Work under a role is COMMERCIAL;
+  work claimed as paid with no role becomes PERSONAL; a never-claim term (§13.8) in its scope is
+  dropped. Everything refused is listed with the reason ("left out").
+- **Writes are additive and unverified:** an existing role (same company and title), project
+  (name) or skill (name, any case) is reused, an identical item is skipped, nothing existing is
+  edited, and `isVerified` is never set. Skills named only in a skills list become skills with no
+  evidence, for the user to describe in their own words.
+- **The text is cleared** when the import is done or failed; counts and the left-out list
+  remain. A **deferred** import (budget, credit, no API key) keeps its text so "Try again"
+  (`POST /career-import/:id/retry`) can run it — deferred, never dropped; a newer import
+  replaces it and clears that text.
+- **One pending import per user**, enforced by a partial unique index
+  (`CareerImport_one_pending_per_user`), not a read-then-insert check — two racing requests
+  both got in, and the second's job was dropped by a per-user queue dedupe id, leaving it
+  pending forever (code review 2026-10-13). Dedupe ids are now per import, and a pending
+  import older than 30 minutes is marked failed when the next one starts.
+- Storing runs in one transaction with a 60 s timeout (Prisma's 5 s default was too tight); if
+  it still fails, the import is marked FAILED rather than retried, since a retry would pay for
+  the model call again.
+

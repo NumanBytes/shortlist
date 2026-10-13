@@ -1,6 +1,7 @@
 import { ArrowUpDown, ChevronDown, Filter, Inbox, MousePointerClick, RotateCw, WifiOff, X } from 'lucide-react';
 import { useState } from 'react';
 import { Outlet, useParams, useSearchParams } from 'react-router';
+import { groupByDay } from './by-day';
 import { FindNewJobs } from './FindNewJobs';
 import { JobRow } from './JobRow';
 import { Button, Chip, EmptyState, IconButton, Segmented, Skeleton } from '../../components/ui';
@@ -28,7 +29,8 @@ function useListState() {
   const requested = (params.get('tab') as Tab | null) ?? 'new';
   const tab = requested === 'all' && !source ? 'new' : requested;
   const verdict = (params.get('verdict') as VerdictFilter | null) ?? 'all';
-  const sort = (params.get('sort') as JobSort | null) ?? 'score';
+  // Newest day first unless the user picked best match (an old ?sort=recent link lands here too).
+  const sort: JobSort = params.get('sort') === 'score' ? 'score' : 'day';
   const set = (key: string, value: string, fallback: string) =>
     setParams(
       (p) => {
@@ -56,7 +58,7 @@ function useListState() {
       ),
     setTab: (v: Tab) => set('tab', v, 'new'),
     setVerdict: (v: VerdictFilter) => set('verdict', v, 'all'),
-    setSort: (v: JobSort) => set('sort', v, 'score'),
+    setSort: (v: JobSort) => set('sort', v, 'day'),
   };
 }
 
@@ -93,11 +95,12 @@ function JobsList({ selectedId }: { selectedId?: string }) {
   const all = (jobs.data ?? []).filter((j) => s.tab !== 'applied' || PIPELINE.includes(j.status));
   const count = (v: Verdict) => all.filter((j) => j.match?.verdict === v).length;
   const visible = s.verdict === 'all' ? all : all.filter((j) => j.match?.verdict === s.verdict);
-  // With no verdict filter and best-match order, SKIPs fold away so the list leads with
-  // what's worth your time. Nothing is hidden for good — one tap shows them.
-  const fold = s.verdict === 'all' && s.sort === 'score';
+  // With no verdict filter, SKIPs fold away so the list leads with what's worth your time.
+  // Nothing is hidden for good — one tap shows them.
+  const fold = s.verdict === 'all';
   const main = fold ? visible.filter((j) => j.match?.verdict !== 'SKIP') : visible;
   const weaker = fold ? visible.filter((j) => j.match?.verdict === 'SKIP') : [];
+  const days = s.sort === 'day' ? groupByDay(main) : null;
 
   const c = counts.data;
   const tabCount = (t: Tab) =>
@@ -175,11 +178,11 @@ function JobsList({ selectedId }: { selectedId?: string }) {
             <Button
               size="sm"
               variant="ghost"
-              aria-label={`Sort: ${s.sort === 'score' ? 'best match' : 'newest'} (tap to change)`}
-              onClick={() => s.setSort(s.sort === 'score' ? 'recent' : 'score')}
+              aria-label={`Sort: ${s.sort === 'score' ? 'best match' : 'newest day first'} (tap to change)`}
+              onClick={() => s.setSort(s.sort === 'score' ? 'day' : 'score')}
               className="font-medium"
             >
-              <ArrowUpDown className="size-4" /> {s.sort === 'score' ? 'Best match' : 'Newest'}
+              <ArrowUpDown className="size-4" /> {s.sort === 'score' ? 'Best match' : 'By day'}
             </Button>
           </div>
         </>
@@ -213,11 +216,30 @@ function JobsList({ selectedId }: { selectedId?: string }) {
         </EmptyState>
       )}
 
-      <ul className="space-y-2.5">
-        {main.map((j) => (
-          <JobRow key={j.id} job={j} selected={j.id === selectedId} />
-        ))}
-      </ul>
+      {days ? (
+        days.map((d) => (
+          <section key={d.key} aria-labelledby={`day-${d.key}`} className="space-y-2.5">
+            <h2
+              id={`day-${d.key}`}
+              className="flex items-baseline justify-between px-1 pt-1 text-sm font-semibold text-fg"
+            >
+              {d.label}
+              <span className="text-xs font-normal text-muted tabular-nums">{d.jobs.length}</span>
+            </h2>
+            <ul className="space-y-2.5">
+              {d.jobs.map((j) => (
+                <JobRow key={j.id} job={j} selected={j.id === selectedId} />
+              ))}
+            </ul>
+          </section>
+        ))
+      ) : (
+        <ul className="space-y-2.5">
+          {main.map((j) => (
+            <JobRow key={j.id} job={j} selected={j.id === selectedId} />
+          ))}
+        </ul>
+      )}
 
       {weaker.length > 0 && (
         <div>

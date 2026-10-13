@@ -200,6 +200,7 @@ export function ProjectForm({ project, onDone }: { project?: Project; onDone: ()
     description: project?.description ?? '',
     workExperienceId: project?.workExperienceId ?? '',
     isShipped: project?.isShipped ?? false,
+    isPinned: project?.isPinned ?? false,
     start: month(project?.startDate),
     end: month(project?.endDate),
     liveUrl: project?.liveUrl ?? '',
@@ -215,6 +216,7 @@ export function ProjectForm({ project, onDone }: { project?: Project; onDone: ()
       description: v.description.trim() || null,
       workExperienceId: v.workExperienceId || null,
       isShipped: v.isShipped,
+      isPinned: v.isPinned,
       startDate: toDate(v.start),
       endDate: toDate(v.end),
       liveUrl: v.liveUrl.trim() || null,
@@ -311,6 +313,16 @@ export function ProjectForm({ project, onDone }: { project?: Project; onDone: ()
           onChange={(isShipped) => setV({ ...v, isShipped })}
           label="It shipped to real users"
         />
+      </div>
+      {/* docs/resume.md §13.7: tailoring rewords a pinned project's bullets but never drops it. */}
+      <div className="flex items-center justify-between gap-3 rounded-xl border border-border px-3.5 py-2.5">
+        <span>
+          <span className="block text-[15px] text-fg">Always on my resume</span>
+          <span className="block text-[13px] text-muted">
+            Tailoring rewords it for each job but never leaves it out.
+          </span>
+        </span>
+        <Switch checked={v.isPinned} onChange={(isPinned) => setV({ ...v, isPinned })} label="Always on my resume" />
       </div>
       <TextField
         id="project-live"

@@ -4,7 +4,7 @@ import { ResumeSection } from '../../resume/ResumeSection';
 import { ScoreRing } from '../../../components/ScoreRing';
 import { VerdictBadge } from '../../../components/VerdictBadge';
 import { Badge, Button, Card } from '../../../components/ui';
-import { isAggregator, postedLabel, prettyLocation, providerLabel, timeAgo } from '../../../lib/format';
+import { isAggregator, postedLabel, prettyLocation, sourceName, timeAgo } from '../../../lib/format';
 import { useAnalyzeJob } from '../../../lib/queries';
 import type { JobDetail } from '../../../lib/types';
 import { Gaps, Risks, Strengths } from './MatchSections';
@@ -35,7 +35,7 @@ export function Detail({ job }: { job: JobDetail }) {
       ? 'On-site'
       : job.workMode.charAt(0) + job.workMode.slice(1).toLowerCase()
     : null;
-  const where = isAggregator(job) ? providerLabel(job.source) : `${job.jobSource?.name ?? job.company} careers`;
+  const where = sourceName(job);
 
   return (
     <>

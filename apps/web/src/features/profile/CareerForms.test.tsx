@@ -21,6 +21,7 @@ const project: Project = {
   liveUrl: null,
   repoUrl: null,
   isShipped: true,
+  isPinned: false,
   startDate: null,
   endDate: null,
 };
@@ -79,6 +80,16 @@ describe('ProjectForm', { timeout: 20_000 }, () => {
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() =>
       expect(sent(fetchMock, 'PATCH')).toEqual([{ url: '/api/v1/projects/p1', body: { workExperienceId: null } }]),
+    );
+  });
+
+  it('pins a project to every resume, sending only that change', async () => {
+    const fetchMock = api();
+    renderWithProviders(<ProjectForm project={{ ...project, workExperienceId: null }} onDone={vi.fn()} />);
+    await userEvent.click(screen.getByRole('switch', { name: 'Always on my resume' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() =>
+      expect(sent(fetchMock, 'PATCH')).toEqual([{ url: '/api/v1/projects/p1', body: { isPinned: true } }]),
     );
   });
 

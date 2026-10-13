@@ -23,8 +23,8 @@ const role = {
   isCurrent: true,
 };
 const projects = [
-  { id: 'bank', name: 'Bank Portal', workExperienceId: 'cc' },
-  { id: 'shortlist', name: 'Shortlist', workExperienceId: null },
+  { id: 'bank', name: 'Bank Portal', workExperienceId: 'cc', isPinned: false },
+  { id: 'shortlist', name: 'Shortlist', workExperienceId: null, isPinned: false },
 ];
 const ev = (id: string, skillName: string, over: Partial<ResumeEvidence> = {}): ResumeEvidence => ({
   id,
@@ -82,6 +82,13 @@ const evidence: ResumeEvidence[] = [
   }),
 ];
 
+// The user's never-claim list (docs/resume.md §13.8), as the migration carried it over.
+const NEVER_CLAIM = [
+  { term: 'Azure', scope: 'ANYWHERE' as const },
+  { term: 'Node.js', scope: 'PAID_WORK' as const },
+  { term: 'Express', scope: 'PAID_WORK' as const },
+];
+
 // The prompt's own refs, so tests cite exactly what the service would.
 const prompt = buildResumePrompt({
   job: { title: 'Frontend Engineer', company: 'Kwanso', rawJD: 'React and TypeScript.' },
@@ -104,6 +111,7 @@ const assemble = (output: Partial<ResumeOutput>, over: Partial<AssembleInput> = 
     projects,
     policedNames: [...evidence.map((e) => e.skillName), 'React.js', 'GraphQL', 'AWS / GCP / Azure', 'Go'],
     requirementAliases: [{ name: 'React.js', skillIds: ['s-React'] }],
+    neverClaim: NEVER_CLAIM,
     now: NOW,
     ...over,
   });
@@ -148,11 +156,28 @@ describe('assembleResume — bullets', () => {
     expect(r.content.dropped[0]!.reason).toMatch(/Node\.js item \(personal working\), which can't appear here/);
   });
 
-  it('refuses Azure anywhere and Node.js/Express in paid work (known false claims)', () => {
-    expect(roleBullets('Built React apps on Azure B2C.', [E('react')]).content.dropped[0]!.reason).toMatch(/Azure/);
-    expect(roleBullets('Built React frontends for an Express API.', [E('react')]).content.dropped[0]!.reason).toMatch(
-      /Node\.js\/Express/,
+  it("refuses the never-claim list's terms in their scope, whatever is cited", () => {
+    expect(roleBullets('Built React apps on Azure B2C.', [E('react')]).content.dropped[0]!.reason).toMatch(
+      /mentions Azure, which your never-claim list/,
     );
+    expect(roleBullets('Built React frontends for an Express API.', [E('react')]).content.dropped[0]!.reason).toMatch(
+      /mentions Express in paid work/,
+    );
+    expect(roleBullets('Built React frontends for a NodeJS API.', [E('react')]).content.dropped[0]!.reason).toMatch(
+      /Node\.js in paid work/,
+    );
+  });
+
+  it('applies paid-work terms only to paid work; the list is data, not code', () => {
+    const personal = (over: Partial<AssembleInput>) =>
+      assemble(
+        { projects: [{ project: 'P2', bullets: [bullet('Used pnpm workspaces in Shortlist.', [E('pnpm')])] }] },
+        over,
+      ).content.projects;
+    // A paid-work term may appear in a personal project; the same term ANYWHERE may not.
+    expect(personal({ neverClaim: [{ term: 'workspaces', scope: 'PAID_WORK' }] })).toHaveLength(1);
+    expect(personal({ neverClaim: [{ term: 'workspaces', scope: 'ANYWHERE' }] })).toHaveLength(0);
+    expect(personal({ neverClaim: [] })).toHaveLength(1);
   });
 
   it('refuses numbers the evidence never stated', () => {
@@ -269,6 +294,28 @@ describe('assembleResume — bullets', () => {
     ]);
   });
 
+  it("keeps a pinned project the model left out, in the user's own verified words", () => {
+    const pinned = projects.map((p) => (p.id === 'shortlist' ? { ...p, isPinned: true } : p));
+    const r = assemble({ projects: [] }, { projects: pinned });
+    expect(r.content.projects).toEqual([
+      {
+        projectId: 'shortlist',
+        name: 'Shortlist',
+        bullets: [{ label: null, text: 'Use pnpm workspaces in Shortlist.', evidenceIds: ['pnpm'] }],
+      },
+    ]);
+    expect(r.evidenceIds).toContain('pnpm');
+  });
+
+  it('says so when a pinned project has nothing that can appear on a resume', () => {
+    const empty = { id: 'empty', name: 'Side Project', workExperienceId: null, isPinned: true };
+    const r = assemble({}, { projects: [...projects, empty] });
+    expect(r.content.projects).toEqual([]);
+    expect(r.content.dropped).toEqual([
+      expect.objectContaining({ where: 'Side Project', reason: expect.stringMatching(/pinned/) }),
+    ]);
+  });
+
   it('lists every role even with no surviving bullets, and caps bullets per role', () => {
     const many = Array.from({ length: 8 }, () =>
       bullet('Built React features that shipped to production.', [E('react')]),
@@ -356,6 +403,19 @@ describe('buildResumePrompt', () => {
     expect(prompt.system).toMatch(/Don't name the company or the role/);
     expect(prompt.system).toMatch(/not what they didn't do/);
     expect(prompt.system).not.toMatch(/Keep qualifiers/);
+  });
+
+  it('marks pinned projects and asks for every one of them', () => {
+    const p = buildResumePrompt({
+      job: { title: 'Frontend Engineer', company: 'Kwanso', rawJD: 'React.' },
+      requirements: [],
+      roles: [role],
+      projects: [{ ...projects[1]!, isPinned: true }],
+      evidence,
+      now: NOW,
+    });
+    expect(p.user).toContain('P1: Shortlist — personal — PINNED');
+    expect(p.system).toMatch(/Always include a PINNED project/);
   });
 
   it('wraps the posting as untrusted data', () => {

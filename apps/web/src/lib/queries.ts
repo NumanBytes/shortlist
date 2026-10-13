@@ -1,6 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
+  DiscoveryPreferencesInput,
+  ImportResumeInput,
   CreateEducationInput,
+  CreateNeverClaimInput,
   CreateProjectInput,
   CreateWorkExperienceInput,
   UpdateProjectInput,
@@ -18,7 +21,10 @@ import type {
   AiUsage,
   DiscoveryStatus,
   DiscoverySource,
+  CareerImport,
   Education,
+  NeverClaim,
+  Onboarding,
   PublicUser,
   Evidence,
   JobDetail,
@@ -95,7 +101,7 @@ export const useUpdateEvidence = () =>
 // ── Jobs & discovery ─────────────────────────────────────────────────────────
 export const jobKeys = {
   all: ['jobs'] as const,
-  list: (status?: JobStatus, sort: JobSort = 'score', sourceId?: string) =>
+  list: (status?: JobStatus, sort: JobSort = 'day', sourceId?: string) =>
     ['jobs', 'list', status ?? 'all', sort, sourceId ?? 'any'] as const,
   detail: (id: string) => ['jobs', 'detail', id] as const,
   sources: ['discovery', 'sources'] as const,
@@ -103,13 +109,15 @@ export const jobKeys = {
   aiUsage: ['ai', 'usage'] as const,
 };
 
-export type JobSort = 'score' | 'recent';
+// 'day': newest day first, best match within each day (grouped in the page from the API's
+// newest-first list). 'score': best match across every day.
+export type JobSort = 'day' | 'score';
 
-export const useJobs = (status?: JobStatus, sort: JobSort = 'score', sourceId?: string) =>
+export const useJobs = (status?: JobStatus, sort: JobSort = 'day', sourceId?: string) =>
   useQuery({
     queryKey: jobKeys.list(status, sort, sourceId),
     queryFn: () => {
-      const q = new URLSearchParams({ sort });
+      const q = new URLSearchParams({ sort: sort === 'day' ? 'recent' : 'score' });
       if (status) q.set('status', status);
       if (sourceId) q.set('sourceId', sourceId);
       return api<JobListItem[]>(`/jobs?${q}`);
@@ -286,6 +294,94 @@ export function useDeleteEducation() {
   return useMutation({
     mutationFn: (id: string) => api(`/education/${id}`, { method: 'DELETE' }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: profileKeys.education }),
+  });
+}
+
+// ── Never-claim list (docs/resume.md §13.8) ─────────────────────────────────────
+export const neverClaimKey = ['never-claim'] as const;
+
+export const useNeverClaims = () =>
+  useQuery({ queryKey: neverClaimKey, queryFn: () => api<NeverClaim[]>('/never-claim') });
+
+export function useAddNeverClaim() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CreateNeverClaimInput) => api<NeverClaim>('/never-claim', { method: 'POST', body }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: neverClaimKey }),
+  });
+}
+
+export function useRemoveNeverClaim() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api(`/never-claim/${id}`, { method: 'DELETE' }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: neverClaimKey }),
+  });
+}
+
+// ── Onboarding, search settings and resume import (docs/discovery.md §9.13, docs/career-data.md §7.6) ──
+export const onboardingKeys = {
+  status: ['onboarding'] as const,
+  preferences: ['discovery', 'preferences'] as const,
+  import: ['career-import'] as const,
+};
+
+export const useOnboarding = () =>
+  useQuery({ queryKey: onboardingKeys.status, queryFn: () => api<Onboarding>('/onboarding') });
+
+export const usePreferences = () =>
+  useQuery({
+    queryKey: onboardingKeys.preferences,
+    queryFn: () => api<{ preferences: DiscoveryPreferencesInput; isDefault: boolean }>('/discovery/preferences'),
+  });
+
+export function useSavePreferences() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: DiscoveryPreferencesInput) =>
+      api<{ preferences: DiscoveryPreferencesInput; isDefault: boolean }>('/discovery/preferences', {
+        method: 'PUT',
+        body,
+      }),
+    onSuccess: (data) => {
+      queryClient.setQueryData(onboardingKeys.preferences, data);
+      void queryClient.invalidateQueries({ queryKey: onboardingKeys.status });
+    },
+  });
+}
+
+export function useAddRemoteBoards() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => api<{ added: number }>('/discovery/sources/remote-boards', { method: 'POST' }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: jobKeys.sources });
+      void queryClient.invalidateQueries({ queryKey: onboardingKeys.status });
+    },
+  });
+}
+
+// Polled every few seconds while an import is running; the worker takes a minute or so.
+export const useLatestImport = () =>
+  useQuery({
+    queryKey: onboardingKeys.import,
+    queryFn: () => api<CareerImport | null>('/career-import/latest'),
+    refetchInterval: (q) => (q.state.data?.status === 'PENDING' ? 3000 : false),
+  });
+
+export function useStartImport() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: ImportResumeInput) => api<CareerImport>('/career-import', { method: 'POST', body }),
+    onSuccess: (row) => queryClient.setQueryData(onboardingKeys.import, row),
+  });
+}
+
+export function useRetryImport() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api<CareerImport>(`/career-import/${id}/retry`, { method: 'POST' }),
+    onSuccess: (row) => queryClient.setQueryData(onboardingKeys.import, row),
   });
 }
 

@@ -23,10 +23,16 @@ first job, inline details pushing the list down, no overview, no dark mode).
   account menu (closes on outside tap and Escape).
 - **Jobs:** the **score ring** leads every row; the source and icon actions (open
   posting, interested, skip — 40px tap targets) sit in a footer row, so a row is only as
-  tall as its content; company-board jobs say "company site" rather than repeating the
-  company; moving a job out of the list shows a toast with **Undo**; verdict filter chips with counts; with no filter and
-  best-match order, **SKIP jobs fold into "Show N weaker matches"** (never hidden for
-  good). Detail is its own route (`/jobs/:id`): **full screen on phones, a side panel
+  tall as its content; the source is named so the user's own company list reads
+  differently from a portal — "via Kwanso careers", "via Remote OK", "via LinkedIn alert"
+  (`sourceName()`; 2026-10-13, replacing "via company site", which didn't say *which* site);
+  moving a job out of the list shows a toast with **Undo**; verdict filter chips with counts; with no filter,
+  **SKIP jobs fold into "Show N weaker matches"** (never hidden for good).
+  **Default order: by day (2026-10-13, user's request):** jobs grouped under "Today",
+  "Yesterday", "Fri 9 Oct"… by when Shortlist found them (the phone's local day), newest
+  day first and the best match first inside each day — jobs arrive in a nightly batch, so the
+  latest batch is what's new. The toggle switches to "Best match" across all days; the old
+  flat "Newest" order was dropped (by day already leads with the newest). Detail is its own route (`/jobs/:id`): **full screen on phones, a side panel
   beside the list on desktop**; score card → why it fits → gaps → risks → description
   (collapsed). **List state lives in the URL** (`?tab=&verdict=&sort=`), so back
   navigation restores it.

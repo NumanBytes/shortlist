@@ -171,15 +171,19 @@ export class ResumeService {
 
   // Everything the resume may draw on. Truthfulness boundary: VERIFIED evidence only.
   private async material(userId: string) {
-    const [rows, roles, projects, skills] = await Promise.all([
+    const [rows, roles, projects, skills, neverClaim] = await Promise.all([
       this.prisma.skillEvidence.findMany({
         where: { isVerified: true, skill: { userId } },
         include: { skill: { select: { name: true } }, project: { select: { workExperienceId: true } } },
         orderBy: { lastUsed: 'desc' },
       }),
       this.prisma.workExperience.findMany({ where: { userId } }),
-      this.prisma.project.findMany({ where: { userId }, select: { id: true, name: true, workExperienceId: true } }),
+      this.prisma.project.findMany({
+        where: { userId },
+        select: { id: true, name: true, workExperienceId: true, isPinned: true },
+      }),
       this.prisma.skill.findMany({ where: { userId }, select: { name: true } }),
+      this.prisma.neverClaim.findMany({ where: { userId }, select: { term: true, scope: true } }),
     ]);
     const evidence: ResumeEvidence[] = rows.map((e) => ({
       id: e.id,
@@ -193,7 +197,7 @@ export class ResumeService {
       projectId: e.projectId,
       projectRoleId: e.project?.workExperienceId ?? null,
     }));
-    return { evidence, roles, projects, allSkillNames: skills.map((s) => s.name) };
+    return { evidence, roles, projects, neverClaim, allSkillNames: skills.map((s) => s.name) };
   }
 
   private async defer(jobId: string, reason: string): Promise<TailorOutcome> {

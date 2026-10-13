@@ -218,6 +218,12 @@ describe('Resumes (e2e)', () => {
     expect(res.body.reuse.map((r: { variantId: string }) => r.variantId)).toContain(approved.id);
     expect(res.body.reuse.map((r: { variantId: string }) => r.variantId)).not.toContain(draft.id);
 
+    // A narrow job is fully covered, but asks for too little of what the resume was built
+    // for to be "the same kind of job" (the production "100% match", 2026-10-12).
+    const narrow = await job(me, ['Angular']);
+    const off = await t.http().get(`/api/v1/jobs/${narrow.id}/resume`).set(me.auth).expect(200);
+    expect(off.body.reuse.map((r: { variantId: string }) => r.variantId)).not.toContain(approved.id);
+
     // A REQUIRED skill the variant wasn't built for rules it out.
     const far = await job(me, ['Angular', 'RxJS', 'TypeScript', 'Go']);
     const none = await t.http().get(`/api/v1/jobs/${far.id}/resume`).set(me.auth).expect(200);

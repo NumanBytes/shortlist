@@ -5,7 +5,7 @@
 // Turing is intentionally absent: it's a vetting marketplace (apply once, get matched),
 // not a job board, so there is nothing to fetch.
 import type { JobSourceType } from '@prisma/client';
-import type { JobSourceConfig } from '@shortlist/shared';
+import { REMOTE_BOARDS, type JobSourceConfig } from '@shortlist/shared';
 
 export interface SeedJobSource {
   key: string;
@@ -55,19 +55,8 @@ export const JOB_SOURCES: SeedJobSource[] = [
   ats('workable:hr-force', 'Programmers Force', { provider: 'workable', account: 'hr-force' }),
 
   // ── Milestone 1: remote-job aggregators (attribution + link-back required) ──
-  aggregator('remoteok', 'Remote OK', { provider: 'remoteok' }),
-  aggregator('remotive:software-dev', 'Remotive', { provider: 'remotive', category: 'software-dev' }),
-  aggregator('arbeitnow', 'Arbeitnow', { provider: 'arbeitnow', maxPages: 3 }),
-  aggregator('himalayas', 'Himalayas', { provider: 'himalayas', maxPages: 5 }),
-  aggregator('jobicy', 'Jobicy', { provider: 'jobicy' }),
-  aggregator('weworkremotely:full-stack', 'We Work Remotely — Full-Stack', {
-    provider: 'weworkremotely',
-    category: 'remote-full-stack-programming-jobs',
-  }),
-  aggregator('weworkremotely:front-end', 'We Work Remotely — Front-End', {
-    provider: 'weworkremotely',
-    category: 'remote-front-end-programming-jobs',
-  }),
+  // The same list onboarding offers every user (@shortlist/shared REMOTE_BOARDS).
+  ...REMOTE_BOARDS.map((b) => aggregator(b.key, b.name, b.config)),
 
   // ── Milestone 2: hosted ATS pages (one parser per platform) ──────────────
   planned('jazzhr', 'VentureDive', 'https://venturedive.applytojob.com/apply'),

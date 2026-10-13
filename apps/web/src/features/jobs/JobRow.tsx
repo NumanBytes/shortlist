@@ -6,7 +6,7 @@ import { nameSharedRing } from '../../lib/navigation';
 import { useSearchParams } from 'react-router';
 import { PushLink } from '../../components/PushLink';
 import { returningRows, useSwipeRow, type SwipeDir } from '../../lib/hooks/useSwipeRow';
-import { isAggregator, prettyLocation, providerLabel, timeAgo } from '../../lib/format';
+import { prettyLocation, sourceName, timeAgo } from '../../lib/format';
 import { jobKeys, useSetJobStatus } from '../../lib/queries';
 import type { JobListItem, JobStatus } from '../../lib/types';
 import { PendingRing, ScoreRing } from '../../components/ScoreRing';
@@ -33,8 +33,8 @@ export function JobRow({ job, selected }: { job: JobListItem; selected: boolean 
   const href = `/jobs/${job.id}${params.size ? `?${params}` : ''}`;
   const interested = job.status === 'INTERESTED';
   const applied = PIPELINE.includes(job.status);
-  // Company boards: the company IS the source, so say where, not who, again.
-  const source = isAggregator(job) ? `via ${providerLabel(job.source)}` : 'via company site';
+  // Named, so a job from the user's own company list reads differently from a portal's.
+  const source = `via ${sourceName(job)}`;
   const showMode = job.workMode && !(job.workMode === 'REMOTE' && /remote/i.test(location ?? ''));
 
   // A status change moves the job out of this list — confirm it, and offer Undo. Undo

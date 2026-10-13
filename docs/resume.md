@@ -46,7 +46,8 @@ Tailoring, the resume library, approval and printing, and the application kit.
   2. each cited item is allowed in that section **and** belongs there (a role's own items
      or its projects' items for Experience; that project's items for Projects) — personal
      work can't become an Experience bullet;
-  3. no "Azure" anywhere; no Node.js/Express in paid work ([§7.2](career-data.md));
+  3. no term on the user's **never-claim list** in its scope (§13.8) — for this user, no
+     "Azure" anywhere and no Node.js/Express in paid work ([§7.2](career-data.md));
   4. no number that isn't in the cited items' own words (no invented metrics). Numbers are
      compared **whole**: digits inside a word ("B2C", "HTML5", "2019") are not numbers.
      Found in code review (2026-10-03): a substring match let "2 years across 19 services"
@@ -134,6 +135,13 @@ Developer" often ask for the same things.
   the jobs each was used for); the threshold is a setting
   (`AiSettings.resumeReuseMinOverlap`, default 0.85). Only approved resumes are offered or
   accepted (409 otherwise) — reuse skips review, so the reused resume must already have had one.
+- **Two-way check (2026-10-13):** coverage alone was one-sided. In production, a "React
+  Developer (TypeScript)" posting whose analysis found only React and TypeScript was 100%
+  covered by the approved MERN resume (built for 18 requirements) and offered as a "100%
+  match", then reused. An offer now also needs **focus** — the share of the variant's own
+  profile the new job asks for — of at least `MIN_REUSE_FOCUS` (0.6), so reuse means "the
+  same kind of job". The card says "Covers 92% of this job's requirements" instead of
+  "92% match", which read like the score ring's number.
 - **Base variants (not built yet):** the user can create and pin a base resume per niche, each generated
   and reviewed once; most jobs then map to one of them.
 - **Why it's worth it:** the API saving is real but small (a Sonnet tailoring run costs
@@ -175,3 +183,58 @@ follow-up drafts.
 When a resume is ready (tailored or reused), a Web Push notification: "Resume ready:
 <title> @ <company> — review and submit." Opening it shows the resume, the evidence
 behind each bullet, and the gaps.
+
+### 13.7 Pinned projects (built 2026-10-13)
+
+**The problem (user report, 2026-10-11):** each tailoring run chose projects afresh ("skip
+projects with nothing relevant"), so one draft for a frontend job kept only Manzil and
+the re-tailor ten minutes later kept the two banking projects and dropped Manzil. The user's
+view, adopted: projects are achievements, not keywords — the resume shouldn't lose them
+depending on the posting.
+
+- **`Project.isPinned`** — set with "Always on my resume" in the project's sheet on Profile.
+  It is **not a claim** (it says nothing about what was done), so it is not in the
+  project's `CLAIM_FIELDS` and never un-verifies evidence (an e2e test covers it).
+- **Tailoring:** the prompt marks pinned projects `PINNED` and asks for every one, choosing
+  that project's items that matter most for the job. Unpinned projects still appear only
+  when relevant.
+- **Code guarantees it, not the model:** if the model leaves a pinned project out, or the
+  checks remove all its bullets, `assembleResume()` falls back to the user's own verified
+  `whatIDid` for that project's placeable items (strongest depth first, up to 3) — each still
+  run through `checkBullet()`, so a fallback can't claim more than the user wrote. If none
+  can appear (e.g. only exposure-level items), the resume notes it under removed items
+  instead of failing.
+- Pinning changes nothing already generated: tailor again to apply it.
+- **Why Shortlist never appeared:** its PERSONAL + PRODUCTION items were placed nowhere
+  while that combination was undecided, so only its working-level items could be bullets.
+  Decided 2026-10-13: Projects and Skills ([§6.1](../Agents.md)).
+
+### 13.8 The never-claim list (built 2026-10-13)
+
+The known false claims ([§7.2](career-data.md)) were hardcoded in `checkBullet()` in shared
+code: "Azure" refused anywhere, Node.js/Express refused in paid work. That made one
+person's facts a rule for every user — someone who really used Azure would have had true
+bullets removed. They are now the user's data.
+
+- **`NeverClaim` rows** (`term`, `scope` ANYWHERE | PAID_WORK, optional `note`), managed under
+  "Never on my resume" on Profile (`GET/POST/DELETE /never-claim`). One entry per term and
+  scope, compared case-insensitively. Only the user changes the list; nothing generated
+  writes to it.
+- **Matching** (`mentionsTerm()`): a whole term, case-insensitive for names of 4+
+  characters, also without dots and without a trailing ".js" — "Node.js" catches "Node",
+  "NodeJS" and "Node.js". Whole words only, so "expressive" isn't Express — and "AzureAD"
+  isn't Azure (the old hardcoded check was a substring match): add such a variant as its own
+  entry. Terms need 2+ characters. PAID_WORK applies to Experience and to projects done in a role.
+- **Refused whatever a bullet cites**, like before. The prompt also lists the terms, so the
+  model rarely writes bullets the check would throw away.
+- **The career seed writes them too** (`KNOWN_FALSE_CLAIMS` in `seed/guards.ts`, tested to
+  cover what the guards refuse), so a fresh deploy that seeds the account after migrating is
+  never tailored without them (code review 2026-10-13).
+- **No gap in protection:** the migration (`20261013010000_never_claim`) inserts the three
+  former hardcoded entries (Azure / ANYWHERE; Node.js and Express / PAID_WORK) for every user
+  with a CloudCard role, so the deployed instance keeps the same checks from its first
+  tailoring after the upgrade. The rule against naming an uncited technology still applies
+  on top: even with an empty list, "Azure" in a bullet is refused unless a cited item names it.
+- The seed guards (§7.3) still refuse Azure and commercial Node/Express in the seed file:
+  that file is this user's one-time bootstrap, not a rule for others.
+

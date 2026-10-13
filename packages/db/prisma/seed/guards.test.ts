@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { CAREER_DATA, type CareerData, type SeedEvidence } from './career-data.ts';
-import { findSeedProblems } from './guards.ts';
+import { KNOWN_FALSE_CLAIMS, findSeedProblems } from './guards.ts';
 
 test('the real career data passes every guard', () => {
   assert.deepEqual(findSeedProblems(CAREER_DATA), []);
@@ -62,4 +62,12 @@ test('rejects future lastUsed and duplicate skills', () => {
   const problems = findSeedProblems(data).join('\n');
   assert.match(problems, /in the future/);
   assert.match(problems, /Duplicate skill/);
+});
+
+test('the never-claim entries the seed writes cover every false claim the guards refuse', () => {
+  const has = (term: string, scope: string) =>
+    KNOWN_FALSE_CLAIMS.some((c) => c.term.toLowerCase() === term && c.scope === scope);
+  assert.ok(has('azure', 'ANYWHERE'), 'Azure must be refused anywhere');
+  assert.ok(has('node.js', 'PAID_WORK'), 'Node.js must be refused in paid work');
+  assert.ok(has('express', 'PAID_WORK'), 'Express must be refused in paid work');
 });

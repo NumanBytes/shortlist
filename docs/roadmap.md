@@ -38,6 +38,16 @@ What is built, what comes next, and the open decisions.
 
 ### 17.2 Roadmap (in order)
 
+**Daily-use fixes (2026-10-13, from the user's production use; branch `fix/daily-use-improvements`):**
+built — scoring no longer fails on broad requirements ([§12.1](ai-scoring.md)); Jobs grouped by day
+and sources named ([§8.4](web-design.md)); catch-up discovery on worker start ([§9.8](discovery.md));
+pinned projects ([§13.7](resume.md)); two-way resume reuse ([§13.2](resume.md)); the never-claim
+list ([§13.8](resume.md)); PERSONAL + PRODUCTION placement ([§6.1](../Agents.md)); resume import
+([§7.6](career-data.md)); onboarding and search settings ([§9.13](discovery.md)). **Next, in order:**
+Discovery Milestones 2 and 3 on their own branch (item 6 below), then **push notifications** on a
+separate branch (daily digest, instant strong-match and resume-ready pushes, broken-source alerts —
+designed with the user 2026-10-12).
+
 1. **User:** review the 44 unverified items from the CV reconciliation ([§7.5](career-data.md)) in the
    Evidence screen — fix the placeholder ones with Edit before verifying. Everything AI
    reads only verified evidence.
@@ -67,8 +77,9 @@ What is built, what comes next, and the open decisions.
 - **Career data completeness:** Git, REST APIs, npm, pnpm, prompting added
   (2026-10-02). Testing (Jest/Vitest in paid work) not stated — the user decides.
 - Whether prompt engineering at CloudCard is WORKING (seeded) or PRODUCTION — the user can raise it.
-- Placement rules for COMMERCIAL + EXPOSURE and PERSONAL + PRODUCTION / MAINTENANCE
-  ([§6.1](../Agents.md)). COMMERCIAL + WORKING decided 2026-10-02.
+- Placement rules for COMMERCIAL + EXPOSURE, PERSONAL + MAINTENANCE and ACADEMIC +
+  PRODUCTION / MAINTENANCE ([§6.1](../Agents.md)). COMMERCIAL + WORKING decided 2026-10-02;
+  PERSONAL + PRODUCTION decided 2026-10-13 (Projects and Skills).
 - The score threshold that gates tailoring ([§12.1](ai-scoring.md)) and the resume-reuse overlap threshold
   ([§13.2](resume.md)) — both runtime settings; initial values to be set when built.
 - Skill aliases ("React" vs "React.js") — needs a canonical-name mapping ([§5.2](architecture.md)).

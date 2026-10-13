@@ -157,6 +157,13 @@ and repeated email alerts into one.
   and the nightly fan-out had **no** deduplication id, so "Find new jobs" during the
   nightly run could fetch a source twice in parallel; for model calls, a mismatch would
   mean paying twice.
+- **Catch-up on start (2026-10-13):** a scheduler only looks forward, so a worker that
+  isn't running at 02:00 (a laptop asleep, a deploy at that minute) silently skips the
+  night — in development, the boards went 11 days without a run while Gmail checks
+  (every two hours) kept working. On start, `DiscoveryScheduler` checks Postgres for the
+  latest board run; if none started in the last 25 hours, it queues `discover-all` at once
+  (job id per hour, so two workers starting together queue one). Decided from the database,
+  not Redis, so it holds whatever the queue lost; a failed check logs and never stops the worker.
 - Worker concurrency: 3 sources in parallel (`WORKER_CONCURRENCY`).
 - BullMQ 6 requires a constructed `ioredis` client in ESM (`createRedis`); the worker's
   client waits for Redis to return (`maxRetriesPerRequest: null`).
@@ -240,6 +247,30 @@ the whole market for free.
   thereby grow the watched-company list over time.
 
 ---
+
+### 9.13 Onboarding and search settings (built 2026-10-13)
+
+Until now a new account searched with defaults tuned for one person (Lahore, frontend titles)
+and had no sources unless the seed scripts were run. Now:
+
+- **`/welcome`** — shown once to an account with nothing saved (no search settings, roles,
+  skills or sources; `GET /onboarding`), so existing accounts are never sent there. Three
+  skippable steps: import a resume ([docs/career-data.md §7.6](career-data.md)), what you're
+  looking for, and where to look. Finishing it — even with every step skipped — sets a flag on
+  the device (`shortlist:onboarding-done`), so the gate never sends the user back.
+- **Search settings** (`GET`/`PUT /discovery/preferences`) — the rule filter's settings (§9.6)
+  as a form, also on Profile → "What I'm looking for". Saved whole, not patched: it's one form,
+  and a partial update could leave a filter the user never saw. A new user starts from
+  `STARTER_DISCOVERY_PREFERENCES` (no city, stack or titles — only near-universal exclusions and
+  the "worldwide" remote terms), not from `DEFAULT_DISCOVERY_PREFERENCES`, which stays the
+  fallback for accounts that never saved their own. `roleTitleTerms` is rebuilt on each save
+  from the starter terms plus the current titles, so alert emails without a description still
+  pass on title — and a removed title stops letting them in.
+- **Remote boards in one tap** (`POST /discovery/sources/remote-boards`) — the aggregators,
+  now listed once in `REMOTE_BOARDS` (shared) and used by both onboarding and the seed;
+  idempotent, and never re-enables a board the user switched off.
+- Gmail alerts stay a pointer to the Sources page: each user needs the Google setup of
+  [docs/email-alerts.md §10.6](email-alerts.md), since the app is self-hosted (decided 2026-10-12).
 
 ## 11. Manual job intake — "Add a job" (planned, decided 2026-10-02)
 

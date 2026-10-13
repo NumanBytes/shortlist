@@ -2,6 +2,7 @@ import { ConflictException, Injectable, NotFoundException } from '@nestjs/common
 import {
   ResumeContentSchema,
   aiSettingsFromRow,
+  MIN_REUSE_FOCUS,
   resumeOverlap,
   type Importance,
   type PrepareResumeInput,
@@ -249,7 +250,7 @@ export class ResumesService {
     const min = aiSettingsFromRow(settingsRow).resumeReuseMinOverlap;
     const fits = approved
       .map((v) => ({ v, ...resumeOverlap(requirements, v.requirementProfile) }))
-      .filter((x) => x.overlap >= min && x.missingRequired.length === 0);
+      .filter((x) => x.overlap >= min && x.focus >= MIN_REUSE_FOCUS && x.missingRequired.length === 0);
     const stale = await this.staleReasons(
       userId,
       fits.map((x) => x.v),

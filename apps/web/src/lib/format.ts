@@ -23,6 +23,14 @@ export const AGGREGATORS = new Set(['remoteok', 'remotive', 'arbeitnow', 'himala
 export const isAggregator = (job: Pick<JobListItem, 'source' | 'jobSource'>) =>
   AGGREGATORS.has(job.source ?? '') || job.jobSource?.type === 'EMAIL_INBOX';
 
+// Where a job came from, named so the user can tell their own company list from portals:
+// "Kwanso careers" (a board on their list), "Remote OK" (aggregator), "LinkedIn alert" (email).
+export function sourceName(job: Pick<JobListItem, 'source' | 'jobSource' | 'company'>): string {
+  if (job.jobSource?.type === 'EMAIL_INBOX') return `${providerLabel(job.source)} alert`;
+  if (isAggregator(job)) return providerLabel(job.source);
+  return `${job.jobSource?.name ?? job.company} careers`;
+}
+
 // "Lahore, Punjab, pk" → "Lahore, Punjab, PK". Sources are inconsistent about case.
 export function prettyLocation(location: string | null): string | null {
   if (!location) return null;
