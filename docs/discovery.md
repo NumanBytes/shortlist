@@ -65,6 +65,11 @@ platform's host (`pageUrl()` in `job-source.schema.ts`). Probed live on 2026-10-
   or a custom table that appears twice), so the parser keys on the job links
   (`/apply/<id>/<slug>`), not layout, and dedupes ids. Each job page embeds a schema.org
   **JobPosting** (JSON-LD) — the description is read from that (`html.ts`), not the layout.
+  `jsonLdJobPosting()` accepts every schema.org form (arrays, `@graph`, `@type` as a list), the
+  description is entity-decoded once (twice turned escaped text into stripped tags), and a job
+  page without the data **fails that posting's description fetch** — counted and logged —
+  instead of returning '' and being misreported as "no core-stack keyword" (code review
+  2026-10-13; Simplicant the same).
 - **Zoho Recruit** (`<company>.zohorecruit.com/jobs/<portal>`): the openings are JSON in a
   hidden `<input id="jobs">`; each job page carries its record, description included, in
   `var jobs = JSON.parse('…')` (a JavaScript string literal, unescaped by `jsString()`). A

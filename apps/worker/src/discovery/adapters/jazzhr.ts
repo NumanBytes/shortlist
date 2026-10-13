@@ -1,5 +1,5 @@
 import { getText } from '../http.js';
-import { inlineText, jsonLdDescription } from '../html.js';
+import { inlineText, requireJsonLdDescription } from '../html.js';
 import { mapPostings } from '../postings.js';
 import type { Adapter, Posting } from '../types.js';
 
@@ -37,10 +37,7 @@ export const jazzhr: Adapter<{ provider: 'jazzhr'; url: string }> = async ({ url
       url: j.href,
       postedAt: null, // only on the job page; a listed job on a company's own board is open (§9.6)
       description: null,
-      loadDescription: async () => {
-        const html = await getText(j.href);
-        return jsonLdDescription(html) ?? '';
-      },
+      loadDescription: async () => requireJsonLdDescription(await getText(j.href), j.href),
     };
   });
 };
