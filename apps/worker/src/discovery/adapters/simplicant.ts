@@ -1,5 +1,5 @@
 import { getText } from '../http.js';
-import { inlineText, jsonLdDescription } from '../html.js';
+import { inlineText, requireJsonLdDescription } from '../html.js';
 import { mapPostings } from '../postings.js';
 import type { Adapter, Posting } from '../types.js';
 
@@ -37,6 +37,6 @@ export const simplicant: Adapter<{ provider: 'simplicant'; url: string }> = asyn
     url: j.url,
     postedAt: null,
     description: null,
-    loadDescription: async () => jsonLdDescription(await getText(j.url)) ?? '',
+    loadDescription: async () => requireJsonLdDescription(await getText(j.url), j.url),
   }));
 };

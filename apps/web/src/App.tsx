@@ -4,7 +4,7 @@ import { useAuth } from './features/auth/AuthProvider';
 import { ReviewPage } from './features/evidence/ReviewPage';
 import { JobsLayout, NoJobSelected } from './features/jobs/JobsPage';
 import { JobDetailPage } from './features/jobs/job-detail/JobDetailPage';
-import { WelcomePage } from './features/onboarding/WelcomePage';
+import { ONBOARDING_DONE_KEY, WelcomePage } from './features/onboarding/WelcomePage';
 import { ProfilePage } from './features/profile/ProfilePage';
 import { ResumePage } from './features/resume/ResumePage';
 import { SourcesPage } from './features/sources/SourcesPage';
@@ -21,10 +21,12 @@ function RequireAuth() {
 }
 
 // A brand-new account (nothing saved yet) starts at /welcome, once (docs/discovery.md §9.13).
-function OnboardingGate() {
+// Finishing it — even with every step skipped — is remembered, so it never traps the user.
+export function OnboardingGate() {
   const onboarding = useOnboarding();
   const { pathname } = useLocation();
-  if (onboarding.data?.needed && pathname !== '/welcome') return <Navigate to="/welcome" replace />;
+  const done = localStorage.getItem(ONBOARDING_DONE_KEY) === '1';
+  if (onboarding.data?.needed && !done && pathname !== '/welcome') return <Navigate to="/welcome" replace />;
   return <Outlet />;
 }
 

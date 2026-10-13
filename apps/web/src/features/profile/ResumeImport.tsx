@@ -5,7 +5,7 @@ import { Link } from 'react-router';
 import { Button, INPUT, buttonStyles } from '../../components/ui';
 import { ApiError } from '../../lib/api';
 import { pdfText } from '../../lib/pdf-text';
-import { useLatestImport, useStartImport } from '../../lib/queries';
+import { useLatestImport, useRetryImport, useStartImport } from '../../lib/queries';
 
 // "Import from my resume" (docs/career-data.md §7.6). The PDF's text is read here, in the
 // browser, and shown so the user can see (and fix) what will be sent. The worker turns it
@@ -96,6 +96,18 @@ export function ResumeImport() {
 
 function LastImport({ run }: { run: NonNullable<ReturnType<typeof useLatestImport>['data']> }) {
   const [open, setOpen] = useState(false);
+  const retry = useRetryImport();
+  // Waiting on the budget (or credit): the text was kept, so it can run again as it was.
+  if (run.status === 'DEFERRED') {
+    return (
+      <div className="space-y-2 rounded-[14px] bg-stretch-bg p-3.5 text-sm text-fg">
+        <p>Your resume is waiting{run.error ? `: ${run.error}` : '.'}</p>
+        <Button size="sm" variant="secondary" disabled={retry.isPending} onClick={() => retry.mutate(run.id)}>
+          Try again
+        </Button>
+      </div>
+    );
+  }
   if (run.status !== 'DONE') {
     return (
       <p className="rounded-[14px] bg-stretch-bg p-3 text-sm text-fg">

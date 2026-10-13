@@ -222,9 +222,14 @@ bullets removed. They are now the user's data.
   writes to it.
 - **Matching** (`mentionsTerm()`): a whole term, case-insensitive for names of 4+
   characters, also without dots and without a trailing ".js" — "Node.js" catches "Node",
-  "NodeJS" and "Node.js". PAID_WORK applies to Experience and to projects done in a role.
+  "NodeJS" and "Node.js". Whole words only, so "expressive" isn't Express — and "AzureAD"
+  isn't Azure (the old hardcoded check was a substring match): add such a variant as its own
+  entry. Terms need 2+ characters. PAID_WORK applies to Experience and to projects done in a role.
 - **Refused whatever a bullet cites**, like before. The prompt also lists the terms, so the
   model rarely writes bullets the check would throw away.
+- **The career seed writes them too** (`KNOWN_FALSE_CLAIMS` in `seed/guards.ts`, tested to
+  cover what the guards refuse), so a fresh deploy that seeds the account after migrating is
+  never tailored without them (code review 2026-10-13).
 - **No gap in protection:** the migration (`20261013010000_never_claim`) inserts the three
   former hardcoded entries (Azure / ANYWHERE; Node.js and Express / PAID_WORK) for every user
   with a CloudCard role, so the deployed instance keeps the same checks from its first

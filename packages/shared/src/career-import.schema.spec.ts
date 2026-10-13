@@ -2,6 +2,7 @@ import {
   CAREER_EXTRACTION_JSON_SCHEMA,
   CareerExtractionSchema,
   checkCareerExtraction,
+  isWholeQuote,
   normalizeForQuote,
   type CareerExtraction,
 } from './index.js';
@@ -156,6 +157,43 @@ describe('checkCareerExtraction', () => {
 
   it('normalizes only presentation, never wording', () => {
     expect(normalizeForQuote('  “Built”  — React• apps. ')).toBe('"built" - react apps');
+  });
+});
+
+describe('isWholeQuote', () => {
+  const CV = `EXPERIENCE
+• Did not lead the migration; supported the team that did.
+• Built React dashboards used by the
+operations team.
+Owned the release process. Wrote the runbooks.`;
+
+  it('accepts whole bullets and sentences, including ones a PDF wrapped across lines', () => {
+    expect(isWholeQuote(CV, 'Did not lead the migration')).toBe(true);
+    expect(isWholeQuote(CV, 'Built React dashboards used by the operations team.')).toBe(true);
+    expect(isWholeQuote(CV, 'Wrote the runbooks')).toBe(true);
+    expect(isWholeQuote(CV, 'owned the release process')).toBe(true); // case is presentation
+  });
+
+  it('refuses a fragment, which can say the opposite of its sentence', () => {
+    expect(isWholeQuote(CV, 'lead the migration')).toBe(false);
+    expect(isWholeQuote(CV, 'Built React dashboards')).toBe(false);
+    expect(isWholeQuote(CV, 'operations team.')).toBe(false); // a wrapped line's lower-case tail
+  });
+
+  it('drops an imported item that is a fragment', () => {
+    const r = checkCareerExtraction(
+      CV,
+      out({
+        roles: [],
+        projects: [],
+        listedSkills: [],
+        items: [{ ...out().items[0]!, skill: 'React', role: null, whatIDid: 'Built React dashboards' }],
+      }),
+      [],
+      NOW,
+    );
+    expect(r.items).toEqual([]);
+    expect(r.dropped[0]!.reason).toBe("it isn't a quote from your resume");
   });
 });
 

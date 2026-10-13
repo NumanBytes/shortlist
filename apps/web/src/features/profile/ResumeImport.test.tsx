@@ -31,4 +31,18 @@ describe('ResumeImport', { timeout: 20_000 }, () => {
     await userEvent.click(screen.getByRole('button', { name: 'Import' }));
     await waitFor(() => expect(screen.getByText(/too short for a resume/)).toBeInTheDocument());
   });
+
+  it('offers to retry an import that waited on the budget', async () => {
+    const fetchMock = mockFetch(undefined, (url) =>
+      url.endsWith('/retry')
+        ? { id: 'i1', status: 'PENDING' }
+        : { id: 'i1', status: 'DEFERRED', error: 'Monthly AI budget reached', created: null, dropped: null },
+    );
+    renderWithProviders(<ResumeImport />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Try again' }));
+    expect(await screen.findByText('Reading your resume…')).toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(([u, i]) => u === '/api/v1/career-import/i1/retry' && i?.method === 'POST')).toBe(
+      true,
+    );
+  });
 });

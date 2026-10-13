@@ -65,6 +65,11 @@ platform's host (`pageUrl()` in `job-source.schema.ts`). Probed live on 2026-10-
   or a custom table that appears twice), so the parser keys on the job links
   (`/apply/<id>/<slug>`), not layout, and dedupes ids. Each job page embeds a schema.org
   **JobPosting** (JSON-LD) — the description is read from that (`html.ts`), not the layout.
+  `jsonLdJobPosting()` accepts every schema.org form (arrays, `@graph`, `@type` as a list), the
+  description is entity-decoded once (twice turned escaped text into stripped tags), and a job
+  page without the data **fails that posting's description fetch** — counted and logged —
+  instead of returning '' and being misreported as "no core-stack keyword" (code review
+  2026-10-13; Simplicant the same).
 - **Zoho Recruit** (`<company>.zohorecruit.com/jobs/<portal>`): the openings are JSON in a
   hidden `<input id="jobs">`; each job page carries its record, description included, in
   `var jobs = JSON.parse('…')` (a JavaScript string literal, unescaped by `jsString()`). A
@@ -285,14 +290,16 @@ and had no sources unless the seed scripts were run. Now:
 - **`/welcome`** — shown once to an account with nothing saved (no search settings, roles,
   skills or sources; `GET /onboarding`), so existing accounts are never sent there. Three
   skippable steps: import a resume ([docs/career-data.md §7.6](career-data.md)), what you're
-  looking for, and where to look.
+  looking for, and where to look. Finishing it — even with every step skipped — sets a flag on
+  the device (`shortlist:onboarding-done`), so the gate never sends the user back.
 - **Search settings** (`GET`/`PUT /discovery/preferences`) — the rule filter's settings (§9.6)
   as a form, also on Profile → "What I'm looking for". Saved whole, not patched: it's one form,
   and a partial update could leave a filter the user never saw. A new user starts from
   `STARTER_DISCOVERY_PREFERENCES` (no city, stack or titles — only near-universal exclusions and
   the "worldwide" remote terms), not from `DEFAULT_DISCOVERY_PREFERENCES`, which stays the
-  fallback for accounts that never saved their own. Titles entered are also added to
-  `roleTitleTerms`, so alert emails without a description still pass on title.
+  fallback for accounts that never saved their own. `roleTitleTerms` is rebuilt on each save
+  from the starter terms plus the current titles, so alert emails without a description still
+  pass on title — and a removed title stops letting them in.
 - **Remote boards in one tap** (`POST /discovery/sources/remote-boards`) — the aggregators,
   now listed once in `REMOTE_BOARDS` (shared) and used by both onboarding and the seed;
   idempotent, and never re-enables a board the user switched off.

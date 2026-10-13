@@ -67,7 +67,14 @@ export class CareerImportService {
       select: { term: true, scope: true },
     });
     const checked = checkCareerExtraction(text, parsed.value, neverClaim);
-    const created = await this.store(userId, checked);
+    let created: ImportCounts;
+    try {
+      created = await this.store(userId, checked);
+    } catch (err) {
+      // The model call is paid for; a queue retry would pay for it again. Fail visibly instead —
+      // nothing was written (one transaction), so importing again is safe.
+      return this.finish(importId, 'FAILED', `Couldn't save what was read: ${(err as Error).message}`);
+    }
     await this.prisma.careerImport.update({
       where: { id: importId },
       data: { status: 'DONE', text: null, created: { ...created }, dropped: checked.dropped, finishedAt: new Date() },
@@ -83,11 +90,13 @@ export class CareerImportService {
     await this.finish(importId, 'FAILED', reason);
   }
 
-  // Ends an import without a result. The text is personal data: cleared either way.
+  // Ends an import without a result. A DEFERRED one keeps its text, so "Try again" can run it
+  // once the budget allows — deferred, never dropped. A FAILED one won't run again: its text is
+  // personal data and is cleared.
   private async finish(importId: string, status: 'DEFERRED' | 'FAILED', reason: string): Promise<ImportOutcome> {
     await this.prisma.careerImport.updateMany({
       where: { id: importId, status: 'PENDING' },
-      data: { status, error: reason, text: null, finishedAt: new Date() },
+      data: { status, error: reason, finishedAt: new Date(), ...(status === 'FAILED' ? { text: null } : {}) },
     });
     return { status, reason };
   }
@@ -96,89 +105,93 @@ export class CareerImportService {
   // never edits or re-verifies an existing row. isVerified is never set: the default (false)
   // is the Azure-incident safeguard (Agents.md §6).
   private store(userId: string, c: CheckedCareer): Promise<ImportCounts> {
-    return this.prisma.$transaction(async (tx) => {
-      const counts: ImportCounts = { roles: 0, projects: 0, skills: 0, evidence: 0 };
-      const ci = (value: string) => ({ equals: value, mode: 'insensitive' as const });
+    return this.prisma.$transaction(
+      async (tx) => {
+        const counts: ImportCounts = { roles: 0, projects: 0, skills: 0, evidence: 0 };
+        const ci = (value: string) => ({ equals: value, mode: 'insensitive' as const });
 
-      const roleIds = new Map<string, string>();
-      for (const r of c.roles) {
-        const found = await tx.workExperience.findFirst({
-          where: { userId, company: ci(r.company), title: ci(r.title) },
-          select: { id: true },
-        });
-        const id =
-          found?.id ??
-          (
-            await tx.workExperience.create({
-              data: {
-                userId,
-                company: r.company,
-                title: r.title,
-                location: r.location,
-                startDate: r.startDate,
-                endDate: r.endDate,
-                isCurrent: r.isCurrent,
-              },
-            })
-          ).id;
-        if (!found) counts.roles++;
-        roleIds.set(r.ref, id);
-      }
+        const roleIds = new Map<string, string>();
+        for (const r of c.roles) {
+          const found = await tx.workExperience.findFirst({
+            where: { userId, company: ci(r.company), title: ci(r.title) },
+            select: { id: true },
+          });
+          const id =
+            found?.id ??
+            (
+              await tx.workExperience.create({
+                data: {
+                  userId,
+                  company: r.company,
+                  title: r.title,
+                  location: r.location,
+                  startDate: r.startDate,
+                  endDate: r.endDate,
+                  isCurrent: r.isCurrent,
+                },
+              })
+            ).id;
+          if (!found) counts.roles++;
+          roleIds.set(r.ref, id);
+        }
 
-      const projectIds = new Map<string, string>();
-      for (const p of c.projects) {
-        const found = await tx.project.findFirst({ where: { userId, name: ci(p.name) }, select: { id: true } });
-        const id =
-          found?.id ??
-          (
-            await tx.project.create({
-              data: {
-                userId,
-                name: p.name,
-                description: p.description,
-                workExperienceId: p.roleRef ? (roleIds.get(p.roleRef) ?? null) : null,
-              },
-            })
-          ).id;
-        if (!found) counts.projects++;
-        projectIds.set(p.ref, id);
-      }
+        const projectIds = new Map<string, string>();
+        for (const p of c.projects) {
+          const found = await tx.project.findFirst({ where: { userId, name: ci(p.name) }, select: { id: true } });
+          const id =
+            found?.id ??
+            (
+              await tx.project.create({
+                data: {
+                  userId,
+                  name: p.name,
+                  description: p.description,
+                  workExperienceId: p.roleRef ? (roleIds.get(p.roleRef) ?? null) : null,
+                },
+              })
+            ).id;
+          if (!found) counts.projects++;
+          projectIds.set(p.ref, id);
+        }
 
-      const skillIds = new Map<string, string>();
-      const skillId = async (name: string, category: CheckedCareer['listedSkills'][number]['category']) => {
-        const key = name.toLowerCase();
-        const known = skillIds.get(key);
-        if (known) return known;
-        const found = await tx.skill.findFirst({ where: { userId, name: ci(name) }, select: { id: true } });
-        const id = found?.id ?? (await tx.skill.create({ data: { userId, name, category } })).id;
-        if (!found) counts.skills++;
-        skillIds.set(key, id);
-        return id;
-      };
+        const skillIds = new Map<string, string>();
+        const skillId = async (name: string, category: CheckedCareer['listedSkills'][number]['category']) => {
+          const key = name.toLowerCase();
+          const known = skillIds.get(key);
+          if (known) return known;
+          const found = await tx.skill.findFirst({ where: { userId, name: ci(name) }, select: { id: true } });
+          const id = found?.id ?? (await tx.skill.create({ data: { userId, name, category } })).id;
+          if (!found) counts.skills++;
+          skillIds.set(key, id);
+          return id;
+        };
 
-      for (const i of c.items) {
-        const sid = await skillId(i.skill, i.category);
-        const duplicate = await tx.skillEvidence.findFirst({
-          where: { skillId: sid, whatIDid: ci(i.whatIDid) },
-          select: { id: true },
-        });
-        if (duplicate) continue;
-        await tx.skillEvidence.create({
-          data: {
-            skillId: sid,
-            context: i.context,
-            depth: i.depth,
-            whatIDid: i.whatIDid,
-            lastUsed: i.lastUsed,
-            // One source at most (chk_evidence_single_source): a project's item links the project.
-            workExperienceId: i.roleRef ? (roleIds.get(i.roleRef) ?? null) : null,
-            projectId: i.projectRef ? (projectIds.get(i.projectRef) ?? null) : null,
-          },
-        });
-        counts.evidence++;
-      }
-      for (const k of c.listedSkills) await skillId(k.name, k.category);
-      return counts;
-    });
+        for (const i of c.items) {
+          const sid = await skillId(i.skill, i.category);
+          const duplicate = await tx.skillEvidence.findFirst({
+            where: { skillId: sid, whatIDid: ci(i.whatIDid) },
+            select: { id: true },
+          });
+          if (duplicate) continue;
+          await tx.skillEvidence.create({
+            data: {
+              skillId: sid,
+              context: i.context,
+              depth: i.depth,
+              whatIDid: i.whatIDid,
+              lastUsed: i.lastUsed,
+              // One source at most (chk_evidence_single_source): a project's item links the project.
+              workExperienceId: i.roleRef ? (roleIds.get(i.roleRef) ?? null) : null,
+              projectId: i.projectRef ? (projectIds.get(i.projectRef) ?? null) : null,
+            },
+          });
+          counts.evidence++;
+        }
+        for (const k of c.listedSkills) await skillId(k.name, k.category);
+        return counts;
+      },
+      // Up to a few hundred small queries in one transaction: Prisma's 5 s default is too tight.
+      { timeout: 60_000, maxWait: 10_000 },
+    );
   }
 }
