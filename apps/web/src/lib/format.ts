@@ -27,6 +27,7 @@ export const isAggregator = (job: Pick<JobListItem, 'source' | 'jobSource'>) =>
 // "Kwanso careers" (a board on their list), "Remote OK" (aggregator), "LinkedIn alert" (email).
 export function sourceName(job: Pick<JobListItem, 'source' | 'jobSource' | 'company'>): string {
   if (job.jobSource?.type === 'EMAIL_INBOX') return `${providerLabel(job.source)} alert`;
+  if (job.source === 'manual') return 'you'; // "via you": added by hand (docs/discovery.md §11)
   if (isAggregator(job)) return providerLabel(job.source);
   return `${job.jobSource?.name ?? job.company} careers`;
 }
