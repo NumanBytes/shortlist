@@ -163,8 +163,17 @@ So a bug or a sudden flood of "new" jobs can't drain the credits in one night:
    last 24h vs `maxAnalysesPerDay` (default **40**). Over either → the job is
    **DEFERRED** with the reason shown on its card, and the nightly sweep retries it —
    never silently dropped. Settings are an `AiSettings` row per user (defaults in
-   shared), editable on the Sources page; month-to-date spend is shown there
-   (`GET /ai/usage`). With 2 parallel calls a burst can overshoot a cap by at most 2.
+   shared), editable on Profile → Settings → Budget (monthly cap and daily limit);
+   month-to-date spend is shown on Sources (`GET /ai/usage`). With 2 parallel calls a
+   burst can overshoot a cap by at most 2.
+3. **The daily cap paces automatic scoring only** (2026-10-14). Discovery, email alerts
+   and the nightly sweep queue analyses without a flag and are held by both limits. An
+   analysis the user asked for — Retry, a pasted description, a job they added — carries
+   `requestedByUser: true` (every analysis the API queues does) and is checked against the
+   monthly budget only, like tailoring. Found in production: 40 alert jobs filled the day,
+   so a job the user had pasted a description for sat "deferred" and its resume could not
+   be tailored until the next day. User-requested analyses still count toward the day's
+   total, since they are real spend.
 
 ### 12.4 Claude Pro subscription versus the API (2026-10-02)
 

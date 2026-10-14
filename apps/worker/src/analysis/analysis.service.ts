@@ -44,14 +44,19 @@ export class AnalysisService {
     @Optional() private readonly notifier?: Notifier,
   ) {}
 
-  async analyzeJob(jobId: string): Promise<AnalysisOutcome> {
+  async analyzeJob(jobId: string, { requestedByUser = false } = {}): Promise<AnalysisOutcome> {
     const job = await this.prisma.job.findUnique({ where: { id: jobId } });
     if (!job) return { status: 'SKIPPED', reason: 'job no longer exists' };
     if (job.analysisStatus === 'DONE') return { status: 'SKIPPED', reason: 'already analysed' };
 
     if (!this.analyzer.configured) return this.defer(jobId, 'ANTHROPIC_API_KEY is not set in the worker');
 
-    const guard = await this.budget.checkAnalysis(job.userId);
+    // The daily cap paces automatic scoring; a job the user asked about waits only on the
+    // monthly budget, like tailoring (it once sat "deferred" behind 40 alert jobs, blocking
+    // its resume).
+    const guard = requestedByUser
+      ? await this.budget.checkMonthly(job.userId)
+      : await this.budget.checkAnalysis(job.userId);
     if (!guard.allowed) return this.defer(jobId, guard.reason);
 
     // Truthfulness boundary: only VERIFIED evidence ever reaches the model (§6.2).

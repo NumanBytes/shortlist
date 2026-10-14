@@ -236,6 +236,28 @@ describe('AnalysisService.analyzeJob', () => {
     expect(analyzer.prompts).toHaveLength(0);
   });
 
+  it('lets a job the user asked about past the daily cap, but not past the monthly budget', async () => {
+    const { user, job } = await setup();
+    await prisma.aiSettings.upsert({
+      where: { userId: user.id },
+      create: { userId: user.id, maxAnalysesPerDay: 0, monthlyBudgetUsd: 5 },
+      update: { maxAnalysesPerDay: 0, monthlyBudgetUsd: 5 },
+    });
+    const { svc, analyzer } = service();
+    analyzer.next = (p) => ({ text: output(p.user) });
+    expect(await svc.analyzeJob(job.id, { requestedByUser: true })).toMatchObject({ status: 'DONE' });
+    expect(analyzer.prompts).toHaveLength(1);
+
+    const other = await prisma.job.create({
+      data: { userId: user.id, title: 'Other', company: 'Co', rawJD: 'React', dedupeHash: `h-${Date.now()}` },
+    });
+    await prisma.aiSettings.update({ where: { userId: user.id }, data: { monthlyBudgetUsd: 0 } });
+    expect(await svc.analyzeJob(other.id, { requestedByUser: true })).toMatchObject({
+      status: 'DEFERRED',
+      reason: expect.stringMatching(/Monthly AI budget/),
+    });
+  });
+
   it('defers (no spend) when the user has no verified evidence', async () => {
     const { user, job } = await setup();
     await prisma.skillEvidence.updateMany({ where: { skill: { userId: user.id } }, data: { isVerified: false } });

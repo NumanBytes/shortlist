@@ -77,11 +77,12 @@ export class JobQueues implements OnModuleDestroy {
     );
   }
 
+  // Every analysis the API queues is one the user asked for (Retry, a pasted description).
   enqueueAnalysis(jobId: string, batchId: string): Promise<void> {
     return this.bounded(
       this.analysis.add(
         AnalysisJob.Job,
-        { jobId } satisfies AnalyzeJobData,
+        { jobId, requestedByUser: true } satisfies AnalyzeJobData,
         queueJobOptions.analyzeJob(jobId, batchId),
       ),
     );

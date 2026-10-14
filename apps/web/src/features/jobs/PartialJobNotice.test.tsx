@@ -24,11 +24,11 @@ const FULL = 'We are hiring a Full Stack Developer with React and Node.js experi
 describe('PartialJobNotice', () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  it('explains the score is rough and offers the paste form on an Interested job', async () => {
+  it("says an unscored alert job isn't scored yet, and offers the paste form on an Interested job", async () => {
     const fetch = mockFetch({ ...job, isPartial: false, rawJD: FULL });
     renderWithProviders(<PartialJobNotice job={job} />);
     expect(screen.getByText(/From your Indeed alert — only a summary so far/)).toBeInTheDocument();
-    expect(screen.getByText(/treat it as rough/)).toBeInTheDocument();
+    expect(screen.getByText(/hasn't been scored yet/)).toBeInTheDocument();
 
     await userEvent.type(screen.getByLabelText('Full job description'), 'too short');
     await userEvent.click(screen.getByRole('button', { name: /Save and score again/ }));

@@ -30,7 +30,8 @@ export class AnalysisProcessor extends WorkerHost implements OnModuleInit {
     switch (job.name) {
       case AnalysisJob.Job:
         try {
-          return await this.analysis.analyzeJob((job.data as AnalyzeJobData).jobId);
+          const { jobId, requestedByUser } = job.data as AnalyzeJobData;
+          return await this.analysis.analyzeJob(jobId, { requestedByUser });
         } catch (err) {
           if (err instanceof PermanentAnalysisError) throw new UnrecoverableError(err.message);
           throw err;

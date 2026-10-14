@@ -28,6 +28,10 @@ export const AnalysisJob = {
 
 export interface AnalyzeJobData {
   jobId: string;
+  // The user asked for this one (Retry, a pasted description, a job they added): only the
+  // monthly budget applies, not the daily cap, which exists to pace automatic scoring
+  // (docs/ai-scoring.md §12.3). Absent for discovery, email and the nightly sweep.
+  requestedByUser?: boolean;
 }
 
 // Resume tailoring queue (docs/resume.md §13). Its own queue: a Sonnet call takes far longer

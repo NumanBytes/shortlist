@@ -19,7 +19,9 @@ export function PartialJobNotice({ job }: { job: JobDetail }) {
         <div className="min-w-0 flex-1">
           <p className="font-medium text-fg">From your {portal} alert — only a summary so far</p>
           <p className="mt-1 text-muted">
-            The score above comes from the alert's few lines, so treat it as rough.{' '}
+            {job.match
+              ? "The score above comes from the alert's few lines, so treat it as rough. "
+              : "It hasn't been scored yet. "}
             {canPaste
               ? 'Paste the full description from the posting to score it properly and tailor a resume.'
               : 'Mark it Interested to paste the full description.'}
