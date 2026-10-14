@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { SourcesPage } from './SourcesPage';
 
@@ -49,5 +50,23 @@ describe('SourcesPage', () => {
     expect(screen.getByText('of $4.50')).toBeInTheDocument();
     expect(screen.getByText('$0.05')).toBeInTheDocument(); // today
     expect(screen.getByRole('link', { name: 'Budget' })).toHaveAttribute('href', '/profile?tab=settings');
+  });
+
+  // docs/discovery.md §9.15: a company's jobs page is added from the app, not in code.
+  it('adds a company jobs page, checking the fields first', async () => {
+    const fetchMock = setup();
+    await userEvent.click(await screen.findByRole('button', { name: /Add a company's jobs page/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Add source' }));
+    expect(screen.getByText('Give the company a name')).toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(([, i]) => i?.method === 'POST')).toBe(false);
+
+    await userEvent.type(screen.getByLabelText('Company'), 'BrainX');
+    await userEvent.type(screen.getByLabelText('Jobs page link'), 'careers.brainxtech.com');
+    await userEvent.click(screen.getByRole('button', { name: 'Add source' }));
+    await waitFor(() => {
+      const post = fetchMock.mock.calls.find(([, i]) => i?.method === 'POST');
+      expect(post![0]).toBe('/api/v1/discovery/sources');
+      expect(JSON.parse(post![1]!.body as string)).toEqual({ name: 'BrainX', link: 'careers.brainxtech.com' });
+    });
   });
 });

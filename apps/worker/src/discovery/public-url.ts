@@ -5,7 +5,8 @@ import { isIP } from 'node:net';
 // hostile page could point one at the worker's own network — the cloud metadata service
 // (169.254.169.254), localhost, the Docker network — and have the worker fetch it (SSRF, code
 // review 2026-10-13). Before fetching such a link, every address its host resolves to must be
-// public. Source URLs from the database (configured by the user) don't go through this.
+// public. Since sources can be added by any user from the app (2026-10-14), every worker
+// fetch goes through this (http.ts), source URLs included.
 
 const PRIVATE_V4: [number, number][] = [
   [0x00000000, 8], // 0.0.0.0/8

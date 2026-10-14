@@ -1,14 +1,18 @@
-import { ChevronDown, RotateCw } from 'lucide-react';
+import { AddSourceSchema } from '@shortlist/shared';
+import { ChevronDown, Pencil, Plus, RotateCw } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { PageHeader } from '../../layout/AppShell';
 import { GmailCard } from './GmailCard';
 import { AdminCode, AdminNote } from '../../components/AdminNote';
-import { Badge, Button, Card, SectionLabel, Sheet, Skeleton, Switch, TextField } from '../../components/ui';
+import { useToast } from '../../components/Toast';
+import { Badge, Button, Card, IconButton, SectionLabel, Sheet, Skeleton, Switch, TextField } from '../../components/ui';
 import { providerLabel, timeAgo } from '../../lib/format';
 import {
   useAiUsage,
   useDiscoveryStatus,
+  useAddSource,
+  useRemoveSource,
   useRunSource,
   useSetSourceAddress,
   useSetSourceEnabled,
@@ -125,14 +129,14 @@ function AttentionRow({ source }: { source: DiscoverySource }) {
         >
           <RotateCw className="size-4" /> {retry.isSuccess ? 'Queued' : 'Retry'}
         </Button>
-        {source.board !== null && (
+        {editable(source) && (
           <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
             Edit URL
           </Button>
         )}
       </div>
       {retry.isError && <p className="text-caption text-danger-fg">{retry.error.message}</p>}
-      {source.board !== null && (
+      {editable(source) && (
         <Sheet open={editing} onClose={() => setEditing(false)} title={`Edit ${source.name}'s address`}>
           <AddressForm source={source} onDone={() => setEditing(false)} />
         </Sheet>
@@ -141,11 +145,21 @@ function AttentionRow({ source }: { source: DiscoverySource }) {
   );
 }
 
+// A company board or page has an address the user can change, and can be removed;
+// aggregators (fixed addresses) can only be paused.
+const editable = (s: DiscoverySource) => s.board !== null || s.link !== null;
+
 // "Edit URL" (design board 5): a company board that moved gets its new link — or just its
-// name. The API keeps only the board's name and clears the cooldown so Retry works at once.
+// name; a careers page gets its new link (which may now be a board — the API re-detects it).
+// The cooldown is cleared so Retry works at once. Remove deletes the source; jobs it found
+// stay (docs/discovery.md §9.15).
 function AddressForm({ source, onDone }: { source: DiscoverySource; onDone: () => void }) {
   const save = useSetSourceAddress();
+  const remove = useRemoveSource();
+  const toast = useToast();
   const [address, setAddress] = useState('');
+  const [confirmRemove, setConfirmRemove] = useState(false);
+  const board = source.board !== null;
   return (
     <form
       noValidate
@@ -157,13 +171,14 @@ function AddressForm({ source, onDone }: { source: DiscoverySource; onDone: () =
     >
       <p className="text-footnote text-muted">
         {source.name} on {providerLabel(source.provider)} — now{' '}
-        <span className="font-mono text-fg">{source.board}</span>. Paste the board's new link, or just its name.
+        <span className="font-mono break-all text-fg">{source.board ?? source.link}</span>.{' '}
+        {board ? "Paste the board's new link, or just its name." : 'Paste the new link to its jobs page.'}
       </p>
       <TextField
         id="board-address"
-        label="Board link or name"
+        label={board ? 'Board link or name' : 'Jobs page link'}
         inputMode="url"
-        placeholder={`e.g. ${source.board}`}
+        placeholder={board ? `e.g. ${source.board}` : 'https://company.com/careers'}
         value={address}
         onChange={(e) => setAddress(e.target.value)}
         error={save.error?.message}
@@ -171,12 +186,86 @@ function AddressForm({ source, onDone }: { source: DiscoverySource; onDone: () =
       <Button type="submit" size="lg" className="w-full" disabled={save.isPending || address.trim() === ''}>
         Save address
       </Button>
+      <Button
+        variant={confirmRemove ? 'danger' : 'ghost'}
+        size="lg"
+        className="w-full"
+        disabled={remove.isPending}
+        onClick={() => {
+          if (!confirmRemove) return setConfirmRemove(true);
+          remove.mutate(source.id, {
+            onSuccess: () => {
+              toast({ text: `${source.name} removed — the jobs it found stay` });
+              onDone();
+            },
+            onError: (err) => toast({ text: err.message, tone: 'error' }),
+          });
+        }}
+      >
+        {confirmRemove ? `Yes, remove ${source.name}` : 'Remove source'}
+      </Button>
+    </form>
+  );
+}
+
+// "Add a source": a company's jobs page becomes a row (docs/discovery.md §9.15). The link
+// picks the platform; any page Shortlist doesn't recognise is watched as a careers page.
+function AddSourceForm({ onDone }: { onDone: () => void }) {
+  const add = useAddSource();
+  const toast = useToast();
+  const [v, setV] = useState({ name: '', link: '' });
+  const [error, setError] = useState<{ name?: string; link?: string }>({});
+  return (
+    <form
+      noValidate
+      className="space-y-3"
+      onSubmit={(e) => {
+        e.preventDefault();
+        const parsed = AddSourceSchema.safeParse(v);
+        if (!parsed.success) {
+          const by = (k: string) => parsed.error.issues.find((i) => i.path[0] === k)?.message;
+          return setError({ name: by('name'), link: by('link') });
+        }
+        setError({});
+        add.mutate(parsed.data, {
+          onSuccess: (s) => {
+            toast({ text: `Added ${s.name} — checking it now` });
+            onDone();
+          },
+        });
+      }}
+    >
+      <p className="text-footnote text-muted">
+        A company's careers page, or its Greenhouse, Lever, Workable or SmartRecruiters board. Shortlist checks it every
+        night.
+      </p>
+      <TextField
+        id="source-name"
+        label="Company"
+        value={v.name}
+        onChange={(e) => setV({ ...v, name: e.target.value })}
+        error={error.name}
+      />
+      <TextField
+        id="source-link"
+        label="Jobs page link"
+        inputMode="url"
+        autoComplete="url"
+        placeholder="https://company.com/careers"
+        value={v.link}
+        onChange={(e) => setV({ ...v, link: e.target.value })}
+        error={error.link ?? add.error?.message}
+      />
+      <Button type="submit" size="lg" className="w-full" disabled={add.isPending}>
+        Add source
+      </Button>
     </form>
   );
 }
 
 function SourceRow({ source }: { source: DiscoverySource }) {
   const toggle = useSetSourceEnabled();
+  const [editing, setEditing] = useState(false);
   return (
     <li className="flex min-h-[68px] items-center gap-3 py-2.5 pr-3 pl-4">
       <div className="min-w-0 flex-1 space-y-0.5">
@@ -188,12 +277,22 @@ function SourceRow({ source }: { source: DiscoverySource }) {
         </p>
         {toggle.isError && <p className="text-caption text-danger-fg">{toggle.error.message}</p>}
       </div>
+      {editable(source) && (
+        <IconButton label={`Edit ${source.name}`} onClick={() => setEditing(true)}>
+          <Pencil className="size-4" />
+        </IconButton>
+      )}
       <Switch
         checked={source.isEnabled}
         disabled={toggle.isPending}
         onChange={(isEnabled) => toggle.mutate({ id: source.id, isEnabled })}
         label={`Watch ${source.name}`}
       />
+      {editable(source) && (
+        <Sheet open={editing} onClose={() => setEditing(false)} title={`Edit ${source.name}`}>
+          {editing && <AddressForm source={source} onDone={() => setEditing(false)} />}
+        </Sheet>
+      )}
     </li>
   );
 }
@@ -203,6 +302,7 @@ function SourceRow({ source }: { source: DiscoverySource }) {
 export function SourcesPage() {
   const sources = useSources();
   const [showPlanned, setShowPlanned] = useState(false);
+  const [adding, setAdding] = useState(false);
   const active = (sources.data ?? []).filter((s) => s.supported);
   const planned = (sources.data ?? []).filter((s) => !s.supported);
   const attention = active.filter(needsAttention);
@@ -220,7 +320,7 @@ export function SourcesPage() {
       {sources.isError && <p className="text-danger-fg">Couldn't load sources: {sources.error.message}</p>}
       {sources.isSuccess && sources.data.length === 0 && (
         <div className="text-footnote text-muted">
-          <p>No sources yet. Connect Gmail below to read your job alerts.</p>
+          <p>No sources yet. Add a company's jobs page, or connect Gmail below to read your job alerts.</p>
           <AdminNote>
             <p>Load the starter list of job boards:</p>
             <AdminCode>pnpm --filter @shortlist/db db:seed:sources</AdminCode>
@@ -265,6 +365,13 @@ export function SourcesPage() {
             </section>
           ),
       )}
+
+      <Button variant="secondary" className="w-full" onClick={() => setAdding(true)}>
+        <Plus className="size-4" /> Add a company's jobs page
+      </Button>
+      <Sheet open={adding} onClose={() => setAdding(false)} title="Add a source">
+        {adding && <AddSourceForm onDone={() => setAdding(false)} />}
+      </Sheet>
 
       {planned.length > 0 && (
         <section>

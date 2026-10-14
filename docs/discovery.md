@@ -353,6 +353,33 @@ afterwards only pages that changed are read.
 Adapters that need more than the page (the database, the model) get it through the context
 (`AdapterContext.careersPage`), so the registry stays one plain function per provider.
 
+### 9.15 Adding sources from the app (built 2026-10-14)
+
+Asked for in production: "store the careers sites or jobs pages of companies in a metadata
+config and read jobs from there, so links are added or edited in the db, not in code." The
+storage already was that — every source is a `JobSource` row whose `config` JSON names the
+provider and its address (§9.1, validated by `JobSourceConfigSchema`); what was missing was a
+way to add or change one without the seed script.
+- **Add** (`POST /discovery/sources`, Sources → "Add a company's jobs page"): a company name
+  and a link. `sourceFromLink()` (shared) picks the provider from the link — a Greenhouse,
+  Lever, SmartRecruiters or Workable board gets its API adapter (key `provider:board`), a
+  JazzHR/Zoho/OpenCats/Simplicant page its page adapter, anything else is a `careers_page`
+  for the change watcher (§9.14; key `careers_page:name`, the seed's scheme). A link on a
+  known platform that's missing the board is an error, not a careers page. Duplicate keys
+  are a 409 naming the existing source. The first run is queued at once (best effort).
+- **Edit** (`PATCH /discovery/sources/:id/address`, the pencil on a row or "Edit URL" on a
+  failing one): boards as before; a page-based source re-detects from the new link, so a
+  company that moved to Greenhouse becomes a board. The key stays.
+- **Remove** (`DELETE /discovery/sources/:id`, two taps): company boards and pages only —
+  aggregators and email inboxes are paused instead. Jobs it found stay (`jobSourceId` is
+  set null); its run history and page snapshot go with it.
+- **SSRF.** Any account can now choose a URL the worker fetches, so `public-url.ts` no
+  longer trusts source URLs: every worker fetch (`http.ts`) checks that the host resolves
+  only to public addresses, at every redirect hop (redirects followed by hand). The API
+  also refuses an obviously internal link when it's saved (`sourceFromLink`, no DNS), for a
+  clear message; the worker's check is the guard. Worker tests stub DNS
+  (`test/setup-dns.ts`) so they stay offline.
+
 ## 11. Manual job intake — "Add a job" (planned, decided 2026-10-02)
 
 The universal fallback for everything automatic discovery can't reach: WhatsApp groups,

@@ -199,6 +199,7 @@ export interface DiscoverySource {
   provider: string;
   supported: boolean;
   board: string | null; // a company board's name, editable via "Edit URL"; null for aggregators
+  link: string | null; // a page-based company source's link (careers page, JazzHR, …), also editable
   isEnabled: boolean;
   lastRunAt: string | null;
   lastRunStatus: RunStatus | null;

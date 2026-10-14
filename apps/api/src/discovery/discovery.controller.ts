@@ -1,5 +1,7 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
 import {
+  AddSourceSchema,
+  type AddSourceInput,
   UpdateJobSourceSchema,
   UpdateSourceAddressSchema,
   type UpdateJobSourceInput,
@@ -21,6 +23,17 @@ export class DiscoveryController {
   @Get('status')
   status(@CurrentUser() user: AuthUser) {
     return this.discovery.status(user.id);
+  }
+
+  @Post('sources')
+  add(@CurrentUser() user: AuthUser, @Body(new ZodValidationPipe(AddSourceSchema)) body: AddSourceInput) {
+    return this.discovery.addSource(user.id, body);
+  }
+
+  @Delete('sources/:id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  remove(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.discovery.removeSource(user.id, id);
   }
 
   @Patch('sources/:id')

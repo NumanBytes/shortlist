@@ -13,18 +13,36 @@ export class HttpError extends Error {
   }
 }
 
+// Every fetch the worker makes goes to a public address, at every redirect hop
+// (public-url.ts). Sources are configured by users — anyone with an account can add a
+// careers page — so a source URL is as untrusted as a link read off a page (SSRF: the
+// cloud metadata service, localhost, the Docker network). Redirects are followed by hand,
+// because fetch would otherwise follow one to an internal address without asking. Only
+// GET/HEAD are re-sent on a redirect; a POST that redirects is an error.
 async function request(url: string, init: RequestInit = {}): Promise<Response> {
   const headers = new Headers(init.headers);
   headers.set('User-Agent', USER_AGENT);
   if (!headers.has('Accept')) headers.set('Accept', 'application/json, application/rss+xml, */*');
-  const res = await fetch(url, {
-    ...init,
-    headers,
-    // A hung source must not hold a worker slot forever.
-    signal: AbortSignal.timeout(TIMEOUT_MS),
-  });
-  if (!res.ok) throw new HttpError(res.status, url);
-  return res;
+  let current = url;
+  for (let hop = 0; hop < 5; hop++) {
+    await assertPublicUrl(current);
+    const res = await fetch(current, {
+      ...init,
+      headers,
+      redirect: 'manual',
+      // A hung source must not hold a worker slot forever.
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    const location = res.headers.get('location');
+    if (res.status >= 300 && res.status < 400 && location) {
+      if (init.method && init.method !== 'GET') throw new HttpError(res.status, current);
+      current = new URL(location, current).toString();
+      continue;
+    }
+    if (!res.ok) throw new HttpError(res.status, current);
+    return res;
+  }
+  throw new Error(`Too many redirects from ${url}`);
 }
 
 export async function getJson<T>(url: string): Promise<T> {
@@ -44,25 +62,8 @@ export async function getText(url: string): Promise<string> {
   return (await request(url)).text();
 }
 
-// GET a URL that came from a third-party page, not from configuration: its host and every
-// redirect's host must be public (public-url.ts). Redirects are followed by hand, because
-// fetch would otherwise follow one to an internal address without asking.
+// A URL that came from a third-party page. Same checks as every other fetch now; kept as its
+// own name so call sites still say where the URL came from.
 export async function getPublicText(url: string): Promise<string> {
-  let current = url;
-  for (let hop = 0; hop < 5; hop++) {
-    await assertPublicUrl(current);
-    const res = await fetch(current, {
-      headers: { 'User-Agent': USER_AGENT, Accept: '*/*' },
-      redirect: 'manual',
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-    });
-    const location = res.headers.get('location');
-    if (res.status >= 300 && res.status < 400 && location) {
-      current = new URL(location, current).toString();
-      continue;
-    }
-    if (!res.ok) throw new HttpError(res.status, current);
-    return res.text();
-  }
-  throw new Error(`Too many redirects from ${url}`);
+  return (await request(url, { headers: { Accept: '*/*' } })).text();
 }
