@@ -2,6 +2,7 @@ import { ChevronDown, Filter, Inbox, MousePointerClick, RotateCw, WifiOff, X } f
 import { useState } from 'react';
 import { Outlet, useParams, useSearchParams } from 'react-router';
 import { groupByDay } from './by-day';
+import { AddJobButton } from './AddJob';
 import { FindNewJobs } from './FindNewJobs';
 import { JobRow } from './JobRow';
 import { Button, Chip, EmptyState, IconButton, Segmented, Skeleton } from '../../components/ui';
@@ -115,7 +116,9 @@ function JobsList({ selectedId }: { selectedId?: string }) {
 
   return (
     <div className="space-y-3">
-      <PageHeader title="Jobs" />
+      <PageHeader title="Jobs">
+        <AddJobButton />
+      </PageHeader>
 
       {s.source && (
         <div className="flex items-center gap-2 rounded-md bg-surface-2 py-1 pr-1 pl-3.5 text-footnote text-muted">

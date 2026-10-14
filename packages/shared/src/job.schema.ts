@@ -1,3 +1,4 @@
+import { WebUrl } from './common.schema.js';
 import { z } from 'zod';
 
 export const JobStatus = z.enum([
@@ -31,6 +32,20 @@ export type JobCountsQuery = z.infer<typeof JobCountsQuerySchema>;
 // APPLIED only ever records what the user did (Agents.md §1: the human clicks submit).
 export const UpdateJobSchema = z.object({ status: JobStatus }).strict();
 export type UpdateJobInput = z.infer<typeof UpdateJobSchema>;
+
+// "Add a job" (docs/discovery.md §11): a posting Shortlist didn't find — a LinkedIn alert, a
+// WhatsApp group, a referral. The user types the title and company (no model call to guess
+// them) and pastes the whole description; it becomes a regular Job, scored at once.
+export const AddJobSchema = z
+  .object({
+    title: z.string().trim().min(1, 'Add the job title').max(200),
+    company: z.string().trim().min(1, 'Add the company').max(200),
+    location: z.string().trim().max(200).nullable().optional(),
+    sourceUrl: WebUrl.nullable().optional(),
+    description: z.string().trim().min(200, 'Paste the whole job description (at least 200 characters)').max(50_000),
+  })
+  .strict();
+export type AddJobInput = z.infer<typeof AddJobSchema>;
 
 export const UpdateJobSourceSchema = z.object({ isEnabled: z.boolean() }).strict();
 export type UpdateJobSourceInput = z.infer<typeof UpdateJobSourceSchema>;

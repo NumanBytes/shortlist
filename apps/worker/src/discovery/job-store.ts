@@ -1,5 +1,5 @@
 import type { PrismaService } from '../prisma/prisma.service.js';
-import { dedupeHash } from './dedupe.js';
+import { dedupeHash } from '@shortlist/shared/node';
 import type { Posting } from './types.js';
 
 export interface StoreItem {

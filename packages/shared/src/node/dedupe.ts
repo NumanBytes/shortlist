@@ -2,7 +2,8 @@ import { createHash } from 'node:crypto';
 
 // The same role often appears on the company's own board AND on an aggregator, with
 // slightly different company/title spelling. Hashing a normalized company + title
-// collapses those into one Job (unique on userId + dedupeHash).
+// collapses those into one Job (unique on userId + dedupeHash). Shared so a job the user adds
+// by hand (the API) matches the same role found by discovery (the worker).
 //
 // Location is deliberately left out: sources format it too differently ("Lahore, PK"
 // vs "Pakistan" vs "Remote - APAC") to match reliably, and the same title at the same

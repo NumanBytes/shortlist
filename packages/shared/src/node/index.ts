@@ -3,3 +3,4 @@
 export * from './google.js';
 export * from './secret-box.js';
 export * from './web-push.js';
+export * from './dedupe.js';

@@ -16,6 +16,7 @@ import type {
   UpdateSkillEvidenceInput,
   PrepareResumeInput,
   AddSourceInput,
+  AddJobInput,
 } from '@shortlist/shared';
 import { api } from './api';
 import type {
@@ -541,6 +542,15 @@ export function useDisconnectGmail() {
 }
 
 // "Paste full description" (docs/email-alerts.md §10.5): completes an alert-only job; it's scored again.
+// "Add a job" (docs/discovery.md §11). A 409 carries the existing job's id (ApiError.body).
+export function useAddJob() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: AddJobInput) => api<{ id: string; merged: boolean }>('/jobs', { method: 'POST', body }),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: jobKeys.all }),
+  });
+}
+
 export function usePasteDescription() {
   const queryClient = useQueryClient();
   return useMutation({

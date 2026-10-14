@@ -380,7 +380,7 @@ way to add or change one without the seed script.
   clear message; the worker's check is the guard. Worker tests stub DNS
   (`test/setup-dns.ts`) so they stay offline.
 
-## 11. Manual job intake — "Add a job" (planned, decided 2026-10-02)
+## 11. Manual job intake — "Add a job" (planned 2026-10-02, built 2026-10-14)
 
 The universal fallback for everything automatic discovery can't reach: WhatsApp groups,
 LinkedIn feed posts, recruiter messages, referrals, unsupported portals. Tier 6 of §9.1.
@@ -399,3 +399,20 @@ LinkedIn feed posts, recruiter messages, referrals, unsupported portals. Tier 6 
   opens pre-filled. iOS doesn't support share targets for web apps; there it's
   copy-paste.
 - Scam heuristics ([§3.11](scenarios.md)) apply — WhatsApp-sourced jobs are a common vector.
+
+**Built (2026-10-14).** Asked for from production: a LinkedIn alert links to a posting, and
+the user wants a resume for that description without Shortlist having found the job.
+- **Jobs → "Add job"** opens a sheet: job title, company, location and posting link
+  (optional), and the full description (≥200 characters, `AddJobSchema`). `POST /jobs`.
+- **Title and company are typed, not extracted** — this changes the plan above: no model
+  call (no cost, nothing to get wrong), and they're two short fields. Fetching the
+  description from a supported link, and the Android share target, are still to do.
+- **A regular Job:** `source: 'manual'` ("via you"), no `jobSource`, status **Interested**
+  (adding it is interest), scored at once as a user-requested analysis (not held by the
+  daily cap, docs/ai-scoring.md §12.3). The job page then offers "Tailor a resume" with the
+  usual cost confirm — tailoring stays a separate, explicit request (Agents.md §1.2).
+- **Deduplicated with discovery's hash** (`dedupeHash`, moved to `@shortlist/shared/node` so
+  the API and worker share it): the same role already here as an alert summary
+  (`isPartial`) gets the pasted description and is re-scored — the LinkedIn-alert case;
+  any other match is a 409 carrying `jobId`, and the app opens that job.
+

@@ -1,6 +1,7 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import type { Prisma } from '@shortlist/db';
-import type { ListJobsQuery, UpdateJobInput } from '@shortlist/shared';
+import type { AddJobInput, ListJobsQuery, UpdateJobInput } from '@shortlist/shared';
+import { dedupeHash } from '@shortlist/shared/node';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { JobQueues } from '../queue/job-queues.js';
 
@@ -136,6 +137,52 @@ export class JobsService {
     await this.prisma.job.update({ where: { id }, data: { analysisStatus: 'PENDING', analysisError: null } });
     await this.queues.enqueueAnalysis(id, `manual-${Date.now()}`);
     return { queued: true };
+  }
+
+  // "Add a job" (docs/discovery.md §11): a posting Shortlist didn't find becomes a regular Job,
+  // marked Interested (the user cared enough to add it) and scored at once. Deduplicated
+  // like discovery: the same role already here as an alert summary gets this description
+  // (the LinkedIn-alert case); any other match is a 409 carrying its id, so the app opens it.
+  async add(userId: string, input: AddJobInput) {
+    const hash = dedupeHash(input.company, input.title);
+    const existing = await this.prisma.job.findUnique({
+      where: { userId_dedupeHash: { userId, dedupeHash: hash } },
+      select: { id: true, isPartial: true, status: true },
+    });
+    if (existing && !existing.isPartial) {
+      throw new ConflictException({ message: 'This job is already in Shortlist', jobId: existing.id });
+    }
+    const scoring = { analysisStatus: 'PENDING' as const, analysisError: null };
+    const job = existing
+      ? await this.prisma.job.update({
+          where: { id: existing.id },
+          data: {
+            rawJD: input.description,
+            isPartial: false,
+            ...(input.sourceUrl ? { sourceUrl: input.sourceUrl } : {}),
+            ...(existing.status === 'DISCOVERED' ? { status: 'INTERESTED' as const } : {}),
+            ...scoring,
+          },
+          select: { id: true },
+        })
+      : await this.prisma.job.create({
+          data: {
+            userId,
+            title: input.title,
+            company: input.company,
+            location: input.location ?? null,
+            sourceUrl: input.sourceUrl ?? null,
+            source: 'manual',
+            rawJD: input.description,
+            dedupeHash: hash,
+            status: 'INTERESTED',
+            ...scoring,
+          },
+          select: { id: true },
+        });
+    // Best effort: if the queue is down, the nightly sweep scores it.
+    await this.queues.enqueueAnalysis(job.id, `added-${Date.now()}`).catch(() => undefined);
+    return { id: job.id, merged: Boolean(existing) };
   }
 
   // "Paste full description" (docs/email-alerts.md §10.5): an alert gave only a summary; the user pastes
