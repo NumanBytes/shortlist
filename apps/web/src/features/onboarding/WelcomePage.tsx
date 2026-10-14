@@ -1,9 +1,9 @@
 import { STARTER_DISCOVERY_PREFERENCES } from '@shortlist/shared';
-import { Globe, Mail } from 'lucide-react';
+import { ChevronLeft, Globe, Mail } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { Button, Card, Skeleton, buttonStyles } from '../../components/ui';
 import { PushLink } from '../../components/PushLink';
-import { useAddRemoteBoards, usePreferences } from '../../lib/queries';
+import { useAddRemoteBoards, useLatestImport, usePreferences } from '../../lib/queries';
 import { ResumeImport } from '../profile/ResumeImport';
 import { SearchSettingsForm } from '../profile/SearchSettingsForm';
 
@@ -27,11 +27,29 @@ export function WelcomePage() {
     void navigate('/', { replace: true });
   };
   const n = STEPS.indexOf(step) + 1;
+  const imported = useLatestImport().data != null; // an import started: moving on isn't skipping
 
   return (
     <main className="mx-auto max-w-md space-y-4 pb-8">
+      {/* Where you are and a way back (UI audit N4). The back gesture also steps back. */}
       <header className="space-y-1 pt-2">
-        <p className="text-footnote font-medium text-muted tabular-nums">Step {n} of 3</p>
+        <div className="flex min-h-11 items-center gap-3">
+          {n > 1 ? (
+            <button
+              type="button"
+              onClick={() => go(STEPS[n - 2]!)}
+              className="-ml-1 inline-flex min-h-11 items-center gap-0.5 text-body font-medium text-accent-fg"
+            >
+              <ChevronLeft className="size-5" /> Back
+            </button>
+          ) : null}
+          <p className="ml-auto text-footnote font-medium text-muted tabular-nums">Step {n} of 3</p>
+          <div aria-hidden="true" className="flex gap-1">
+            {STEPS.map((s, i) => (
+              <span key={s} className={`h-1.5 w-6 rounded-full ${i < n ? 'bg-accent' : 'bg-input-border/40'}`} />
+            ))}
+          </div>
+        </div>
         <h1 className="text-title font-bold tracking-[-0.01em] text-fg">
           {step === 'resume'
             ? 'Start from your resume'
@@ -48,8 +66,8 @@ export function WelcomePage() {
             you a list to confirm instead of typing it all.
           </p>
           <ResumeImport />
-          <Button variant="ghost" className="w-full" onClick={() => go('search')}>
-            Next
+          <Button variant={imported ? 'primary' : 'ghost'} className="w-full" onClick={() => go('search')}>
+            {imported ? 'Continue' : 'Skip for now'}
           </Button>
         </>
       )}

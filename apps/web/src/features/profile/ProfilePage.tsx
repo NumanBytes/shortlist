@@ -1,13 +1,14 @@
 import { ChevronLeft } from 'lucide-react';
 import { useState } from 'react';
-import { Link } from 'react-router';
-import { Sheet, Skeleton } from '../../components/ui';
+import { useLocation, useNavigate, useSearchParams } from 'react-router';
+import { Segmented, Sheet, Skeleton } from '../../components/ui';
+import { pushNavigate } from '../../lib/navigation';
 import { useProfile } from '../../lib/queries';
 import type { PublicUser } from '../../lib/types';
 import { Account } from './Account';
 import { Budget } from './Budget';
 import { EducationList, Projects, Roles } from './CareerLists';
-import { JobSearch } from './JobSearch';
+import { ImportFromResume, JobSearch } from './JobSearch';
 import { ContactForm } from './ContactForm';
 import { NeverClaimList } from './NeverClaimList';
 import { Notifications } from './Notifications';
@@ -20,41 +21,81 @@ const initialsOf = (name: string) =>
     .map((w) => w.charAt(0).toUpperCase())
     .join('') || '?';
 
-// Profile (design board 6): the resume header, roles, projects, education, the AI budget
-// and the account. Personal details live only in the database — never in committed files.
-// The sections live in ./profile/.
+type Tab = 'career' | 'settings';
+
+// Profile (design board 6), in two parts (UI audit N2): Career is what resumes are built
+// from — the header, roles, projects, education, import and the never-claim list; Settings
+// is how Shortlist behaves — the job search, notifications, AI budget and account. The part
+// lives in the URL (`?tab=settings`). Personal details live only in the database — never in
+// committed files. The sections live in ./profile/.
 export function ProfilePage() {
   const profile = useProfile();
   const [editing, setEditing] = useState(false);
+  const [params, setParams] = useSearchParams();
+  const tab: Tab = params.get('tab') === 'settings' ? 'settings' : 'career';
+  const setTab = (t: Tab) =>
+    setParams(
+      (p) => {
+        if (t === 'settings') p.set('tab', t);
+        else p.delete('tab');
+        p.delete('open');
+        return p;
+      },
+      { replace: true },
+    );
+  // Back returns to wherever Profile was opened from (UI audit N1); opened directly (a
+  // bookmark, a fresh tab) there is no in-app history, so it goes to Jobs.
+  const navigate = useNavigate();
+  const hasHistory = useLocation().key !== 'default';
   return (
     <main className="mx-auto max-w-2xl space-y-3 pb-6">
       <nav className="grid grid-cols-[1fr_auto_1fr] items-center">
-        <Link
-          to="/"
-          className="-ml-1 inline-flex min-h-11 items-center gap-0.5 text-headline font-medium text-accent-fg"
-        >
-          <ChevronLeft className="size-6" /> Jobs
-        </Link>
-        <h1 className="text-body font-semibold text-fg">Profile</h1>
         <button
           type="button"
-          onClick={() => setEditing(true)}
-          className="min-h-11 justify-self-end px-1 text-body font-semibold text-accent-fg"
+          onClick={() => pushNavigate(navigate, hasHistory ? -1 : '/', 'back')}
+          className="-ml-1 inline-flex min-h-11 items-center gap-0.5 justify-self-start text-headline font-medium text-accent-fg"
         >
-          Edit
+          <ChevronLeft className="size-6" /> {hasHistory ? 'Back' : 'Jobs'}
         </button>
+        <h1 className="text-body font-semibold text-fg">Profile</h1>
+        {tab === 'career' && (
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="min-h-11 justify-self-end px-1 text-body font-semibold text-accent-fg"
+          >
+            Edit
+          </button>
+        )}
       </nav>
 
-      {profile.data ? <Identity profile={profile.data} /> : <Skeleton className="mx-auto h-40 w-64" />}
+      <Segmented<Tab>
+        label="Profile section"
+        value={tab}
+        onChange={setTab}
+        options={[
+          { value: 'career', label: 'Career' },
+          { value: 'settings', label: 'Settings' },
+        ]}
+      />
 
-      <JobSearch />
-      <Notifications />
-      <Roles />
-      <Projects />
-      <EducationList />
-      <NeverClaimList />
-      <Budget />
-      <Account />
+      {tab === 'career' ? (
+        <>
+          {profile.data ? <Identity profile={profile.data} /> : <Skeleton className="mx-auto h-40 w-64" />}
+          <Roles />
+          <Projects />
+          <EducationList />
+          <ImportFromResume />
+          <NeverClaimList />
+        </>
+      ) : (
+        <>
+          <JobSearch />
+          <Notifications />
+          <Budget />
+          <Account />
+        </>
+      )}
 
       {profile.data && (
         <Sheet open={editing} onClose={() => setEditing(false)} title="Edit profile">

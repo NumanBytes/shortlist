@@ -5,6 +5,7 @@ import { Link, useSearchParams } from 'react-router';
 import { timeAgo } from '../../lib/format';
 import { gmailKeys, useCheckGmail, useConnectGmail, useDisconnectGmail, useGmail } from '../../lib/queries';
 import type { GmailStatus } from '../../lib/types';
+import { AdminCode, AdminNote } from '../../components/AdminNote';
 import { Badge, Button, Card, Skeleton } from '../../components/ui';
 
 // What happened on the way back from Google (?gmail=… set by the API's callback).
@@ -45,7 +46,9 @@ export function GmailCard() {
       {outcome && OUTCOME[outcome] && (
         <div
           role={OUTCOME[outcome].ok ? undefined : 'alert'}
-          className={`mt-3 flex items-start justify-between gap-3 rounded-sm px-3 py-2 text-body ${OUTCOME[outcome].ok ? 'bg-apply-bg text-apply-fg' : 'bg-danger-bg text-danger-fg'}`}
+          // Space below, not above: when connected there's no header, and a top margin
+          // pushed the banner off the card's edge (UI audit S2).
+          className={`mb-3 flex items-start justify-between gap-3 rounded-sm px-3 py-2 text-body ${OUTCOME[outcome].ok ? 'bg-apply-bg text-apply-fg' : 'bg-danger-bg text-danger-fg'}`}
         >
           <span>{OUTCOME[outcome].text}</span>
           <button
@@ -77,10 +80,15 @@ function Body({ status, onCheck }: { status: GmailStatus; onCheck: () => void })
 
   if (!status.configured) {
     return (
-      <p className="text-muted">
-        Not set up on this server yet: it needs a Google OAuth client (GOOGLE_* and TOKEN_ENCRYPTION_KEY in the API and
-        worker env). See docs/email-alerts.md §10.6.
-      </p>
+      <div className="text-muted">
+        <p>Gmail alerts aren't turned on for this server yet. Ask whoever runs it to set them up.</p>
+        <AdminNote>
+          <p>
+            Needs a Google OAuth client: <AdminCode>GOOGLE_*</AdminCode> and <AdminCode>TOKEN_ENCRYPTION_KEY</AdminCode>{' '}
+            in the API and worker settings. See <AdminCode>docs/email-alerts.md §10.6</AdminCode>.
+          </p>
+        </AdminNote>
+      </div>
     );
   }
 

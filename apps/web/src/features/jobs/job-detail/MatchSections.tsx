@@ -9,7 +9,8 @@ type Gap = NonNullable<JobDetail['match']>['gaps'][number];
 // The analysis, explained (design board 2): what matched, what's missing, what else to
 // weigh. Each is a card that only appears when it has something to say.
 
-const SEVERITY_TONE: Record<GapSeverity, Tone> = { BLOCKING: 'danger', MODERATE: 'neutral', MINOR: 'neutral' };
+// Three severities, three tones (UI audit D3): Moderate is the stretch colour, not Minor's grey.
+const SEVERITY_TONE: Record<GapSeverity, Tone> = { BLOCKING: 'danger', MODERATE: 'stretch', MINOR: 'neutral' };
 const SEVERITY_LABEL: Record<GapSeverity, string> = { BLOCKING: 'Blocking', MODERATE: 'Moderate', MINOR: 'Minor' };
 
 // "React.js — React (commercial production, CloudCard Inc.)" → parts for display.
@@ -104,12 +105,13 @@ export function Gaps({ gaps }: { gaps: Gap[] }) {
   );
 }
 
-// Risks besides missing skills and red flags, which have their own cards.
+// Risks besides missing skills and red flags, which have their own cards. One tone, amber
+// (UI audit D4): red stays for the possible-scam card.
 export function Risks({ risks }: { risks: string[] }) {
   const other = risks.filter((r) => !r.startsWith('Missing') && !r.startsWith('Red flag'));
   if (other.length === 0) return null;
   return (
-    <Section id="risks" icon={<CircleAlert className="size-5 text-danger" strokeWidth={1.75} />} title="Risks">
+    <Section id="risks" icon={<CircleAlert className="size-5 text-stretch" strokeWidth={1.75} />} title="Risks">
       <ul className="divide-y divide-border border-t border-border">
         {other.map((r) => (
           <li key={r} className="flex items-start gap-2.5 px-4 py-3 text-body text-fg">

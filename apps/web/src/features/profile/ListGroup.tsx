@@ -21,7 +21,8 @@ export function Row({
       <span className="grid size-9 shrink-0 place-items-center rounded-sm bg-surface-2 text-muted">{icon}</span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-body font-semibold text-fg">{title}</span>
-        {sub && <span className="block truncate text-footnote text-muted">{sub}</span>}
+        {/* Two lines before an ellipsis: a status sentence must stay readable (UI audit P2). */}
+        {sub && <span className="line-clamp-2 block text-footnote text-muted">{sub}</span>}
       </span>
       {trailing}
       {onClick && <ChevronRight className="size-4 shrink-0 text-muted" />}

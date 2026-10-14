@@ -58,7 +58,7 @@ export function FindNewJobs() {
         toast({ text: summary(r) });
         if (r.queued.length || r.emailQueued) setWatchUntil(Date.now() + WATCH_MS);
       },
-      onError: (err) => toast({ text: err.message }),
+      onError: (err) => toast({ text: err.message, tone: 'error' }),
     });
 
   const s = status.data;
@@ -115,7 +115,7 @@ export function FindNewJobs() {
       {s?.workerOnline === false && (
         <output className="flex gap-1.5 border-t border-border px-3.5 py-2 text-caption text-stretch-fg">
           <AlertTriangle className="mt-px size-3.5 shrink-0" />
-          The background worker isn't running, so checks wait in the queue until it starts.
+          Checks are paused: Shortlist's background service isn't running. They start by themselves when it's back.
         </output>
       )}
     </div>

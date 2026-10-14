@@ -102,7 +102,7 @@ describe('ResumeSection', () => {
   it('shows a ready draft with what the checks removed', async () => {
     mockFetch(ready());
     renderWithProviders(<ResumeSection job={job} />);
-    expect(await screen.findByText('Draft — review it')).toBeInTheDocument();
+    expect(await screen.findByText('Draft')).toBeInTheDocument();
     expect(screen.getByText(/1 removed by the truthfulness checks/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Review/ })).toHaveAttribute('href', '/jobs/j1/resume');
   });
@@ -174,7 +174,7 @@ describe('ResumeSection while tailoring — never an endless spinner', () => {
     mockFetch(pending({ workerOnline: false }));
     renderWithProviders(<ResumeSection job={job} />);
     expect(await screen.findByRole('status')).toHaveTextContent(
-      /background worker isn't running.*Nothing has been charged/,
+      /background service isn't running.*Nothing has been charged/,
     );
   });
 

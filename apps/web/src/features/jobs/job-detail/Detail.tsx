@@ -1,4 +1,5 @@
 import { AlertTriangle, ChevronDown, Info, RotateCw } from 'lucide-react';
+import { useId, useLayoutEffect, useRef, useState } from 'react';
 import { PartialJobNotice } from '../PartialJobNotice';
 import { ResumeSection } from '../../resume/ResumeSection';
 import { ScoreRing } from '../../../components/ScoreRing';
@@ -112,22 +113,7 @@ export function Detail({ job }: { job: JobDetail }) {
         </>
       )}
 
-      <details className="group overflow-hidden rounded-lg border border-border bg-surface">
-        <summary className="cursor-pointer list-none px-4 pt-3.5 pb-3 marker:hidden">
-          <span className="block text-body font-semibold text-fg">
-            {job.isPartial ? 'Alert summary' : 'Description'}
-          </span>
-          <span className="mt-1 line-clamp-3 text-body leading-relaxed whitespace-pre-line text-muted group-open:hidden">
-            {job.rawJD || 'No description.'}
-          </span>
-          <span className="mt-2 flex items-center justify-center gap-1 text-body font-semibold text-accent-fg group-open:hidden">
-            Read more <ChevronDown className="size-4" />
-          </span>
-        </summary>
-        <div className="max-h-[60vh] overflow-y-auto px-4 pb-4 text-body leading-relaxed whitespace-pre-line text-muted">
-          {job.rawJD || 'No description.'}
-        </div>
-      </details>
+      <Description title={job.isPartial ? 'Alert summary' : 'Description'} text={job.rawJD || 'No description.'} />
 
       <p className="flex gap-2 px-1 text-caption text-muted">
         <Info className="mt-px size-3.5 shrink-0" aria-hidden="true" />
@@ -135,6 +121,56 @@ export function Detail({ job }: { job: JobDetail }) {
         {isAggregator(job) ? 'the original posting' : `${job.company}'s site`}.
       </p>
     </>
+  );
+}
+
+// The posting's text (UI audit D2, D5): reading text in `fg` at 15px, growing in place
+// rather than scrolling inside the page; "Read more" only when the text is actually cut
+// off, and "Show less" at the end of a long one.
+function Description({ title, text }: { title: string; text: string }) {
+  const [open, setOpen] = useState(false);
+  const [clamped, setClamped] = useState(false);
+  const body = useRef<HTMLParagraphElement>(null);
+  const id = useId();
+  useLayoutEffect(() => {
+    const el = body.current;
+    if (!el || open) return;
+    const check = () => setClamped(el.scrollHeight > el.clientHeight + 1);
+    check();
+    const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(check);
+    ro?.observe(el);
+    return () => ro?.disconnect();
+  }, [open, text]);
+  const toggle = () => {
+    setOpen((o) => !o);
+    // Collapsing a long text: bring its top back instead of leaving the reader far below it.
+    if (open) body.current?.closest('section')?.scrollIntoView({ block: 'nearest' });
+  };
+  return (
+    <section aria-labelledby={`${id}-title`} className="rounded-lg border border-border bg-surface px-4 pt-3.5 pb-2">
+      <h2 id={`${id}-title`} className="text-body font-semibold text-fg">
+        {title}
+      </h2>
+      <p
+        ref={body}
+        id={`${id}-text`}
+        className={`mt-1 pb-1.5 text-body leading-relaxed whitespace-pre-line text-fg ${open ? '' : 'line-clamp-4'}`}
+      >
+        {text}
+      </p>
+      {(clamped || open) && (
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls={`${id}-text`}
+          onClick={toggle}
+          className="flex min-h-11 w-full items-center justify-center gap-1 text-body font-semibold text-accent-fg"
+        >
+          {open ? 'Show less' : 'Read more'}
+          <ChevronDown className={`size-4 transition ${open ? 'rotate-180' : ''}`} />
+        </button>
+      )}
+    </section>
   );
 }
 
@@ -149,7 +185,7 @@ function AnalysisState({ job }: { job: JobDetail }) {
         {pending ? 'Scoring in progress' : failed ? 'Scoring failed' : 'Scoring deferred'}
       </p>
       <p className="mt-1 text-muted">
-        {pending ? 'The match score appears here once the worker has analysed this job.' : job.analysisError}
+        {pending ? 'The match score appears here once this job has been analysed.' : job.analysisError}
       </p>
       {!pending && (
         <Button

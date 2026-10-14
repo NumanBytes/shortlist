@@ -1,6 +1,9 @@
 import type { NotificationSettingsInput } from '@shortlist/shared';
 import { Bell, BellOff, Send, Smartphone } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { AdminCode, AdminNote } from '../../components/AdminNote';
+import { SaveStatus } from '../../components/SaveStatus';
+import { deviceName } from '../../lib/format';
 import { Button, INPUT, Switch } from '../../components/ui';
 import { disablePush, enablePush, isStandalone, pushState, type PushState } from '../../lib/push';
 import {
@@ -48,8 +51,13 @@ export function Notifications() {
         <Row
           icon={<BellOff className="size-[18px]" />}
           title="Not set up on this server"
-          sub="Add the VAPID keys to the server's settings to turn notifications on (deploy/.env.example)."
+          sub="Ask whoever runs this server to turn notifications on."
         />
+        <AdminNote className="px-4 pb-2">
+          <p>
+            Add the VAPID keys to the server's settings (see <AdminCode>deploy/.env.example</AdminCode>).
+          </p>
+        </AdminNote>
       </Group>
     );
   }
@@ -63,7 +71,7 @@ export function Notifications() {
           <p className="flex items-center gap-1.5 text-footnote text-muted">
             <Smartphone className="size-3.5" aria-hidden="true" />
             On {devices.data!.length} {devices.data!.length === 1 ? 'device' : 'devices'}:{' '}
-            {devices.data!.map((d) => d.userAgent ?? 'a device').join(', ')}
+            {devices.data!.map((d) => deviceName(d.userAgent)).join(', ')}
           </p>
         )}
       </div>
@@ -205,7 +213,11 @@ function SettingsForm({ initial }: { initial: NotificationSettingsInput }) {
           </div>
         )}
       </div>
-      {save.isError && <p className="px-4 pb-2 text-footnote text-danger-fg">Couldn't save — try again.</p>}
+      {save.isError ? (
+        <p className="px-4 pb-2 text-footnote text-danger-fg">Couldn't save — try again.</p>
+      ) : (
+        <SaveStatus {...save} className="px-4 pb-2" />
+      )}
     </>
   );
 }

@@ -74,7 +74,8 @@ designed with the user 2026-10-12).
    primary button and `subtle` text, 16px form fields, input and switch borders, colliding
    bottom overlays, the onboarding bounce, a readable resume review on phones), then
    ~~type/radius tokens and one sheet header~~ (built 2026-10-14, `fix/ui-audit-phase-2`; also
-   one selected style and a readable score ring), then the per-screen items.
+   one selected style and a readable score ring), then ~~the per-screen items~~ (built 2026-10-14,
+   `fix/ui-audit-phase-3`). The audit's list is closed.
 10. **Agent quality gates** (planned 2026-10-14, to be designed in detail later): keep code
    written by agents small and clean with deterministic checks, after Robert C. Martin's
    harness of tests, CRAP analysis and mutation testing. Measure a baseline first, then add

@@ -1,7 +1,8 @@
-import { AlertTriangle, ChevronLeft } from 'lucide-react';
+import { AlertTriangle, ChevronLeft, SearchX } from 'lucide-react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { PushLink } from '../../../components/PushLink';
-import { EmptyState, Skeleton } from '../../../components/ui';
+import { EmptyState, Skeleton, buttonStyles } from '../../../components/ui';
+import { ApiError } from '../../../lib/api';
 import { setNavDirection } from '../../../lib/navigation';
 import { useJobDetail } from '../../../lib/queries';
 import { useEdgeSwipeBack } from '../../../lib/hooks/useEdgeSwipeBack';
@@ -34,15 +35,25 @@ export function JobDetailPage() {
         {detail.data && <JobMenu job={detail.data} />}
       </div>
       {detail.isPending && <DetailSkeleton />}
-      {detail.isError && (
-        <EmptyState icon={<AlertTriangle className="size-6" />} title="Couldn't load this job">
-          {detail.error.message}
-        </EmptyState>
-      )}
+      {detail.isError &&
+        // A malformed or someone else's job id is 400/404 — say that, not the validator's words (UI audit D6).
+        (missing(detail.error) ? (
+          <EmptyState icon={<SearchX className="size-6" />} title="This job doesn't exist or was removed">
+            <PushLink to={back} dir="back" className={`${buttonStyles('secondary', 'sm')} mt-4`}>
+              Back to Jobs
+            </PushLink>
+          </EmptyState>
+        ) : (
+          <EmptyState icon={<AlertTriangle className="size-6" />} title="Couldn't load this job">
+            {detail.error.message}
+          </EmptyState>
+        ))}
       {detail.isSuccess && <Detail job={detail.data} />}
     </article>
   );
 }
+
+const missing = (e: Error) => e instanceof ApiError && (e.status === 400 || e.status === 404);
 
 function DetailSkeleton() {
   return (

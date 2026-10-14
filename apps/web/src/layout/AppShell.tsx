@@ -250,6 +250,7 @@ export function AppShell() {
 
       <div className="mx-auto max-w-6xl px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-36 sm:pt-6 sm:pb-12 print:max-w-none print:p-0">
         {/* A broken screen keeps the navigation, so the user can leave it. */}
+        <InstallPrompt show={!hidesTabBar(pathname)} />
         <ErrorBoundary resetKey={pathname}>
           <Outlet />
         </ErrorBoundary>
@@ -257,7 +258,6 @@ export function AppShell() {
 
       <RouteCommitted />
       <TailoringPill />
-      <InstallPrompt />
 
       {/* Phones: a frosted tab bar at the bottom, within thumb reach. */}
       {!hidesTabBar(pathname) && (

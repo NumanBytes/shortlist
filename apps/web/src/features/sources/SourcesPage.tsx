@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import { PageHeader } from '../../layout/AppShell';
 import { GmailCard } from './GmailCard';
+import { AdminCode, AdminNote } from '../../components/AdminNote';
 import { Badge, Button, Card, SectionLabel, Sheet, Skeleton, Switch, TextField } from '../../components/ui';
 import { providerLabel, timeAgo } from '../../lib/format';
 import {
@@ -33,7 +34,7 @@ function SpendTiles() {
       <Card className="space-y-1 px-4 py-3.5">
         <div className="flex items-baseline justify-between">
           <p className="text-footnote text-muted">AI spend · {month}</p>
-          <Link to="/profile" className="-my-3 py-3 text-footnote font-medium text-accent-fg">
+          <Link to="/profile?tab=settings" className="-my-3 py-3 text-footnote font-medium text-accent-fg">
             Budget
           </Link>
         </div>
@@ -81,6 +82,13 @@ export function JobsLink({ sourceId, count }: { sourceId: string; count: number 
   );
 }
 
+// "Greenhouse · " before a row's details — skipped when the provider is the source's own
+// name (an aggregator like Remote OK read "Remote OK · Remote OK", UI audit S3).
+const providerPrefix = (source: DiscoverySource) => {
+  const p = providerLabel(source.provider);
+  return p === source.name ? '' : `${p} · `;
+};
+
 // A source that failed or came back empty — shown as such, never confused with "no jobs
 // today" (docs/discovery.md §9.5), with a retry for that source alone.
 function AttentionRow({ source }: { source: DiscoverySource }) {
@@ -94,7 +102,7 @@ function AttentionRow({ source }: { source: DiscoverySource }) {
         <div className="min-w-0 flex-1">
           <p className="text-body font-semibold text-fg">{source.name}</p>
           <p className="text-caption text-muted">
-            {providerLabel(source.provider)} · ran {timeAgo(source.lastRunAt)}
+            {providerPrefix(source)}ran {timeAgo(source.lastRunAt)}
           </p>
         </div>
         <Badge tone={failed ? 'danger' : 'stretch'}>{failed ? 'Failed' : 'Empty'}</Badge>
@@ -118,7 +126,7 @@ function AttentionRow({ source }: { source: DiscoverySource }) {
           <RotateCw className="size-4" /> {retry.isSuccess ? 'Queued' : 'Retry'}
         </Button>
         {source.board !== null && (
-          <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
+          <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
             Edit URL
           </Button>
         )}
@@ -174,7 +182,8 @@ function SourceRow({ source }: { source: DiscoverySource }) {
       <div className="min-w-0 flex-1 space-y-0.5">
         <p className="text-body font-semibold text-fg">{source.name}</p>
         <p className="text-caption text-muted tabular-nums">
-          {providerLabel(source.provider)} · <JobsLink sourceId={source.id} count={source.jobCount} /> ·{' '}
+          {providerPrefix(source)}
+          <JobsLink sourceId={source.id} count={source.jobCount} /> ·{' '}
           {source.isEnabled ? (source.lastRunAt ? `ran ${timeAgo(source.lastRunAt)}` : 'not run yet') : 'paused'}
         </p>
         {toggle.isError && <p className="text-caption text-danger-fg">{toggle.error.message}</p>}
@@ -197,7 +206,10 @@ export function SourcesPage() {
   const active = (sources.data ?? []).filter((s) => s.supported);
   const planned = (sources.data ?? []).filter((s) => !s.supported);
   const attention = active.filter(needsAttention);
-  const healthy = active.filter((s) => !needsAttention(s));
+  // Working sources split by whether they're being watched (UI audit S1): a paused one isn't
+  // "healthy", it's off.
+  const watching = active.filter((s) => !needsAttention(s) && s.isEnabled);
+  const paused = active.filter((s) => !needsAttention(s) && !s.isEnabled);
 
   return (
     <main className="mx-auto max-w-2xl space-y-3">
@@ -207,10 +219,13 @@ export function SourcesPage() {
       {sources.isPending && <Skeleton className="h-64 w-full rounded-lg" />}
       {sources.isError && <p className="text-danger-fg">Couldn't load sources: {sources.error.message}</p>}
       {sources.isSuccess && sources.data.length === 0 && (
-        <p className="text-footnote text-muted">
-          No sources yet. Seed them with{' '}
-          <code className="rounded-sm bg-surface-2 px-1">pnpm --filter @shortlist/db db:seed:sources</code>.
-        </p>
+        <div className="text-footnote text-muted">
+          <p>No sources yet. Connect Gmail below to read your job alerts.</p>
+          <AdminNote>
+            <p>Load the starter list of job boards:</p>
+            <AdminCode>pnpm --filter @shortlist/db db:seed:sources</AdminCode>
+          </AdminNote>
+        </div>
       )}
 
       {attention.length > 0 && (
@@ -228,17 +243,27 @@ export function SourcesPage() {
         </section>
       )}
 
-      {healthy.length > 0 && (
-        <section aria-labelledby="healthy" className="space-y-2 pt-2">
-          <SectionLabel>
-            <span id="healthy">Healthy</span>
-          </SectionLabel>
-          <ul className="divide-y divide-border rounded-lg border border-border bg-surface">
-            {healthy.map((s) => (
-              <SourceRow key={s.id} source={s} />
-            ))}
-          </ul>
-        </section>
+      {(
+        [
+          ['watching', 'Watching', watching],
+          ['paused', 'Paused', paused],
+        ] as const
+      ).map(
+        ([id, label, list]) =>
+          list.length > 0 && (
+            <section key={id} aria-labelledby={id} className="space-y-2 pt-2">
+              <SectionLabel>
+                <span id={id}>
+                  {label} · <span className="tabular-nums">{list.length}</span>
+                </span>
+              </SectionLabel>
+              <ul className="divide-y divide-border rounded-lg border border-border bg-surface">
+                {list.map((s) => (
+                  <SourceRow key={s.id} source={s} />
+                ))}
+              </ul>
+            </section>
+          ),
       )}
 
       {planned.length > 0 && (

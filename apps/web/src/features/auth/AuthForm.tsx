@@ -101,7 +101,6 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
           value={fields.email}
           onChange={set('email')}
           error={errors.email}
-          className="h-[52px]"
         />
         <div className="space-y-1.5">
           <label htmlFor="password" className="block text-footnote font-medium text-muted">
@@ -115,8 +114,8 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
               value={fields.password}
               onChange={set('password')}
               aria-invalid={errors.password ? true : undefined}
-              aria-describedby={errors.password ? 'password-error' : undefined}
-              className={`${INPUT} h-[52px] pr-12`}
+              aria-describedby={errors.password ? 'password-error' : isRegister ? 'password-hint' : undefined}
+              className={`${INPUT} h-12 pr-12`}
             />
             <button
               type="button"
@@ -128,10 +127,18 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
               {showPassword ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
             </button>
           </div>
-          {errors.password && (
+          {/* The rule up front, not only after a failed submit (UI audit A2). Fields are all
+              48px, the TextField height (A1). */}
+          {errors.password ? (
             <p id="password-error" className="text-footnote text-danger-fg">
               {errors.password}
             </p>
+          ) : (
+            isRegister && (
+              <p id="password-hint" className="text-footnote text-muted">
+                At least 8 characters.
+              </p>
+            )
           )}
         </div>
         {formError && (
