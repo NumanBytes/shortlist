@@ -50,7 +50,22 @@ describe('JobDetailPage', () => {
     expect(screen.getByText('GraphQL')).toBeInTheDocument();
     expect(screen.getByText('related experience: REST APIs')).toBeInTheDocument();
     expect(screen.getByText(/Asks for 3\+ years/)).toBeInTheDocument();
-    expect(screen.getAllByText('Build MERN apps.')[0]!.closest('details')).not.toHaveAttribute('open');
+    expect(screen.getByText('Build MERN apps.')).toHaveClass('line-clamp-4');
+  });
+
+  // UI audit D6: a bad link reads as a missing job, not the API's validator message.
+  it('says a job that does not exist was removed', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() =>
+        Promise.resolve(
+          new Response(JSON.stringify({ message: 'Validation failed (uuid is expected)' }), { status: 400 }),
+        ),
+      ),
+    );
+    renderWithProviders(<JobDetailPage />, { path: '/jobs/:jobId', route: '/jobs/nope' });
+    expect(await screen.findByText("This job doesn't exist or was removed")).toBeInTheDocument();
+    expect(screen.queryByText(/uuid/)).not.toBeInTheDocument();
   });
 
   it('records Applied for an interested job — the user applies themselves', async () => {

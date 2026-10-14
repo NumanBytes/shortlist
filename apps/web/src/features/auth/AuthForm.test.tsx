@@ -17,6 +17,12 @@ describe('AuthForm', () => {
     expect(password).toHaveAttribute('type', 'text');
   });
 
+  // UI audit A2: the password rule shows before a failed submit, tied to the field.
+  it('states the password rule up front when registering', () => {
+    renderWithProviders(<AuthForm mode="register" />);
+    expect(screen.getByLabelText('Password')).toHaveAccessibleDescription('At least 8 characters.');
+  });
+
   it('checks the fields with the shared schema before sending anything', async () => {
     renderWithProviders(<AuthForm mode="login" />);
     await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));

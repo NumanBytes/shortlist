@@ -58,6 +58,8 @@ const patches = (fetchMock: ReturnType<typeof setup>) =>
     .filter(([, i]) => i?.method === 'PATCH')
     .map(([url, i]) => ({ url, body: JSON.parse(i!.body as string) }));
 
+const SETTINGS = { route: '/?tab=settings' };
+
 describe('ProfilePage', () => {
   it('shows who you are, your roles, and the account actions', async () => {
     setup();
@@ -66,7 +68,24 @@ describe('ProfilePage', () => {
     expect(screen.getByText('Lahore, Pakistan · numan@example.com')).toBeInTheDocument();
     expect(await screen.findByText('Software Engineer')).toBeInTheDocument();
     expect(screen.getByText('CloudCard Inc. · 2024 – Present')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Sign out/ })).toBeInTheDocument();
+    // Settings are the other half (UI audit N2).
+    expect(screen.queryByRole('button', { name: /Sign out/ })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    expect(await screen.findByRole('button', { name: /Sign out/ })).toBeInTheDocument();
+    expect(screen.queryByText('Software Engineer')).not.toBeInTheDocument();
+  });
+
+  // UI audit N1: opened with no in-app history (a bookmark), back goes to Jobs.
+  it('falls back to Jobs when there is nowhere to go back to', async () => {
+    setup();
+    renderWithProviders(<ProfilePage />);
+    expect(await screen.findByRole('button', { name: 'Jobs' })).toBeInTheDocument();
+  });
+
+  it('opens the resume import from a link', async () => {
+    setup();
+    renderWithProviders(<ProfilePage />, { route: '/?open=import' });
+    expect(await screen.findByRole('dialog', { name: 'Import from my resume' })).toBeInTheDocument();
   });
 
   it('edits contact details in a sheet, sending cleared fields as null', async () => {
@@ -96,18 +115,23 @@ describe('ProfilePage', () => {
     expect(patches(fetchMock)).toHaveLength(0);
   });
 
-  it('steps the monthly AI cap', async () => {
+  // UI audit G13: a run of taps is one request, sent when they pause.
+  it('steps the monthly AI cap, saving once per run of taps', async () => {
     const fetchMock = setup();
-    renderWithProviders(<ProfilePage />);
-    await userEvent.click(await screen.findByRole('button', { name: /Raise the cap/ }));
+    renderWithProviders(<ProfilePage />, SETTINGS);
+    const raise = await screen.findByRole('button', { name: /Raise the cap/ });
+    await userEvent.click(raise);
+    await userEvent.click(raise);
+    await userEvent.click(raise);
+    expect(screen.getByLabelText('Monthly budget in dollars')).toHaveValue('$7.5');
     await waitFor(() =>
-      expect(patches(fetchMock)).toEqual([{ url: '/api/v1/ai/settings', body: { monthlyBudgetUsd: 5.5 } }]),
+      expect(patches(fetchMock)).toEqual([{ url: '/api/v1/ai/settings', body: { monthlyBudgetUsd: 7.5 } }]),
     );
   });
 
   it('does not turn an emptied budget field into a $0 budget', async () => {
     const fetchMock = setup();
-    renderWithProviders(<ProfilePage />);
+    renderWithProviders(<ProfilePage />, SETTINGS);
     const input = await screen.findByLabelText('Monthly budget in dollars');
     await userEvent.click(input);
     await userEvent.clear(input);
@@ -117,7 +141,7 @@ describe('ProfilePage', () => {
 
   it('saves a typed budget', async () => {
     const fetchMock = setup();
-    renderWithProviders(<ProfilePage />);
+    renderWithProviders(<ProfilePage />, SETTINGS);
     const input = await screen.findByLabelText('Monthly budget in dollars');
     await userEvent.click(input);
     await userEvent.clear(input);

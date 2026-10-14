@@ -18,7 +18,7 @@ export function JobMenu({ job }: { job: JobDetail }) {
       onSelect: () =>
         void navigator.clipboard?.writeText(job.sourceUrl!).then(
           () => toast({ text: 'Link copied' }),
-          () => toast({ text: "Couldn't copy the link" }),
+          () => toast({ text: "Couldn't copy the link", tone: 'error' }),
         ),
     });
   actions.push({
@@ -28,7 +28,7 @@ export function JobMenu({ job }: { job: JobDetail }) {
     onSelect: () =>
       analyze.mutate(job.id, {
         onSuccess: () => toast({ text: 'Scoring again with your verified skills' }),
-        onError: (err) => toast({ text: err.message }),
+        onError: (err) => toast({ text: err.message, tone: 'error' }),
       }),
   });
   actions.push({

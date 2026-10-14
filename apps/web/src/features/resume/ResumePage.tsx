@@ -1,4 +1,4 @@
-import { AlertTriangle, Briefcase, Check, ChevronLeft, Copy, Download, RotateCw, ShieldX, ZoomIn } from 'lucide-react';
+import { AlertTriangle, Briefcase, Check, ChevronLeft, Copy, Download, ShieldX, ZoomIn } from 'lucide-react';
 import { MoreMenu } from '../../components/MoreMenu';
 import { resumeText } from '../../lib/format';
 import { useEdgeSwipeBack } from '../../lib/hooks/useEdgeSwipeBack';
@@ -10,7 +10,8 @@ import { Link, useNavigate, useParams } from 'react-router';
 import { ResumeDocument } from './ResumeDocument';
 import { ResumeReadView } from './ResumeReadView';
 import { useToast } from '../../components/Toast';
-import { Badge, Button, EmptyState, Segmented, Sheet, Skeleton, buttonStyles } from '../../components/ui';
+import { ResumeStatusBadge } from './ResumeStatusBadge';
+import { Badge, Button, EmptyState, Segmented, Sheet, Skeleton } from '../../components/ui';
 import { useApproveResume, useEducation, useJobDetail, useJobResume, useProfile } from '../../lib/queries';
 import type { JobResume, ResumeBullet } from '../../lib/types';
 
@@ -52,7 +53,8 @@ export function ResumePage() {
     };
   }, [name, company]);
 
-  // "···" (design board 3): copy the resume as text, tailor again, open the job.
+  // "···" (design board 3): copy the resume as text, or open the job — where "Tailor again"
+  // lives with its cost confirm (a second entry here only opened the job, UI audit R2).
   const variant = resume.data?.variant;
   const menu = variant && profile.data && (
     <MoreMenu
@@ -64,13 +66,8 @@ export function ResumePage() {
           onSelect: () =>
             void navigator.clipboard?.writeText(resumeText(variant.content, profile.data!, education.data ?? [])).then(
               () => toast({ text: 'Resume copied as text' }),
-              () => toast({ text: "Couldn't copy" }),
+              () => toast({ text: "Couldn't copy", tone: 'error' }),
             ),
-        },
-        {
-          label: 'Tailor again',
-          icon: <RotateCw className="size-[18px]" />,
-          onSelect: () => navigate(`/jobs/${jobId}`),
         },
         {
           label: 'Open the job',
@@ -128,10 +125,12 @@ export function ResumePage() {
     >
       {nav}
       <div className="flex items-center gap-2 print:hidden">
-        <Badge className="font-semibold tracking-[0.04em]" tone={stale ? 'danger' : approved ? 'accent' : 'neutral'}>
-          {stale ? 'OUT OF DATE' : approved ? 'APPROVED' : 'DRAFT'}
-        </Badge>
-        <p className="text-caption text-muted">Tap any bullet to see the evidence behind it.</p>
+        <ResumeStatusBadge variant={v} />
+        <p className="text-caption text-muted">
+          {/* "Click" where there's a mouse (UI audit R4). */}
+          <span className="pointer-coarse:hidden">Click</span>
+          <span className="hidden pointer-coarse:inline">Tap</span> any bullet to see the evidence behind it.
+        </p>
       </div>
 
       <div className="sm:hidden print:hidden">
@@ -293,12 +292,9 @@ function BulletSheet({
       onClose={onClose}
       title="Bullet evidence"
       footer={
-        <div className="grid grid-cols-2 gap-2">
-          <Link to="/evidence" className={buttonStyles('secondary')}>
-            Edit evidence
-          </Link>
-          <Button onClick={onClose}>Done</Button>
-        </div>
+        <Button className="w-full" onClick={onClose}>
+          Done
+        </Button>
       }
     >
       {bullet && (
@@ -331,6 +327,13 @@ function BulletSheet({
                         )}
                         <span className="text-caption text-muted tabular-nums">{monthYear(s.lastUsed)}</span>
                       </div>
+                      {/* Straight to this item's edit sheet, not the top of Evidence (UI audit R4). */}
+                      <Link
+                        to={`/evidence?edit=${id}`}
+                        className="inline-flex min-h-11 items-center text-body font-semibold text-accent-fg"
+                      >
+                        Edit this evidence
+                      </Link>
                     </>
                   ) : (
                     <p className="text-footnote text-danger-fg">An item this bullet used was deleted.</p>

@@ -29,14 +29,16 @@ let committed: (() => void) | null = null;
 // navigations as a low-priority update that `flushSync` can't force, and its own
 // `viewTransition` option needs the data router this app doesn't use.) <RouteCommitted>
 // resolves it from a layout effect: after the DOM is updated, before it's painted.
-export function pushNavigate(navigate: NavigateFunction, to: string, dir: 'forward' | 'back') {
+// `to` may be a history step (-1) for a real "back".
+export function pushNavigate(navigate: NavigateFunction, to: string | number, dir: 'forward' | 'back') {
   setNavDirection(dir);
-  if (typeof document.startViewTransition !== 'function') return void navigate(to);
+  const go = () => (typeof to === 'number' ? navigate(to) : navigate(to));
+  if (typeof document.startViewTransition !== 'function') return void go();
   document.startViewTransition(
     () =>
       new Promise<void>((resolve) => {
         committed = resolve;
-        void navigate(to);
+        void go();
         setTimeout(resolve, 300); // never hold the screen frozen
       }),
   );

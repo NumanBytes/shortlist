@@ -27,7 +27,8 @@ export function ActionBar({ job }: { job: JobDetail }) {
       <Button
         size="lg"
         variant="secondary"
-        className="px-3"
+        // No posting link: the status button takes the whole bar (UI audit D1).
+        className={`px-3 ${job.sourceUrl ? '' : 'col-span-2'}`}
         onClick={() => setOpen(true)}
         aria-haspopup="dialog"
         aria-label={`Status: ${STATUS_LABEL[job.status]}. Change status`}
@@ -41,9 +42,7 @@ export function ActionBar({ job }: { job: JobDetail }) {
         <a href={job.sourceUrl} target="_blank" rel="noopener" className={`${buttonStyles('primary', 'lg')} px-3`}>
           Open posting <ExternalLink className="size-[18px]" />
         </a>
-      ) : (
-        <span />
-      )}
+      ) : null}
       <StatusSheet job={job} open={open} onClose={() => setOpen(false)} />
     </div>
   );

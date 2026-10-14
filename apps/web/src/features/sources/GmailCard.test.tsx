@@ -47,7 +47,7 @@ describe('GmailCard', () => {
   it('explains it is not set up when the server has no Google client', async () => {
     mockFetch({ ...notConnected, configured: false });
     renderWithProviders(<GmailCard />);
-    expect(await screen.findByText(/Not set up on this server yet/)).toBeInTheDocument();
+    expect(await screen.findByText(/aren't turned on for this server yet/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Connect Gmail/ })).not.toBeInTheDocument();
   });
 

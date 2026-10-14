@@ -3,7 +3,6 @@
 // drawn with theme tokens (accent tile, on-accent bars) so dark mode follows.
 const TILE = {
   sm: 'size-8', // header
-  md: 'size-12', // install sheet
   lg: 'size-16 rounded-md shadow-[0_10px_24px_-8px_rgb(5_150_105/0.5)]', // sign-in
 };
 

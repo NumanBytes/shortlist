@@ -4,6 +4,7 @@ import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { elapsed } from '../../lib/format';
 import { PushLink } from '../../components/PushLink';
+import { ResumeStatusBadge } from './ResumeStatusBadge';
 import {
   TAILOR_POLL_LIMIT_MS,
   resumeKeys,
@@ -13,7 +14,7 @@ import {
 } from '../../lib/queries';
 import type { JobDetail, JobResume } from '../../lib/types';
 import { useNow } from '../../lib/hooks/useNow';
-import { Badge, Button, Card, Sheet, buttonStyles } from '../../components/ui';
+import { Button, Card, Sheet, buttonStyles } from '../../components/ui';
 
 const shortDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 
@@ -33,7 +34,7 @@ export function ResumeSection({ job }: { job: JobDetail }) {
           <h2 id="resume-heading" className="flex-1 text-body font-semibold text-fg">
             Resume for this job
           </h2>
-          {resume.data?.variant && <VariantBadge resume={resume.data} />}
+          {resume.data?.variant && <ResumeStatusBadge variant={resume.data.variant} />}
         </div>
         <div className="mt-3 text-body">
           {job.status === 'DISCOVERED' ? (
@@ -107,10 +108,10 @@ export function TailoringProgress({ jobId, resume }: { jobId: string; resume: Jo
           <Callout
             tone="stretch"
             icon={<AlertTriangle className="size-[18px]" />}
-            title="Still waiting — the background worker isn't running."
+            title="Still waiting — Shortlist's background service isn't running."
           >
             Queued {time} ago, so tailoring hasn't started. Nothing has been charged. It starts by itself once the
-            worker is back.
+            service is back.
           </Callout>
         </output>
         {cancelButton}
@@ -170,16 +171,6 @@ export function TailoringProgress({ jobId, resume }: { jobId: string; resume: Jo
   );
 }
 
-function VariantBadge({ resume }: { resume: JobResume }) {
-  const v = resume.variant!;
-  if (v.stale.length) return <Badge tone="danger">Out of date</Badge>;
-  return v.status === 'APPROVED' ? (
-    <Badge tone="accent">Approved</Badge>
-  ) : (
-    <Badge tone="stretch">Draft — review it</Badge>
-  );
-}
-
 function Body({ job, resume }: { job: JobDetail; resume: JobResume }) {
   const prepare = usePrepareResume();
   const tailor = () => prepare.mutate({ jobId: job.id, body: { mode: 'tailor' } });
@@ -201,7 +192,7 @@ function Body({ job, resume }: { job: JobDetail; resume: JobResume }) {
         title={`Tailoring deferred: ${resume.error ?? ''}`}
       >
         It runs once there's budget again —{' '}
-        <Link to="/profile" className="font-medium text-accent-fg underline-offset-2 hover:underline">
+        <Link to="/profile?tab=settings" className="font-medium text-accent-fg underline-offset-2 hover:underline">
           change the monthly cap
         </Link>
         .
@@ -234,7 +225,7 @@ function Body({ job, resume }: { job: JobDetail; resume: JobResume }) {
         ) : (
           <div>
             <p className="font-semibold text-fg">
-              {approved ? `Approved ${v.approvedAt ? shortDate(v.approvedAt) : ''}` : 'Resume ready to review'}
+              {approved ? `Approved ${v.approvedAt ? shortDate(v.approvedAt) : ''}` : 'Draft ready to review'}
             </p>
             <p className="text-footnote text-muted">
               {resume.reused && current

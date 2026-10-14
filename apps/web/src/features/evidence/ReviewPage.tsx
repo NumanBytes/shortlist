@@ -1,10 +1,13 @@
-import { ChevronDown, ChevronUp, PartyPopper, Plus } from 'lucide-react';
+import { ChevronDown, ChevronUp, FileUp, PartyPopper, Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router';
 import { useAuth } from '../auth/AuthProvider';
 import { PageHeader } from '../../layout/AppShell';
 import { EvidenceSheet, type EvidenceSheetMode } from './AddEvidence';
 import { EvidenceItem } from './EvidenceItem';
-import { Badge, Button, Card, EmptyState, Skeleton } from '../../components/ui';
+import { AdminCode, AdminNote } from '../../components/AdminNote';
+import { PushLink } from '../../components/PushLink';
+import { Badge, Button, buttonStyles, Card, EmptyState, Skeleton } from '../../components/ui';
 import { useProjects, useSkills, useWorkExperiences } from '../../lib/queries';
 import type { Evidence, Skill } from '../../lib/types';
 import { bottomAbove } from '../../lib/hooks/useBottomInset';
@@ -20,6 +23,32 @@ export function ReviewPage() {
   // Which groups are open. Until the user toggles one, the first group with something to
   // review opens by itself — the review queue leads.
   const [open, setOpen] = useState<Record<string, boolean>>({});
+  // `?edit=<evidenceId>` (a resume bullet's "Edit this evidence", UI audit R4) opens that
+  // item's group and edit sheet once the skills are loaded — once per id (state adjusted
+  // during render, React's pattern for reacting to a changed input); closing clears it.
+  const [params, setParams] = useSearchParams();
+  const editId = params.get('edit');
+  const [handledEdit, setHandledEdit] = useState<string | null>(null);
+  if (editId && skills.data && handledEdit !== editId) {
+    setHandledEdit(editId);
+    const skill = skills.data.find((s) => s.evidence.some((e) => e.id === editId));
+    const evidence = skill?.evidence.find((e) => e.id === editId);
+    if (skill && evidence) {
+      setOpen((o) => ({ ...o, [skill.id]: true }));
+      setSheet({ kind: 'edit', evidence, skillName: skill.name });
+    }
+  }
+  const closeSheet = () => {
+    setSheet(null);
+    if (editId)
+      setParams(
+        (p) => {
+          p.delete('edit');
+          return p;
+        },
+        { replace: true },
+      );
+  };
 
   const list = skills.data ?? [];
   const all = list.flatMap((s) => s.evidence);
@@ -81,13 +110,21 @@ export function ReviewPage() {
       )}
       {skills.isError && <p className="text-danger-fg">Couldn't load your skills: {skills.error.message}</p>}
       {skills.isSuccess && all.length === 0 && (
-        <div className="space-y-2 text-body text-muted">
-          <p>No evidence yet. Tap “Add skill”, or load your career data with the seed, then refresh:</p>
-          <pre className="overflow-x-auto rounded-sm bg-surface-2 p-3 text-caption text-fg">
-            {`SEED_USER_EMAIL=${email ?? 'you@example.com'} pnpm --filter @shortlist/db db:seed:career`}
-          </pre>
-          <p>Everything added starts unverified.</p>
-        </div>
+        <EmptyState icon={<FileUp className="size-6" />} title="No evidence yet">
+          <p>Import your resume to start, or add a skill yourself. Everything starts unverified until you check it.</p>
+          <div className="mt-4 flex justify-center gap-2">
+            <PushLink to="/profile?open=import" dir="forward" className={buttonStyles('primary')}>
+              Import resume
+            </PushLink>
+            <Button variant="secondary" onClick={() => setSheet({ kind: 'new-skill' })}>
+              Add skill
+            </Button>
+          </div>
+          <AdminNote className="mt-3 text-left">
+            <p>Load career data from the repo's seed instead:</p>
+            <AdminCode>{`SEED_USER_EMAIL=${email ?? 'you@example.com'} pnpm --filter @shortlist/db db:seed:career`}</AdminCode>
+          </AdminNote>
+        </EmptyState>
       )}
       {skills.isSuccess && all.length > 0 && shown.length === 0 && (
         <EmptyState icon={<PartyPopper className="size-6" />} title="Everything is verified" />
@@ -120,7 +157,7 @@ export function ReviewPage() {
         </button>
       </div>
 
-      <EvidenceSheet mode={sheet} onClose={() => setSheet(null)} onSaved={() => setSheet(null)} />
+      <EvidenceSheet mode={sheet} onClose={closeSheet} onSaved={closeSheet} />
     </div>
   );
 }
@@ -190,7 +227,7 @@ function SkillGroup({
   );
 }
 
-// The signed-in user's email, for the seed hint.
+// The signed-in user's email, for the admin's seed hint.
 function useEmail() {
   const { state } = useAuth();
   return state.status === 'signedIn' ? state.user.email : null;

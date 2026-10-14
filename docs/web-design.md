@@ -475,3 +475,49 @@ Each phase ends with the headless-browser pass at 390 / 768 / 1280px in light an
   were 2.2–2.5:1). The track uses `ring-track` (#dde2e9), which nothing used before. The
   unscored ring's dashed edge is `input-border`, so it no longer reads as an empty gap.
 
+**Phase 3 built (2026-10-14).** Every remaining item, checked on the audit stack at 390px and
+1280px. E1 and J3 were done in earlier phases.
+- **Toast (G6):** holds while hovered, touched or focused, and restarts its timer when let
+  go; 8 s with an action, 5 s without. Failures pass `tone: 'error'` for an alert icon
+  instead of the check.
+- **Developer text (G12):** users read plain words and a real next step; env var names,
+  commands and doc sections sit behind `AdminNote` ("For the server admin"). The worker is
+  "Shortlist's background service" in user-facing text. Evidence's empty state offers
+  **Import resume** (`/profile?open=import`) and **Add skill**.
+- **Saved confirmation (G13):** `SaveStatus` ("Saving…", then "Saved" for 2.5 s, a polite
+  live region) on Notifications and Budget. The budget stepper sends one request 600 ms
+  after the last tap. Source switches need no note: they flip only when the server confirms.
+- **Never-claim undo (G14):** removing a term takes effect at once and a toast offers Undo,
+  which adds the same term back (recreated, not a delayed delete, so the list is never
+  wrong while the toast shows).
+- **Profile (N1, N2):** two parts in one screen, **Career | Settings** (`?tab=settings`).
+  Career is what resumes are built from: header, roles, projects, education, import,
+  never-claim list. Settings is the job search, notifications, budget and account. "Edit"
+  shows on Career only. Back is a history step when there is one, else Jobs. A separate
+  route was not needed: one screen keeps the avatar's single entry point.
+- **Onboarding (N4):** a Back link from step 2, a three-segment progress bar beside "Step n
+  of 3", and the same pair on every step (the step's primary, then "Skip for now"); step 1
+  turns its skip into a primary "Continue" once an import has started.
+- **Install prompt (I1):** an inline banner at the top of a tab screen, not a modal, shown
+  only after a second visit (counted per browser session) or once a job has been opened;
+  never during onboarding or on a pushed screen. iOS gets the two steps and one "Not now".
+- **Jobs (J1, J2, J4, J5, J6):** segment counts at caption size so labels keep their room;
+  sort is a two-option control (By day / Best match); chips wrap on wide screens and fade
+  at the edge on phones; weaker matches sit under "Weaker matches, all days" at full
+  contrast; the toggle's label is one string (the button's flex gap had doubled its spaces).
+- **Job detail (D1–D6):** the status button spans the bar when there's no posting link; the
+  description is `fg` at 15px, grows in place (no inner scroller), shows "Read more" only
+  when clamped and "Show less" when open; Moderate gaps are amber; Risks are amber
+  throughout; a 400/404 reads "This job doesn't exist or was removed" with a way back.
+- **Resume (R2, R3, R4):** the menu's "Tailor again" (it only opened the job) is gone;
+  `ResumeStatusBadge` says Draft / Approved / Out of date on both screens; each evidence item
+  in a bullet's sheet links to `/evidence?edit=<id>`, which opens its group and edit sheet;
+  the hint says "Click" on pointer devices.
+- **Sources (S1–S3):** "Watching" and "Paused" groups instead of "Healthy"; the Gmail result
+  banner's margin sits below it; a provider equal to the source's name isn't repeated;
+  "Edit URL" is a secondary button.
+- **Sign in (A1, A2):** every field 48px; Register states "At least 8 characters." under
+  the password before any submit, tied to the field with `aria-describedby`.
+- **Profile rows (P1, P2):** devices read "Chrome on Android" (`deviceName()` in
+  `lib/format.ts`); row subtitles wrap to two lines.
+

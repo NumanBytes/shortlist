@@ -1,15 +1,21 @@
 import { Minus, Plus } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { SaveStatus } from '../../components/SaveStatus';
 import { useAiUsage, useUpdateAiSettings } from '../../lib/queries';
 import { Group } from './ListGroup';
 
 // The monthly AI cap (a stepper; the middle is editable) and the resume-reuse threshold
-// (docs/ai-scoring.md §12.3, docs/resume.md §13.2). Both save straight away; the server confirms.
+// (docs/ai-scoring.md §12.3, docs/resume.md §13.2). Both save on change and say so; a run of
+// stepper taps is one save, sent once they pause (UI audit G13).
+const STEP_SAVE_MS = 600;
 export function Budget() {
   const usage = useAiUsage();
   const update = useUpdateAiSettings();
   const [draft, setDraft] = useState<string | null>(null);
   const [overlap, setOverlap] = useState<number | null>(null);
+  const [stepped, setStepped] = useState<number | null>(null); // taps not yet sent
+  const stepTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(stepTimer.current), []);
   if (!usage.data) return null;
   const u = usage.data;
   const cap = u.settings.monthlyBudgetUsd;
@@ -17,6 +23,15 @@ export function Budget() {
     if (Number.isFinite(value) && value >= 0 && value <= 1000 && value !== cap)
       update.mutate({ monthlyBudgetUsd: value });
     setDraft(null);
+  };
+  const step = (delta: number) => {
+    const next = Math.min(1000, Math.max(0, (stepped ?? cap) + delta));
+    setStepped(next);
+    clearTimeout(stepTimer.current);
+    stepTimer.current = setTimeout(() => {
+      if (next !== cap) update.mutate({ monthlyBudgetUsd: next }, { onSettled: () => setStepped(null) });
+      else setStepped(null);
+    }, STEP_SAVE_MS);
   };
   const pct = Math.round((overlap ?? u.settings.resumeReuseMinOverlap) * 100);
   return (
@@ -30,7 +45,7 @@ export function Budget() {
           <button
             type="button"
             aria-label="Lower the cap by $1"
-            onClick={() => saveCap(Math.max(0, cap - 1))}
+            onClick={() => step(-1)}
             className="grid h-full w-11 place-items-center text-fg"
           >
             <Minus className="size-4" />
@@ -41,7 +56,7 @@ export function Budget() {
           <input
             id="budget"
             inputMode="decimal"
-            value={draft ?? `$${cap}`}
+            value={draft ?? `$${stepped ?? cap}`}
             onFocus={() => setDraft(String(cap))}
             onChange={(e) => setDraft(e.target.value)}
             // Number('') is 0 — an emptied field must not silently set a $0 budget.
@@ -52,7 +67,7 @@ export function Budget() {
           <button
             type="button"
             aria-label="Raise the cap by $1"
-            onClick={() => saveCap(cap + 1)}
+            onClick={() => step(1)}
             className="grid h-full w-11 place-items-center text-fg"
           >
             <Plus className="size-4" />
@@ -83,7 +98,11 @@ export function Budget() {
           higher fits better.
         </p>
       </div>
-      {update.isError && <p className="px-4 pb-3 text-caption text-danger-fg">{update.error.message}</p>}
+      {update.isError ? (
+        <p className="px-4 pb-3 text-caption text-danger-fg">{update.error.message}</p>
+      ) : (
+        <SaveStatus {...update} isPending={update.isPending || stepped !== null} className="px-4 pb-3" />
+      )}
     </Group>
   );
 }

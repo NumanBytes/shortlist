@@ -129,3 +129,40 @@ export function resumeText(
     .join('\n')
     .trim();
 }
+
+// "Chrome on Android" from a push device's user-agent string (UI audit P1) — the raw string
+// meant nothing to a person choosing which device is which. Order matters: Edge, Opera and
+// Samsung Internet all also claim to be Chrome, and Chrome claims to be Safari.
+export function deviceName(userAgent: string | null): string {
+  if (!userAgent) return 'A device';
+  const ua = userAgent;
+  const browser = /Edg(e|A|iOS)?\//.test(ua)
+    ? 'Edge'
+    : /OPR\/|Opera/.test(ua)
+      ? 'Opera'
+      : /SamsungBrowser/.test(ua)
+        ? 'Samsung Internet'
+        : /Firefox|FxiOS/.test(ua)
+          ? 'Firefox'
+          : /Chrome|CriOS/.test(ua)
+            ? 'Chrome'
+            : /Safari/.test(ua)
+              ? 'Safari'
+              : 'A browser';
+  const os = /iPhone/.test(ua)
+    ? 'iPhone'
+    : /iPad/.test(ua)
+      ? 'iPad'
+      : /Android/.test(ua)
+        ? 'Android'
+        : /CrOS/.test(ua)
+          ? 'ChromeOS'
+          : /Mac OS X|Macintosh/.test(ua)
+            ? 'Mac'
+            : /Windows/.test(ua)
+              ? 'Windows'
+              : /Linux/.test(ua)
+                ? 'Linux'
+                : null;
+  return os ? `${browser} on ${os}` : browser;
+}

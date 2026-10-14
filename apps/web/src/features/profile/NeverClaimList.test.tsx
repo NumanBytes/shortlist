@@ -21,6 +21,18 @@ describe('NeverClaimList', () => {
     );
   });
 
+  // UI audit G14: a truthfulness safeguard comes back with one tap.
+  it('offers Undo after removing a term, which adds it back', async () => {
+    const fetchMock = mockFetch([azure, node]);
+    renderWithProviders(<NeverClaimList />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Remove Node.js' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Undo' }));
+    await waitFor(() => {
+      const post = fetchMock.mock.calls.find(([, i]) => i?.method === 'POST');
+      expect(JSON.parse(post![1]!.body as string)).toEqual({ term: 'Node.js', scope: 'PAID_WORK', note: null });
+    });
+  });
+
   it('adds a paid-work-only term', async () => {
     const fetchMock = mockFetch([]);
     renderWithProviders(<NeverClaimList />);

@@ -48,6 +48,6 @@ describe('SourcesPage', () => {
     expect(await screen.findByText('$0.12')).toBeInTheDocument();
     expect(screen.getByText('of $4.50')).toBeInTheDocument();
     expect(screen.getByText('$0.05')).toBeInTheDocument(); // today
-    expect(screen.getByRole('link', { name: 'Budget' })).toHaveAttribute('href', '/profile');
+    expect(screen.getByRole('link', { name: 'Budget' })).toHaveAttribute('href', '/profile?tab=settings');
   });
 });

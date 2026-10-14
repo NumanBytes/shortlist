@@ -188,7 +188,9 @@ export function Segmented<T extends string>({
             }`}
           >
             <span className="truncate">{o.label}</span>
-            {o.count !== undefined && <span className="tabular-nums">{o.count}</span>}
+            {/* Counts are smaller than labels so a two-digit count doesn't push "Interested"
+                into an ellipsis on a phone (UI audit J1). */}
+            {o.count !== undefined && <span className="shrink-0 text-caption tabular-nums">{o.count}</span>}
           </button>
         );
       })}

@@ -44,7 +44,7 @@ describe('FindNewJobs', () => {
   it('says so when no worker is running, instead of pretending to check', async () => {
     mockFetch(status({ workerOnline: false }));
     renderWithProviders(<FindNewJobs />);
-    expect(await screen.findByText(/background worker isn't running/)).toBeInTheDocument();
+    expect(await screen.findByText(/background service isn't running/)).toBeInTheDocument();
   });
 
   it('says when sources can be checked again during the cooldown (no Gmail to check)', async () => {

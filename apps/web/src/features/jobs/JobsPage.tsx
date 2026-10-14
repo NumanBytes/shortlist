@@ -1,4 +1,4 @@
-import { ArrowUpDown, ChevronDown, Filter, Inbox, MousePointerClick, RotateCw, WifiOff, X } from 'lucide-react';
+import { ChevronDown, Filter, Inbox, MousePointerClick, RotateCw, WifiOff, X } from 'lucide-react';
 import { useState } from 'react';
 import { Outlet, useParams, useSearchParams } from 'react-router';
 import { groupByDay } from './by-day';
@@ -146,7 +146,9 @@ function JobsList({ selectedId }: { selectedId?: string }) {
 
       {jobs.isSuccess && all.length > 0 && (
         <>
-          <fieldset className="-mx-4 flex min-w-0 gap-2 overflow-x-auto border-0 px-4 py-0 sm:mx-0 sm:px-0">
+          {/* Phones scroll the chips sideways, with a fade at the edge saying there's more;
+              wider screens wrap them so none is cut off (UI audit J5). */}
+          <fieldset className="-mx-4 flex min-w-0 gap-2 overflow-x-auto border-0 py-0 pr-10 pl-4 [mask-image:linear-gradient(to_right,black_calc(100%-3rem),transparent)] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:[mask-image:none]">
             <legend className="sr-only">Filter by verdict</legend>
             <Chip pressed={s.verdict === 'all'} onClick={() => s.setVerdict('all')} count={all.length}>
               All
@@ -171,19 +173,23 @@ function JobsList({ selectedId }: { selectedId?: string }) {
               Skip
             </Chip>
           </fieldset>
-          <div className="flex items-center justify-between">
+          {/* Both orders on show, the current one selected (UI audit J4) — not one button
+              whose label names the state it's already in. */}
+          <div className="flex items-center justify-between gap-3">
             <p className="px-1 text-caption text-muted tabular-nums">
               {visible.length} {visible.length === 1 ? 'match' : 'matches'}
             </p>
-            <Button
-              size="sm"
-              variant="ghost"
-              aria-label={`Sort: ${s.sort === 'score' ? 'best match' : 'newest day first'} (tap to change)`}
-              onClick={() => s.setSort(s.sort === 'score' ? 'day' : 'score')}
-              className="font-medium"
-            >
-              <ArrowUpDown className="size-4" /> {s.sort === 'score' ? 'Best match' : 'By day'}
-            </Button>
+            <div className="w-52">
+              <Segmented<JobSort>
+                label="Sort"
+                value={s.sort}
+                onChange={s.setSort}
+                options={[
+                  { value: 'day', label: 'By day' },
+                  { value: 'score', label: 'Best match' },
+                ]}
+              />
+            </div>
           </div>
         </>
       )}
@@ -241,26 +247,33 @@ function JobsList({ selectedId }: { selectedId?: string }) {
         </ul>
       )}
 
+      {/* Weaker matches from every day, folded together and labelled so (UI audit J6), at
+          full contrast: dimming them dropped secondary text below 4.5:1 (J2). */}
       {weaker.length > 0 && (
-        <div>
+        <section aria-labelledby="weaker" className="space-y-2.5">
+          <h2 id="weaker" className="flex items-baseline justify-between px-1 pt-1 text-body font-semibold text-fg">
+            Weaker matches, all days
+            <span className="text-caption font-normal text-muted tabular-nums">{weaker.length}</span>
+          </h2>
           <Button
             variant="ghost"
             aria-expanded={showWeaker}
             onClick={() => setShowWeaker((v) => !v)}
             className="w-full font-medium"
           >
-            {showWeaker ? 'Hide' : 'Show'} <span className="tabular-nums">{weaker.length}</span> weaker{' '}
-            {weaker.length === 1 ? 'match' : 'matches'}
+            <span className="tabular-nums">
+              {`${showWeaker ? 'Hide' : 'Show'} ${weaker.length} weaker ${weaker.length === 1 ? 'match' : 'matches'}`}
+            </span>
             <ChevronDown className={`size-4 transition ${showWeaker ? 'rotate-180' : ''}`} />
           </Button>
           {showWeaker && (
-            <ul className="mt-1 space-y-2.5 opacity-80">
+            <ul className="space-y-2.5">
               {weaker.map((j: JobListItem) => (
                 <JobRow key={j.id} job={j} selected={j.id === selectedId} />
               ))}
             </ul>
           )}
-        </div>
+        </section>
       )}
     </div>
   );
