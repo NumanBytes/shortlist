@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { JobResume } from '../../lib/types';
 import { job } from '../../test/fixtures';
@@ -98,6 +98,8 @@ describe('ResumePage', () => {
   it('renders the CV layout clean — as it will print — and what the checks removed', async () => {
     setup(resume('DRAFT'));
     render();
+    // Phones open the reflowed Read view; "Page" shows the document exactly as it prints.
+    await userEvent.click(await screen.findByRole('button', { name: 'Page' }));
     expect(await screen.findByRole('heading', { name: 'Numan Razzaq' })).toBeInTheDocument();
     expect(screen.getByText(/numan@example.com \| \+92 300 0000000 \| Lahore, Pakistan/)).toBeInTheDocument();
     expect(screen.getByText('Built frontend features in React.')).toBeInTheDocument();
@@ -111,10 +113,21 @@ describe('ResumePage', () => {
   it('tapping a bullet shows the evidence it was built from, in your words', async () => {
     setup(resume('DRAFT'));
     render();
-    await userEvent.click(await screen.findByRole('button', { name: /Built frontend features in React/ }));
+    const experience = await screen.findByRole('region', { name: 'Experience' });
+    await userEvent.click(within(experience).getByRole('button', { name: /Built frontend features in React/ }));
     const sheet = screen.getByRole('dialog', { name: 'Bullet evidence' });
     expect(sheet).toHaveTextContent('“Used React to build frontend features.”');
     expect(sheet).toHaveTextContent(/Commercial.*Production.*Verified/);
+  });
+
+  it('the Read view reflows the resume at reading size, each bullet a full-width row', async () => {
+    setup(resume('DRAFT'));
+    render();
+    const experience = await screen.findByRole('region', { name: 'Experience' });
+    expect(within(experience).getByText(/Software Engineer · CloudCard Inc\./)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Read' })).toHaveAttribute('aria-pressed', 'true');
+    // The printed page stays in the document (hidden on phones), so printing never depends on the view.
+    expect(screen.getByRole('heading', { name: 'Numan Razzaq' })).toBeInTheDocument();
   });
 
   it('copies the resume as plain text from the ··· menu, in the printed order', async () => {

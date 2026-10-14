@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { providerLabel } from '../../lib/format';
 import { usePasteDescription } from '../../lib/queries';
 import type { JobDetail } from '../../lib/types';
-import { Button, Card } from '../../components/ui';
+import { Button, Card, INPUT } from '../../components/ui';
 
 // A job read from an alert email has only the alert's summary (docs/email-alerts.md §10.5). Shortlist
 // can't fetch the posting — the portals forbid scraping — so the user pastes it, once, and
@@ -53,7 +53,7 @@ function PasteForm({ job }: { job: JobDetail }) {
         onChange={(e) => setText(e.target.value)}
         placeholder={`Open the posting${job.sourceUrl ? ' (Open posting, above)' : ''}, select the whole description, copy, and paste it here.`}
         aria-invalid={error ? true : undefined}
-        className="block w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-fg placeholder:text-subtle focus:border-accent focus:outline-none aria-invalid:border-danger"
+        className={`${INPUT} py-3 leading-snug`}
       />
       {(error || paste.isError) && <p className="text-xs text-danger-fg">{error ?? paste.error?.message}</p>}
       <div className="flex flex-wrap items-center gap-3">

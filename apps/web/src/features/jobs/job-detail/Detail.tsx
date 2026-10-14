@@ -9,6 +9,7 @@ import { useAnalyzeJob } from '../../../lib/queries';
 import type { JobDetail } from '../../../lib/types';
 import { Gaps, Risks, Strengths } from './MatchSections';
 import { ActionBar } from './StatusControls';
+import { useBottomInset } from '../../../lib/hooks/useBottomInset';
 
 // "4 of 5 required skills backed by verified evidence" (design board 2): a fact from the
 // analysis, not an adjective. Falls back to the verdict's meaning when the posting names
@@ -36,6 +37,7 @@ export function Detail({ job }: { job: JobDetail }) {
       : job.workMode.charAt(0) + job.workMode.slice(1).toLowerCase()
     : null;
   const where = sourceName(job);
+  const actionBar = useBottomInset('bar');
 
   return (
     <>
@@ -76,7 +78,10 @@ export function Detail({ job }: { job: JobDetail }) {
         </p>
         {/* One action bar: fixed at the bottom on phones (thumb reach; the tab bar is
             hidden on this screen), inline under the title on wider screens. */}
-        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-glass px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl lg:static lg:z-auto lg:border-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none print:hidden">
+        <div
+          ref={actionBar}
+          className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-glass px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl lg:static lg:z-auto lg:border-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none print:hidden"
+        >
           <ActionBar job={job} />
         </div>
       </header>

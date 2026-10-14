@@ -1,4 +1,5 @@
 import { Check } from 'lucide-react';
+import { bottomAbove, useBottomInset } from '../lib/hooks/useBottomInset';
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 
 interface ToastMessage {
@@ -15,6 +16,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const [toast, setToast] = useState<ToastMessage | null>(null);
   const [leaving, setLeaving] = useState(false);
   const nextId = useRef(0);
+  const inset = useBottomInset('toast');
   const show = useCallback((t: Omit<ToastMessage, 'id'>) => {
     setLeaving(false);
     setToast({ ...t, id: ++nextId.current });
@@ -35,9 +37,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={show}>
       {children}
+      {/* Above the bottom bar and the tailoring pill, never over them (UI audit G7). */}
       <div
+        ref={inset}
         aria-live="polite"
-        className="pointer-events-none fixed inset-x-3 bottom-[calc(72px+env(safe-area-inset-bottom))] z-40 flex justify-center sm:bottom-6 print:hidden"
+        style={{ bottom: bottomAbove('pill') }}
+        className="pointer-events-none fixed inset-x-3 z-40 flex justify-center print:hidden"
       >
         {toast && (
           <output

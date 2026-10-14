@@ -11,7 +11,7 @@
   --border: #e2e6ec;
   --fg: #0f172a;
   --muted: #586174;
-  --subtle: #8a93a3;
+  --subtle: #656d7f; /* ≥4.5:1 on bg and surface (WCAG 1.4.3; was #8a93a3, 3.1:1) */
   --primary: #0f172a;
   --primary-fg: #ffffff;
   /* Accent: primary buttons, active tab, links (mobile design, 2026-10-04). */
@@ -19,6 +19,14 @@
   --accent-fg: #047857; /* accent-coloured text on a light surface */
   --accent-soft: #d1fae5; /* tinted buttons, focus rings, selected rows */
   --on-accent: #ffffff; /* text on a solid accent button */
+  /* Filled surfaces that carry text (primary buttons): white on #059669 was 3.8:1, below
+     WCAG's 4.5:1, so text-bearing fills use this darker green (5.5:1). The brand accent
+     stays for rings, switches, icons and progress bars (3:1 is enough there). */
+  --accent-strong: #047857;
+  /* Form-control edges (inputs, selects, radio rings, an off switch): ≥3:1 against the
+     surface (WCAG 1.4.11). Card borders stay the lighter --border: they're decoration. */
+  --input-border: #848d9e;
+  --on-danger: #ffffff; /* text on a solid danger fill (the tab badge) */
   --apply: #10b981;
   --apply-bg: #d1fae5;
   --apply-fg: #047857;
@@ -51,13 +59,16 @@
     --border: #253047;
     --fg: #e8edf4;
     --muted: #a1abbb;
-    --subtle: #6f7a8d;
+    --subtle: #8590a3;
     --primary: #e8edf4;
     --primary-fg: #0a0e16;
     --accent: #34d399;
     --accent-fg: #34d399;
     --accent-soft: rgb(52 211 153 / 0.14);
     --on-accent: #04221a;
+    --accent-strong: #34d399;
+    --input-border: #667287;
+    --on-danger: #1a0505;
     --apply: #10b981;
     --apply-bg: rgb(16 185 129 / 0.14);
     --apply-fg: #34d399;
@@ -85,13 +96,16 @@
   --border: #253047;
   --fg: #e8edf4;
   --muted: #a1abbb;
-  --subtle: #6f7a8d;
+  --subtle: #8590a3;
   --primary: #e8edf4;
   --primary-fg: #0a0e16;
   --accent: #34d399;
   --accent-fg: #34d399;
   --accent-soft: rgb(52 211 153 / 0.14);
   --on-accent: #04221a;
+  --accent-strong: #34d399;
+  --input-border: #667287;
+  --on-danger: #1a0505;
   --apply: #10b981;
   --apply-bg: rgb(16 185 129 / 0.14);
   --apply-fg: #34d399;
@@ -126,6 +140,9 @@
   --color-accent-fg: var(--accent-fg);
   --color-accent-soft: var(--accent-soft);
   --color-on-accent: var(--on-accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-input-border: var(--input-border);
+  --color-on-danger: var(--on-danger);
   --color-scrim: var(--scrim);
   --color-glass: var(--glass);
   --color-toast-accent: var(--toast-accent);

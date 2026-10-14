@@ -57,4 +57,11 @@ describe('AppShell navigation', () => {
     expect(bar).toHaveAttribute('href', '/jobs/j9');
     expect(bar).toHaveTextContent('Kwanso');
   });
+
+  it('hides the tab bar during onboarding, a focused flow', () => {
+    mockFetch([]);
+    renderWithProviders(<AppShell />, { path: '*', route: '/welcome' });
+    // Only the wide-screen top bar remains; the phone's bottom tab bar is gone.
+    expect(screen.getAllByRole('navigation', { name: 'Main' })).toHaveLength(1);
+  });
 });

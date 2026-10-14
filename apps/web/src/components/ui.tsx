@@ -8,13 +8,15 @@ import {
 } from 'react';
 
 // Shared UI primitives, built only on the semantic tokens in index.css. Sizes follow the
-// mobile design (2026-10-04): 44px touch targets, 12px radius buttons, 16px cards.
+// mobile design (2026-10-04): 44px touch targets, 12px radius buttons, 16px cards. Contrast
+// follows the UI audit (docs/web-design.md §8.5): text-bearing fills use accent-strong, form
+// controls use input-border, and inputs stay at 16px so iOS Safari doesn't zoom on focus.
 
 type Variant = 'primary' | 'secondary' | 'tinted' | 'ghost' | 'danger';
 type Size = 'sm' | 'md' | 'lg';
 
 const VARIANTS: Record<Variant, string> = {
-  primary: 'bg-accent text-on-accent hover:brightness-95',
+  primary: 'bg-accent-strong text-on-accent hover:brightness-95',
   secondary: 'border border-border bg-surface text-fg hover:bg-surface-2',
   tinted: 'bg-accent-soft text-accent-fg hover:brightness-95',
   ghost: 'text-muted hover:bg-surface-2 hover:text-fg',
@@ -135,7 +137,7 @@ export function Switch({
       aria-label={label}
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-[31px] w-[51px] shrink-0 items-center rounded-full transition disabled:opacity-45 ${FOCUS} ${checked ? 'bg-accent' : 'bg-border'}`}
+      className={`relative inline-flex h-[31px] w-[51px] shrink-0 items-center rounded-full transition disabled:opacity-45 ${FOCUS} ${checked ? 'bg-accent' : 'bg-input-border'}`}
     >
       <span
         className={`inline-block size-[27px] rounded-full bg-white shadow-[0_2px_4px_rgb(0_0_0/0.2)] transition ${checked ? 'translate-x-[22px]' : 'translate-x-0.5'}`}
@@ -220,7 +222,7 @@ export function Chip({
 }
 
 export const INPUT =
-  'block w-full rounded-xl border border-border bg-surface px-3.5 text-base text-fg placeholder:text-muted transition focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-soft)] focus:outline-none aria-invalid:border-danger';
+  'block w-full rounded-xl border border-input-border bg-surface px-3.5 text-base text-fg placeholder:text-muted transition focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-soft)] focus:outline-none aria-invalid:border-danger';
 
 export function TextField({
   label,

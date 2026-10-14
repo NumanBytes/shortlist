@@ -138,7 +138,7 @@ function StatusSheet({ job, open, onClose }: { job: JobDetail; open: boolean; on
               >
                 <span
                   aria-hidden="true"
-                  className={`grid size-[22px] shrink-0 place-items-center rounded-full ${on ? 'bg-accent text-on-accent' : 'border-[1.5px] border-border'}`}
+                  className={`grid size-[22px] shrink-0 place-items-center rounded-full ${on ? 'bg-accent text-on-accent' : 'border-[1.5px] border-input-border'}`}
                 >
                   {on && <Check className="size-3.5" strokeWidth={3} />}
                 </span>
