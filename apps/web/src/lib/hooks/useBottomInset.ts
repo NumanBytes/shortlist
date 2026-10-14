@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 
 // Things fixed to the bottom of a phone screen stack instead of overlapping (UI audit G7,
-// docs/web-design.md §8.5). The bottom bar (the tab bar, or a pushed screen's action bar)
+// docs/web-design.md §8.6). The bottom bar (the tab bar, or a pushed screen's action bar)
 // is the base; above it the tailoring pill, then the toast, then Evidence's "Add skill".
 // Each layer that takes room publishes its height (plus a gap) as a CSS variable on <html>,
 // and the ones above add those variables to their `bottom` with `bottomAbove()`.

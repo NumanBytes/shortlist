@@ -11,9 +11,15 @@ const env = {
 describe('TokensService', () => {
   const tokens = new TokensService(env);
 
-  it('round-trips an access token to its user id', () => {
-    const token = tokens.signAccessToken('user-1');
-    expect(tokens.verifyAccessToken(token)).toEqual({ sub: 'user-1' });
+  it('round-trips an access token to its user id and email-verified flag', () => {
+    expect(tokens.verifyAccessToken(tokens.signAccessToken('user-1', true))).toEqual({ sub: 'user-1', ev: true });
+    expect(tokens.verifyAccessToken(tokens.signAccessToken('user-1', false))).toEqual({ sub: 'user-1', ev: false });
+  });
+
+  // Tokens issued before the claim existed belong to accounts that were all verified.
+  it('reads a token without the claim as verified', () => {
+    const old = jwt.sign({}, env.JWT_ACCESS_SECRET, { subject: 'user-1', algorithm: 'HS256' });
+    expect(tokens.verifyAccessToken(old)).toEqual({ sub: 'user-1', ev: true });
   });
 
   it('rejects a token signed with a different secret', () => {

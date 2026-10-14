@@ -296,7 +296,7 @@ PWA that is a blank screen with no address bar and no way back but force-quittin
   Query. The boundary only catches bugs that throw during render.
 
 
-### 8.5 UI audit against standard scales (2026-10-14)
+### 8.6 UI audit against standard scales (2026-10-14)
 
 The user asked for a senior-designer pass over every screen, block and element, measured
 against a standard scale, with fixes to follow later. **Measured against:** WCAG 2.2 AA

@@ -28,3 +28,15 @@ export const LoginSchema = z
   .strict();
 
 export type LoginInput = z.infer<typeof LoginSchema>;
+
+// Account emails (docs/security.md §8.7). Tokens are 32 random bytes, base64url (43 chars).
+const OneTimeToken = z.string().regex(/^[A-Za-z0-9_-]{43}$/, 'This link is incomplete — open it from the email again');
+
+export const VerifyEmailSchema = z.object({ token: OneTimeToken }).strict();
+export type VerifyEmailInput = z.infer<typeof VerifyEmailSchema>;
+
+export const ForgotPasswordSchema = z.object({ email: Email }).strict();
+export type ForgotPasswordInput = z.infer<typeof ForgotPasswordSchema>;
+
+export const ResetPasswordSchema = z.object({ token: OneTimeToken, password: NewPassword }).strict();
+export type ResetPasswordInput = z.infer<typeof ResetPasswordSchema>;

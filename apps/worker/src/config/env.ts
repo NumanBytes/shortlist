@@ -48,6 +48,19 @@ const EnvSchema = z
       .string()
       .regex(/^(mailto:|https:\/\/)/, 'VAPID_SUBJECT must be a mailto: or https:// URL')
       .optional(),
+    // Account emails — verify an address, reset a password (docs/security.md §8.7). Optional
+    // as a group: SMTP_HOST, SMTP_USER, SMTP_PASSWORD and SMTP_FROM, or none. Any SMTP server
+    // works (a Gmail app password, Brevo, Mailgun, Zoho…). The API needs the same SMTP_HOST,
+    // which is how it knows new accounts must verify.
+    SMTP_HOST: z.string().min(1).optional(),
+    // 465 = TLS from the first byte; anything else (587) upgrades with STARTTLS.
+    SMTP_PORT: z.coerce.number().int().positive().default(587),
+    SMTP_USER: z.string().min(1).optional(),
+    SMTP_PASSWORD: z.string().min(1).optional(),
+    // "Shortlist <shortlist@example.com>": who the emails come from.
+    SMTP_FROM: z.string().min(3).optional(),
+    // The links in those emails open the web app here.
+    WEB_APP_URL: z.url().default('http://localhost:5173'),
     // The morning digest, in DISCOVERY_TZ: after the nightly discovery (02:00) and scoring (03:00).
     DIGEST_CRON: z.string().default('0 8 * * *'),
   })
@@ -58,6 +71,14 @@ const EnvSchema = z
         code: 'custom',
         path: ['GOOGLE_CLIENT_ID'],
         message: 'Set all of GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and TOKEN_ENCRYPTION_KEY, or none',
+      });
+    }
+    const smtp = [env.SMTP_HOST, env.SMTP_USER, env.SMTP_PASSWORD, env.SMTP_FROM];
+    if (smtp.some(Boolean) && !smtp.every(Boolean)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['SMTP_HOST'],
+        message: 'Set all of SMTP_HOST, SMTP_USER, SMTP_PASSWORD and SMTP_FROM, or none',
       });
     }
     const vapid = [env.VAPID_PUBLIC_KEY, env.VAPID_PRIVATE_KEY, env.VAPID_SUBJECT];

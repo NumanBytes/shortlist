@@ -17,6 +17,12 @@ export interface AuthRateRules {
   // FAILED logins for one email, from anywhere: one account guessed from many IPs.
   loginFailuresPerAccount: RateRule;
   registerPerIp: RateRule;
+  // Account emails (docs/security.md §8.7): each one sends a real email, so they're capped
+  // per address (as typed, like login — the limit can't reveal which have accounts) and per IP.
+  resetRequestsPerIp: RateRule;
+  resetRequestsPerAccount: RateRule;
+  resetAttemptsPerIp: RateRule;
+  verificationEmailsPerUser: RateRule;
   // Key namespace — lets tests isolate their counters from each other and from dev.
   prefix: string;
 }
@@ -27,6 +33,10 @@ export const DEFAULT_AUTH_RATE_RULES: AuthRateRules = {
   loginPerIp: { limit: 30, windowSeconds: 15 * 60 },
   loginFailuresPerAccount: { limit: 10, windowSeconds: 15 * 60 },
   registerPerIp: { limit: 5, windowSeconds: 60 * 60 },
+  resetRequestsPerIp: { limit: 10, windowSeconds: 60 * 60 },
+  resetRequestsPerAccount: { limit: 3, windowSeconds: 60 * 60 },
+  resetAttemptsPerIp: { limit: 20, windowSeconds: 60 * 60 },
+  verificationEmailsPerUser: { limit: 5, windowSeconds: 60 * 60 },
   prefix: 'shortlist:rl',
 };
 

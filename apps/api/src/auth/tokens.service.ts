@@ -6,14 +6,19 @@ import type { Env } from '../config/env.js';
 
 export interface AccessTokenPayload {
   sub: string; // user id
+  // Email verified (docs/security.md §8.7). In the token so the guard can refuse an
+  // unverified account without a database read on every request; a new token (refresh)
+  // picks up a change within the 15-minute lifetime. Tokens from before this claim existed
+  // count as verified — every account then was.
+  ev: boolean;
 }
 
 @Injectable()
 export class TokensService {
   constructor(@Inject(ENV) private readonly env: Env) {}
 
-  signAccessToken(userId: string): string {
-    return jwt.sign({}, this.env.JWT_ACCESS_SECRET, {
+  signAccessToken(userId: string, emailVerified: boolean): string {
+    return jwt.sign({ ev: emailVerified }, this.env.JWT_ACCESS_SECRET, {
       algorithm: 'HS256',
       subject: userId,
       expiresIn: this.env.JWT_ACCESS_TTL_SECONDS,
@@ -28,7 +33,7 @@ export class TokensService {
     if (typeof payload === 'string' || typeof payload.sub !== 'string') {
       throw new Error('Access token has no subject');
     }
-    return { sub: payload.sub };
+    return { sub: payload.sub, ev: payload.ev !== false };
   }
 
   // Refresh tokens are opaque random strings, not JWTs: the server has to look them

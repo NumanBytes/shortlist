@@ -16,6 +16,8 @@ x-server: &server
     GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
     GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
     VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+    # Account emails (docs/security.md §8.7): the API checks it's set; the worker sends.
+    SMTP_HOST: ${SMTP_HOST:-}
 
 services:
   # Same major version as development (18), so a local dump restores cleanly (README §6).
@@ -81,6 +83,12 @@ services:
       DISCOVERY_TZ: ${DISCOVERY_TZ:-Asia/Karachi}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
       VAPID_SUBJECT: ${VAPID_SUBJECT:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      # The links in account emails open the app here.
+      WEB_APP_URL: https://${SITE_ADDRESS}
     depends_on:
       migrate: { condition: service_completed_successfully }
       redis: { condition: service_healthy }

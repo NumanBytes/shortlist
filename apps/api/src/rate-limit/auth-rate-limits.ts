@@ -59,6 +59,26 @@ export class AuthRateLimits {
     );
   }
 
+  async beforeResetRequest(ip: string, email: string): Promise<void> {
+    const [byIp, byAccount] = await Promise.all([
+      this.limiter.hit(this.key('reset-req-ip', ip), this.rules.resetRequestsPerIp),
+      this.limiter.hit(this.key('reset-req', accountKey(email)), this.rules.resetRequestsPerAccount),
+    ]);
+    this.refuse(byAccount, 'Too many reset emails for this address');
+    this.refuse(byIp, 'Too many reset requests');
+  }
+
+  async beforeResetAttempt(ip: string): Promise<void> {
+    this.refuse(await this.limiter.hit(this.key('reset-ip', ip), this.rules.resetAttemptsPerIp), 'Too many attempts');
+  }
+
+  async beforeVerificationEmail(userId: string): Promise<void> {
+    this.refuse(
+      await this.limiter.hit(this.key('verify-mail', userId), this.rules.verificationEmailsPerUser),
+      'Too many verification emails',
+    );
+  }
+
   private key(kind: string, subject: string) {
     return `${this.rules.prefix}:${kind}:${subject}`;
   }

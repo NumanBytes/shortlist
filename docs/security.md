@@ -103,3 +103,42 @@ Max-Age = 30 days`.
 - **Outbound requests** identify themselves honestly (`ShortlistBot/0.1 …`), time out
   after 20 seconds, and never impersonate a browser.
 - **Gmail access** is read-only and limited by the code to one label ([§10.3](email-alerts.md)).
+
+### 8.7 Email verification and password reset (built 2026-10-14)
+
+Asked for from production: sign-up had no email verification, and there was no "forgot
+password". Sign-ups are open to anyone with the URL, so verification matters: it stops an
+account being made with someone else's address.
+- **Sending:** any SMTP server (decided 2026-10-14 — self-hosters pick their own: a Gmail app
+  password, Brevo, Mailgun, Zoho), from the **worker** over Nodemailer, on the `mail` queue.
+  SMTP with TLS, AUTH and MIME is a library's job; the parts below are ours. Env:
+  `SMTP_HOST`/`SMTP_USER`/`SMTP_PASSWORD`/`SMTP_FROM` (all or none; `SMTP_PORT` 587 =
+  STARTTLS required, 465 = TLS) on the worker, `SMTP_HOST` on the API too.
+- **No SMTP configured:** new accounts start verified (no email could reach them) and
+  `POST /auth/forgot-password` is a 503; `GET /auth/options` tells the app, which then hides
+  "Forgot password?". E2E tests run this way by default.
+- **Tokens** (`AuthToken`): 32 random bytes, base64url, made **in the worker** — the API only
+  queues "send VERIFY_EMAIL/RESET_PASSWORD to user X", so the plain token exists nowhere but
+  the email (not Redis, not Postgres). Stored as SHA-256 (high-entropy input: no dictionary
+  to attack, and a deterministic hash is findable by a unique index — same reasoning as
+  refresh tokens, §8.1). Single use via a compare-and-swap on `usedAt`; 24 h to verify, 1 h
+  to reset; a new email deletes the user's earlier unused links of that kind. The pages
+  read the token once, drop it from the address bar, and POST it.
+- **Enforcement on the server:** `User.emailVerifiedAt`; the access token carries `ev`
+  (verified), so the global guard refuses an unverified account with **403
+  `EMAIL_UNVERIFIED`** without a database read per request — except routes marked
+  `@AllowUnverified()` (`GET /auth/me`, `POST /auth/resend-verification`) and the public ones.
+  After verifying, the app refreshes its session to get a token with `ev: true`. Tokens
+  without the claim (issued before it existed) count as verified; the migration backfilled
+  every existing account as verified, so nobody was locked out.
+- **Forgot password** (`POST /auth/forgot-password`) answers 202 "sent" whether or not the
+  address has an account, and a queue failure is logged, not returned — either would reveal
+  which emails are registered. Rate-limited per IP and per address as typed (hashed, like
+  login), so the limit can't reveal it either.
+- **Reset** (`POST /auth/reset-password`) sets the new password, **revokes every session**
+  (a reset is often "someone else got in"), deletes other unused reset links, and verifies
+  the address (it proves inbox control). Verify and reset attempts are rate-limited per IP.
+- **Web:** signed in but unverified → a "Check your inbox" screen instead of the app
+  (Resend, "I've confirmed it", Sign out); pages `/verify-email`, `/forgot-password`,
+  `/reset-password` work signed in or out (links open on phones).
+

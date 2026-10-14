@@ -69,7 +69,7 @@ designed with the user 2026-10-12).
    hostname and the user's production data; a budget VPS follows within 6 months ([§4](architecture.md)).
    Off-site backups to Google Drive added 2026-10-09 ([§4](architecture.md)).
 8. ~~Rate-limit `/auth/login` and `/auth/register`~~ — built 2026-10-04 ([§8.1](security.md)).
-9. **UI audit fixes** ([§8.5](web-design.md), audited and screenshot-checked 2026-10-14), in three
+9. **UI audit fixes** ([§8.6](web-design.md), audited and screenshot-checked 2026-10-14), in three
    phases: ~~accessibility and broken flows~~ (built 2026-10-14, `fix/ui-audit-phase-1`) (contrast of the
    primary button and `subtle` text, 16px form fields, input and switch borders, colliding
    bottom overlays, the onboarding bounce, a readable resume review on phones), then

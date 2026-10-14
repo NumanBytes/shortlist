@@ -108,8 +108,14 @@ model User {
   phone        String?
   linkedinUrl  String?
   githubUrl    String?
+  // Set when the user follows the link in the verification email, or resets their password
+  // (both prove they control the inbox). Null = unverified: the API refuses everything but
+  // the verification routes (docs/security.md §8.7). Accounts made before verification
+  // existed were backfilled as verified.
+  emailVerifiedAt DateTime?
 
   refreshTokens        RefreshToken[]
+  authTokens           AuthToken[]
   workExperiences      WorkExperience[]
   skills               Skill[]
   projects             Project[]
@@ -144,6 +150,27 @@ model RefreshToken {
   createdAt DateTime  @default(now())
 
   @@index([userId])
+}
+
+enum AuthTokenPurpose {
+  VERIFY_EMAIL
+  RESET_PASSWORD
+}
+
+// One-time links sent by email (docs/security.md §8.7). Like refresh tokens, only a SHA-256
+// of the random token is stored, so a database leak hands out no working links. Single use
+// (usedAt, set with a compare-and-swap) and short-lived (24 h to verify, 1 h to reset).
+model AuthToken {
+  id        String           @id @default(uuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purpose   AuthTokenPurpose
+  tokenHash String           @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, purpose])
 }
 
 model WorkExperience {

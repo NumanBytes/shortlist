@@ -10,7 +10,18 @@ import {
   Res,
   UnauthorizedException,
 } from '@nestjs/common';
-import { LoginSchema, RegisterSchema, type LoginInput, type RegisterInput } from '@shortlist/shared';
+import {
+  ForgotPasswordSchema,
+  LoginSchema,
+  RegisterSchema,
+  ResetPasswordSchema,
+  VerifyEmailSchema,
+  type ForgotPasswordInput,
+  type LoginInput,
+  type RegisterInput,
+  type ResetPasswordInput,
+  type VerifyEmailInput,
+} from '@shortlist/shared';
 import type { Request, Response } from 'express';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
 import { ENV } from '../config/config.module.js';
@@ -18,7 +29,7 @@ import type { Env } from '../config/env.js';
 import { AuthRateLimits, TooManyRequestsException } from '../rate-limit/auth-rate-limits.js';
 import { AuthService, type AuthResult } from './auth.service.js';
 import { CurrentUser, type AuthUser } from './current-user.decorator.js';
-import { Public } from './public.decorator.js';
+import { AllowUnverified, Public } from './public.decorator.js';
 import { clearRefreshCookie, readRefreshCookie, setRefreshCookie } from './refresh-cookie.js';
 
 // `passthrough: true` lets us set cookies on the response while still returning a
@@ -91,8 +102,66 @@ export class AuthController {
   }
 
   @Get('me')
+  @AllowUnverified()
   me(@CurrentUser() user: AuthUser) {
     return this.auth.findPublicUser(user.id);
+  }
+
+  // What this server can do, before anyone signs in: whether "Forgot password?" works.
+  @Public()
+  @Get('options')
+  options() {
+    return { emailEnabled: this.auth.mailEnabled };
+  }
+
+  // ── Account emails (docs/security.md §8.7) ──
+
+  @Post('resend-verification')
+  @AllowUnverified()
+  @HttpCode(HttpStatus.ACCEPTED)
+  async resendVerification(@CurrentUser() user: AuthUser, @Res({ passthrough: true }) res: Response) {
+    await this.limited(res, this.limits.beforeVerificationEmail(user.id));
+    await this.auth.sendVerification(user.id);
+    return { sent: true };
+  }
+
+  // Public: the link may be opened on a phone that isn't signed in.
+  @Public()
+  @Post('verify-email')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async verifyEmail(
+    @Body(new ZodValidationPipe(VerifyEmailSchema)) body: VerifyEmailInput,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    await this.limited(res, this.limits.beforeResetAttempt(clientIp(req)));
+    await this.auth.verifyEmail(body.token);
+  }
+
+  // Always 202 "sent" — whether or not the email has an account.
+  @Public()
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.ACCEPTED)
+  async forgotPassword(
+    @Body(new ZodValidationPipe(ForgotPasswordSchema)) body: ForgotPasswordInput,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    await this.limited(res, this.limits.beforeResetRequest(clientIp(req), body.email));
+    await this.auth.requestPasswordReset(body.email);
+    return { sent: true };
+  }
+
+  @Public()
+  @Post('reset-password')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async resetPassword(
+    @Body(new ZodValidationPipe(ResetPasswordSchema)) body: ResetPasswordInput,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    await this.limited(res, this.limits.beforeResetAttempt(clientIp(req)));
+    await this.auth.resetPassword(body);
   }
 
   // A refused attempt is a 429 with Retry-After, so clients know when to come back.

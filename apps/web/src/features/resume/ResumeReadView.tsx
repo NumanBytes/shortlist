@@ -4,7 +4,7 @@ import { SectionLabel } from '../../components/ui';
 const monthYear = (iso: string) =>
   new Date(iso).toLocaleString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
 
-// The phone's way to review a resume (UI audit R1, docs/web-design.md §8.5): the same content
+// The phone's way to review a resume (UI audit R1, docs/web-design.md §8.6): the same content
 // as the page, reflowed at reading size, every bullet a full-width row that opens the
 // evidence behind it. The page itself (scaled to fit, ~6px text on a phone) is one tap away
 // as "Page", and it is what prints, whichever view is showing.

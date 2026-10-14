@@ -9,6 +9,10 @@ describe('Auth rate limits (e2e)', () => {
     loginPerIp: { limit: 8, windowSeconds: 60 },
     loginFailuresPerAccount: { limit: 3, windowSeconds: 60 },
     registerPerIp: { limit: 2, windowSeconds: 60 },
+    resetRequestsPerIp: { limit: 50, windowSeconds: 60 },
+    resetRequestsPerAccount: { limit: 50, windowSeconds: 60 },
+    resetAttemptsPerIp: { limit: 50, windowSeconds: 60 },
+    verificationEmailsPerUser: { limit: 50, windowSeconds: 60 },
     prefix: `test-rl:${crypto.randomUUID()}`,
   };
   let t: TestApp;

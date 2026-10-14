@@ -74,6 +74,20 @@ export interface CheckEmailData {
   userId: string;
 }
 
+// Account emails (docs/security.md §8.7): verify an address, reset a password. The API only
+// says which user and which email; the worker makes the one-time token and sends it, so the
+// plain token exists nowhere but the email itself — not in Redis, not in the database.
+export const MAIL_QUEUE = 'mail';
+
+export const MailJob = {
+  SendAuthEmail: 'send-auth-email',
+} as const;
+
+export interface SendAuthEmailData {
+  userId: string;
+  purpose: 'VERIFY_EMAIL' | 'RESET_PASSWORD';
+}
+
 // Worker liveness (docs/architecture.md §4). The worker writes this key every
 // WORKER_HEARTBEAT_INTERVAL_MS with a TTL; if it's missing, no worker is consuming the
 // queues, and the API can say so instead of the UI spinning forever on queued work.
@@ -103,6 +117,7 @@ export const dedupeId = {
   tailorResume: (jobId: string) => `tailor-${jobId}`,
   checkEmail: (userId: string) => `email-${userId}`,
   importResume: (importId: string) => `import-${importId}`,
+  authEmail: (userId: string, purpose: string) => `mail-${purpose}-${userId}`,
 };
 
 const KEEP = {
@@ -147,6 +162,12 @@ export const queueJobOptions = {
   notifySend: (notificationId: string) => ({
     ...retry(30_000),
     jobId: `notify__${notificationId}`,
+  }),
+  // A second tap while one is waiting joins it: one email, not two links racing.
+  authEmail: (userId: string, purpose: string, batchId: string) => ({
+    ...retry(30_000),
+    jobId: `mail__${purpose}__${userId}__${safeJobId(batchId)}`,
+    deduplication: { id: dedupeId.authEmail(userId, purpose) },
   }),
   checkEmail: (userId: string, batchId: string) => ({
     ...retry(60_000),

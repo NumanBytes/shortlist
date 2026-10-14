@@ -1,4 +1,5 @@
 import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router';
+import { ForgotPasswordPage, ResetPasswordPage, VerifyEmailGate, VerifyEmailPage } from './features/auth/AccountEmail';
 import { AuthForm } from './features/auth/AuthForm';
 import { useAuth } from './features/auth/AuthProvider';
 import { ReviewPage } from './features/evidence/ReviewPage';
@@ -17,6 +18,8 @@ function RequireAuth() {
   const { state } = useAuth();
   if (state.status === 'loading') return <FullPageMessage>Loading…</FullPageMessage>;
   if (state.status === 'signedOut') return <Navigate to="/login" replace />;
+  // The API refuses an unverified account everything but this (docs/security.md §8.7).
+  if (!state.user.emailVerifiedAt) return <VerifyEmailGate />;
   return <Outlet />;
 }
 
@@ -63,6 +66,10 @@ export function App() {
         <Route path="login" element={<AuthForm mode="login" />} />
         <Route path="register" element={<AuthForm mode="register" />} />
       </Route>
+      {/* Opened from email links: signed in or not. */}
+      <Route path="verify-email" element={<VerifyEmailPage />} />
+      <Route path="forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="reset-password" element={<ResetPasswordPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

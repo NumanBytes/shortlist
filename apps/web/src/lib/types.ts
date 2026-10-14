@@ -13,6 +13,7 @@ export interface PublicUser {
   phone: string | null;
   linkedinUrl: string | null;
   githubUrl: string | null;
+  emailVerifiedAt: string | null; // null: the app shows "check your inbox" (docs/security.md §8.7)
   createdAt: string;
 }
 
