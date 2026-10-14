@@ -26,7 +26,7 @@ export function Budget() {
           <p className="text-[15px] font-semibold text-fg">Monthly AI cap</p>
           <p className="text-[13px] text-muted tabular-nums">${u.monthToDateUsd.toFixed(2)} used this month</p>
         </div>
-        <div className="flex h-11 items-center overflow-hidden rounded-xl border border-border">
+        <div className="flex h-11 items-center overflow-hidden rounded-xl border border-input-border">
           <button
             type="button"
             aria-label="Lower the cap by $1"
@@ -47,7 +47,7 @@ export function Budget() {
             // Number('') is 0 — an emptied field must not silently set a $0 budget.
             onBlur={() => saveCap(draft === null || draft.trim() === '' ? Number.NaN : Number(draft.replace('$', '')))}
             onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
-            className="h-full w-16 border-x border-border bg-transparent text-center text-[15px] font-semibold text-fg tabular-nums focus:outline-none"
+            className="h-full w-16 border-x border-input-border bg-transparent text-center text-base font-semibold text-fg tabular-nums focus:outline-none"
           />
           <button
             type="button"

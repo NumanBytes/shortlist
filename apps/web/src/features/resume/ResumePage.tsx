@@ -2,13 +2,15 @@ import { AlertTriangle, Briefcase, Check, ChevronLeft, Copy, Download, RotateCw,
 import { MoreMenu } from '../../components/MoreMenu';
 import { resumeText } from '../../lib/format';
 import { useEdgeSwipeBack } from '../../lib/hooks/useEdgeSwipeBack';
+import { useBottomInset } from '../../lib/hooks/useBottomInset';
 import { PushLink } from '../../components/PushLink';
 import { setNavDirection } from '../../lib/navigation';
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { ResumeDocument } from './ResumeDocument';
+import { ResumeReadView } from './ResumeReadView';
 import { useToast } from '../../components/Toast';
-import { Badge, Button, EmptyState, Sheet, Skeleton, buttonStyles } from '../../components/ui';
+import { Badge, Button, EmptyState, Segmented, Sheet, Skeleton, buttonStyles } from '../../components/ui';
 import { useApproveResume, useEducation, useJobDetail, useJobResume, useProfile } from '../../lib/queries';
 import type { JobResume, ResumeBullet } from '../../lib/types';
 
@@ -28,7 +30,11 @@ export function ResumePage() {
   const approve = useApproveResume();
   const toast = useToast();
   const [bullet, setBullet] = useState<ResumeBullet | null>(null);
+  // Phones review in the reflowed Read view; "Page" shows the scaled page. Wider screens
+  // always show the page at a readable size, and printing always prints the page.
+  const [view, setView] = useState<'read' | 'page'>('read');
   const navigate = useNavigate();
+  const approveBar = useBottomInset('bar');
   const edge = useEdgeSwipeBack(() => {
     setNavDirection('back');
     void navigate(`/jobs/${jobId}`);
@@ -128,6 +134,28 @@ export function ResumePage() {
         <p className="text-xs text-muted">Tap any bullet to see the evidence behind it.</p>
       </div>
 
+      <div className="sm:hidden print:hidden">
+        <Segmented
+          label="Resume view"
+          value={view}
+          onChange={setView}
+          options={[
+            { value: 'read', label: 'Read' },
+            { value: 'page', label: 'Page' },
+          ]}
+        />
+      </div>
+      {view === 'read' && (
+        <div className="sm:hidden print:hidden">
+          <ResumeReadView
+            content={v.content}
+            education={education.data ?? []}
+            onBulletTap={setBullet}
+            selectedBullet={bullet}
+          />
+        </div>
+      )}
+
       {stale && (
         <p className="flex gap-2 rounded-xl bg-danger-bg px-3 py-2.5 text-sm text-danger-fg print:hidden">
           <AlertTriangle className="mt-0.5 size-4 shrink-0" />
@@ -136,7 +164,9 @@ export function ResumePage() {
       )}
 
       {/* The "desk": the page on a tinted band, scaled to fit a phone (pinch to zoom). */}
-      <div className="-mx-4 bg-surface-2 px-4 py-5 sm:mx-0 sm:rounded-2xl print:m-0 print:bg-transparent print:p-0">
+      <div
+        className={`-mx-4 bg-surface-2 px-4 py-5 sm:mx-0 sm:block sm:rounded-2xl print:m-0 print:block print:bg-transparent print:p-0 ${view === 'read' ? 'hidden' : ''}`}
+      >
         <FitToWidth>
           <ResumeDocument
             content={v.content}
@@ -177,7 +207,10 @@ export function ResumePage() {
       )}
 
       {/* Sticky on phones: the one decision this screen is for. */}
-      <div className="fixed inset-x-0 bottom-0 z-20 space-y-2 border-t border-border bg-glass px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none print:hidden">
+      <div
+        ref={approveBar}
+        className="fixed inset-x-0 bottom-0 z-20 space-y-2 border-t border-border bg-glass px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none print:hidden"
+      >
         {approved && !stale ? (
           <Button size="lg" className="w-full" onClick={() => window.print()}>
             <Download className="size-5" /> Save as PDF

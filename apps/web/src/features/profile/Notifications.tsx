@@ -145,7 +145,7 @@ function SettingsForm({ initial }: { initial: NotificationSettingsInput }) {
             id="strong-min"
             value={v.strongMatchMin}
             onChange={(e) => set({ strongMatchMin: Number(e.target.value) })}
-            className={`${INPUT} h-10 w-24 px-2 text-[15px]`}
+            className={`${INPUT} h-10 w-24 px-2`}
           >
             {[60, 70, 75, 80, 85, 90].map((n) => (
               <option key={n} value={n}>

@@ -295,3 +295,149 @@ PWA that is a blank screen with no address bar and no way back but force-quittin
 - Data errors are not this: failed requests already show inline errors through TanStack
   Query. The boundary only catches bugs that throw during render.
 
+
+### 8.5 UI audit against standard scales (2026-10-14)
+
+The user asked for a senior-designer pass over every screen, block and element, measured
+against a standard scale, with fixes to follow later. **Measured against:** WCAG 2.2 AA
+(1.4.3 text contrast 4.5:1, 3:1 for ≥24px or ≥18.66px bold; 1.4.11 non-text contrast 3:1;
+2.2.1 timing; 2.5.8 target size ≥24px), Apple HIG / Material touch targets (44pt / 48dp),
+the HIG and Material type scales, and a 4px spacing grid. Contrast was computed from the
+tokens in `index.css`. **Method:** a source review of every screen, sheet and primitive,
+then a screenshot pass (same day; results under "Screenshot pass" below). The screenshots
+came from a throwaway stack: Postgres and Redis in Docker, the API on :3001 and Vite on :5174,
+filled with made-up data. Headless Chrome was driven over the DevTools protocol at 390×844
+and 1280×800, in light and dark, covering sheets, a toast and a brand-new account.
+
+**Already strong (keep):** 44px targets almost everywhere, native `<dialog>` sheets,
+reduced-motion handling, semantic tokens with dark mode, error boundaries, honest empty and
+error states, list state in the URL.
+
+Severity: **P1** fails an accessibility criterion or breaks a task; **P2** noticeable
+friction or inconsistency; **P3** polish.
+
+**Design system (all screens)**
+
+| ID | Sev | Problem | Fix |
+|---|---|---|---|
+| G1 | P1 | Primary button: white on `accent` #059669 is **3.77:1** (15–16px semibold needs 4.5:1). Every primary action fails in light mode. | Button fill `#047857` (5.48:1) in light, or a separate `--accent-strong` for fills with text. |
+| G2 | P1 | `subtle` text is **3.10:1** on surface, **2.86:1** on bg (dark 4.09:1): paste-form placeholder, "Scoring again costs…", Gmail "Last:" lines. | Darken `subtle` to ≥4.5:1, or use `muted`. |
+| G3 | P1 | iOS Safari zooms into any field under 16px: Evidence sheet selects and month (15px), resume-import textarea (13px), paste-description textarea (14px), budget input (15px), notification selects (15px). | Every form control `text-base`. A lint/grep check for `text-[1[0-5]px]` on inputs. |
+| G4 | P1 | Non-text contrast: input borders **1.25:1** (dark 1.35:1); the **off switch track is the border colour, 1.25:1**, so an off switch nearly disappears. | An `--input-border` token ≥3:1 for inputs, selects and the off switch. Card borders may stay decorative. |
+| G5 | P2 | Score ring: strokes 2.2–2.5:1 on white, track `surface-2` **1.12:1**. The fill amount is hard to read (the number carries it). `--ring-track` exists but nothing uses it. | Use `ring-track` with a darker value; darker stroke variants for light mode. |
+| G6 | P2 | Toast with **Undo** disappears after 5s and never pauses (2.2.1). | Pause on hover, focus and touch; 8s when it has an action. |
+| G7 | P1 | **Bottom overlays collide.** Toast and tailoring pill both sit 72px up. On job detail and resume review (no tab bar, a ~80px fixed action bar) they cover the action bar. Evidence's "Add skill" button at 76px sits under them. | One bottom-offset variable set by the screen (tab bar or action bar height); the toast stacks above the pill; the action button moves up while a toast shows. |
+| G8 | P2 | Sheets: no visible close on desktop (the grab handle is phone-only), so menus and Account close only by Escape or backdrop. Headers vary (4+ patterns: hidden title plus a visible copy, "Cancel · title", "title · Done", none). | `Sheet` renders the visible title and a close button (sm+); content stops repeating it. |
+| G9 | P2 | **Two type scales mixed:** HIG sizes (11/13/15/17) beside Tailwind's (12/14/16/20/24) plus 26/28/30, 12 sizes in all. The same role (body, secondary) is 13, 14, 15 or 16px depending on the screen. | Define named steps (caption 12, footnote 13, body 15, headline 17, title 22, large title 30) as utilities; replace arbitrary `text-[Npx]`. |
+| G10 | P3 | Corner radii: 8 values (6/8/9/10/12/14/16/28). | Four tokens: sm 8, md 12, lg 16, sheet 28. |
+| G11 | P2 | Four "selected" styles: segmented (raised white), chips (inverted black), nav and status sheet (accent tint). Black is also used for the Evidence action button and the toast, so the primary colour is ambiguous. | Selection = accent tint everywhere; black only for the toast and pill. |
+| G12 | P2 | **Developer text shown to users:** Evidence empty state prints a `pnpm` seed command; Sources empty prints `pnpm --filter … db:seed:sources`; Gmail lists env var names and a doc section; Notifications mentions VAPID keys and `deploy/.env.example`. Contradicts "serves any user". | User words plus a real action (Import resume, Add skill, Follow remote boards); admin details behind a "For the server admin" disclosure. |
+| G13 | P3 | Auto-saved settings give no confirmation (notification switches, budget stepper, reuse slider, source switches). | An inline "Saved ✓" or toast; debounce the stepper (today every tap is a request). |
+| G14 | P2 | Removing a **never-claim term**, a truthfulness safeguard, is one tap with no confirm or undo. | Undo toast. |
+
+**Navigation and structure**
+
+| ID | Sev | Problem | Fix |
+|---|---|---|---|
+| N1 | P2 | Profile is reached only from the avatar; its back link always goes to Jobs, even when opened from Evidence or Sources; no tab is active there. | Back = history back with a Jobs fallback (or Profile becomes a fourth tab). |
+| N2 | P2 | Profile is one 9-group scroll mixing resume content (Experience, Projects, Education) with settings (search, notifications, never-claim, budget, account). | Split: "Career" (what resumes are built from) and "Settings" (a separate route or a segmented switch). |
+| N3 | P1 | **Onboarding step 3 "Set up on Sources" bounces back to step 1** when nothing was saved yet: the gate redirects while `prefs + roles + skills + sources === 0` and the done flag is unset. | Set the done flag (or exempt `/sources`) before leaving onboarding. |
+| N4 | P2 | Onboarding step 1's way forward is a ghost "Next"; there's no Back between steps, and progress is only "Step n of 3". | Same primary/skip pair on each step, a back link, a 3-dot progress bar. |
+| I1 | P2 | Install prompt is a modal 4s after first load (iOS), interrupting onboarding; on iOS "Not now" and "Got it" do the same thing. | Offer it after a meaningful moment (second visit, or after opening a job), as a dismissible banner; one button on iOS. |
+
+**Screens**
+
+| ID | Sev | Screen | Problem | Fix |
+|---|---|---|---|---|
+| J1 | P2 | Jobs | Pipeline control: 4–5 equal segments with counts; on a 390px phone "Interested 12" truncates, and with a source filter each segment is ~68px. | Scrollable tabs, or counts as small badges. |
+| J2 | P2 | Jobs | "Weaker matches" at 80% opacity drops secondary text to **3.92:1**. | No opacity; a section label says what they are. |
+| J3 | P2 | Jobs | Unscored ring: dashed `surface-2` border at 1.12:1, which reads as an empty gap. | Visible dashed ring plus the existing "Scoring…" badge. |
+| J4 | P3 | Jobs | Sort is one button cycling two states, and its label shows the current state, not the action. | Two-option control "By day / Best match". |
+| D1 | P2 | Job detail | No posting link: the action bar leaves an empty half beside the status button. | Status button spans both columns. |
+| D2 | P2 | Job detail | Description: long text in grey `muted` at 14px inside its own 60vh scroller (scroll inside scroll on phones); no "Show less". | `fg` at 15px, no inner scroll, a "Show less". |
+| D3 | P3 | Job detail | Gap severity: Moderate and Minor share one neutral badge. | Moderate = stretch tone. |
+| D4 | P3 | Job detail | Risks: a red icon over amber bullets. | One tone. |
+| R1 | P1 | Resume review | On a phone the 816px page is scaled to ~45% (≈5px text). The screen exists to read every bullet, so that means pinch-zooming per bullet, and bullet tap targets fall to ~8px (2.5.8 needs 24px). | Phones get a **Read** view (bullets reflowed at 15px, each a full-width tappable row) beside **Page preview**; print stays the page. |
+| R2 | P2 | Resume review | "···" → "Tailor again" only opens the job, the same as "Open the job". | Open the tailor-again confirm, or remove it. |
+| R3 | P3 | Resume | Status words vary: "Draft — review it" / "DRAFT" / "Resume ready to review"; "Approved" / "APPROVED". | One vocabulary and case. |
+| E1 | P2 | Evidence | "Add skill" is black while every other primary action is green (see G11, G7). | Accent fill, offset from the bottom stack. |
+| S1 | P3 | Sources | "Healthy" lists paused sources too. | "Watching" and "Paused" groups. |
+| S2 | P3 | Sources | Gmail result banner adds a top margin at the card's top edge when connected. | Margin only below the header. |
+| A1 | P3 | Sign in | Field heights differ in one form: Name 48px, Email and Password 52px. | One height. |
+| A2 | P2 | Register | Password rules appear only after a failed submit. | Hint under the field before typing. |
+| P1 | P3 | Profile | Notification devices are listed as raw user-agent strings. | "Chrome on Android" style names. |
+
+**Screenshot pass (2026-10-14).** What the screenshots changed:
+- **Confirmed on screen:**
+  - G1, G8 (a desktop sheet has no close button), G12 (also "worker" wording on the
+    unscored-job card and the Jobs warning);
+  - N1, N2, D2 (grey description scrolling inside its card), R3, S1 (paused Initech under
+    "Healthy"), A1, A2;
+  - **N3 reproduced:** a new account on step 3 tapping "Set up on Sources" lands on
+    "Step 1 of 3";
+  - **R1:** resume text renders at about 6px on a phone, and a bullet's tap target is about
+    8px tall;
+  - **G7:** the toast overlaps the top of the job action bar, and the "Add skill" button
+    covers the last skill group's count and chevron even with no toast showing.
+- **Adjusted:**
+  - G4: the off switch is readable on white; input borders and the status sheet's radio
+    circles are what fade out.
+  - J1 → P3: the four segments fit at 390px with one-digit counts; they truncate only with
+    two-digit counts or the extra "All" segment.
+  - J3 → P3: the dashed unscored ring is faint but visible.
+
+New findings:
+
+| ID | Sev | Screen | Problem | Fix |
+|---|---|---|---|---|
+| N5 | P2 | Onboarding | The main tab bar (with the Evidence badge) shows during onboarding, so a user can wander out mid-flow. Competing primaries: step 3 has two green buttons (Follow remote boards, Done); on step 1 the disabled Import is a large faded green button above a ghost "Next". | Hide the tab bar on `/welcome`; one primary per step. |
+| J5 | P2 | Jobs | The verdict chip row is cut off ("Skip" clipped) on phones and in the desktop list column; the sideways scroll has no cue, and a mouse can't easily scroll it. | Wrap the chips on wide screens; a fade edge on phones. |
+| J6 | P3 | Jobs | Folded weaker matches lose their day: today's SKIP jobs appear below the oldest day. The toggle reads "Hide  2  weaker matches" (double gaps). | Fold per day, or label the group "Weaker matches, all days"; fix the spacing. |
+| D5 | P3 | Job detail | "Alert summary" shows "Read more" even when the text is one line. | Show it only when the text is clamped. |
+| D6 | P3 | Job detail | A bad job link shows the raw "Validation failed (uuid is expected)". | "This job doesn't exist or was removed." |
+| R4 | P3 | Resume review | Bullet sheet "Edit evidence" opens the top of Evidence, not that item. On desktop the hint still says "Tap any bullet". | Link to the item (open its group and edit sheet); say "Click" on pointer devices. |
+| S3 | P3 | Sources | An aggregator row reads "Remote OK · Remote OK" (its name is its provider). "Edit URL" in grey ghost style looks disabled. | Skip the provider when it equals the name; style "Edit URL" as a secondary button. |
+| P2 | P3 | Profile | Rows truncate important sentences ("Add the VAPID keys to the server's settings t…"). | Let subtitles wrap to 2 lines; see G12 for the wording. |
+
+**Fix order (when implemented):**
+1. **Accessibility and broken flows:** G1–G4, G7, N3, R1, N5.
+2. **System consistency:** type and radius tokens (G9, G10), the `Sheet` header (G8), selection style (G11), G5.
+3. **Screen items:** the rest.
+
+Each phase ends with the headless-browser pass at 390 / 768 / 1280px in light and dark.
+
+**Phase 1 built (2026-10-14).** Each fix was checked against the Docker audit stack at
+390px and 1280px, in light and dark.
+- **Contrast tokens (G1, G2, G4):**
+  - `accent-strong` (#047857 light, 5.5:1 under white text) fills every surface that carries
+    text: primary buttons, the green swipe layer, the "Add skill" button. The brand
+    `accent` stays for rings, switches, icons and progress bars, where 3:1 is enough, so
+    the logo and app icon keep their green.
+  - `subtle` darkened to #656d7f (4.6–5.2:1; dark #8590a3, 5.5:1).
+  - `input-border` (#848d9e, 3.3:1; dark #667287, 3.7:1) edges every input, select and
+    textarea (through `INPUT`), the status sheet's radio rings, the budget stepper and the
+    off switch. Card borders stay the lighter `border`: they are decoration.
+  - `on-danger` makes the Evidence tab badge's text dark in dark mode (white on #f87171 was
+    2.8:1, now 7.1:1).
+- **16px form fields (G3):** the sub-16px overrides on `INPUT` call sites are gone, and the
+  paste-description textarea uses `INPUT`, so iOS Safari no longer zooms on focus.
+- **Bottom stack (G7):** `useBottomInset()` (`lib/hooks/`) is a callback ref that publishes
+  a fixed layer's height as `--bottom-bar` / `--bottom-pill` / `--bottom-toast` on `<html>`.
+  - Layers count only while `position: fixed`, so the action bars that sit in the page flow
+    on wide screens publish 0.
+  - `bottomAbove(...)` gives the layers above their `bottom`: bar → tailoring pill → toast
+    → Evidence's "Add skill". Without a bar it still clears the home indicator.
+  - Measured rather than fixed numbers, because the bars differ in height (the resume's
+    Approve bar carries a line of help text) and change with the safe area.
+- **Onboarding (N3, N5):** "Set up on Sources" sets the onboarding-done flag before
+  leaving, because the gate sent a user with nothing saved straight back to step 1; checked
+  with a fresh account, which now lands on Sources. The tab bar is hidden on `/welcome`, and
+  "Follow remote boards" is tinted so "Done" is the step's one primary action.
+- **Resume review on phones (R1):** a **Read | Page** switch, Read by default.
+  - Read (`ResumeReadView`) reflows the same content at 15px, each bullet a full-width
+    44px+ row that opens its evidence sheet.
+  - Page is the scaled document as before; wider screens always show the page.
+  - The document stays mounted (hidden on phones in Read) and `print:block`, so printing is
+    unchanged whichever view is showing. A PDF printed from the phone's Read view was
+    checked: one Letter page, the CV layout, no Read-view content.
+

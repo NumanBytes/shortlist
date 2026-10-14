@@ -7,6 +7,7 @@ import { elapsed } from '../lib/format';
 import { RouteCommitted } from '../lib/navigation';
 import { useActiveTailoring, useGmail, useSkills } from '../lib/queries';
 import { useNow } from '../lib/hooks/useNow';
+import { bottomAbove, useBottomInset } from '../lib/hooks/useBottomInset';
 import { ErrorBoundary } from './ErrorBoundary';
 import { InstallPrompt } from './InstallPrompt';
 import { Logo } from '../components/Logo';
@@ -71,7 +72,7 @@ function NavItem({
         {link.icon}
         {badge ? (
           <span
-            className={`${mobile ? 'absolute -top-[5px] left-[15px]' : 'absolute -top-2 -right-3'} h-[18px] min-w-[18px] rounded-full bg-danger px-[5px] text-center text-[11px] leading-[18px] font-semibold text-white tabular-nums`}
+            className={`${mobile ? 'absolute -top-[5px] left-[15px]' : 'absolute -top-2 -right-3'} h-[18px] min-w-[18px] rounded-full bg-danger px-[5px] text-center text-[11px] leading-[18px] font-semibold text-on-danger tabular-nums`}
             aria-label={`${badge} to review`}
           >
             {badge}
@@ -195,13 +196,16 @@ function TailoringPill() {
   const active = useActiveTailoring();
   const { pathname } = useLocation();
   const now = useNow();
+  const inset = useBottomInset('pill');
   const first = active.data?.[0];
   if (!first || pathname === `/jobs/${first.jobId}`) return null;
   const more = active.data!.length - 1;
   return (
     <Link
       to={`/jobs/${first.jobId}`}
-      className="fixed bottom-[calc(72px+env(safe-area-inset-bottom))] left-1/2 z-30 flex h-11 max-w-[calc(100vw-32px)] -translate-x-1/2 animate-rise-in-sm items-center gap-2.5 rounded-full bg-fg py-0 pr-2.5 pl-4 text-[13px] font-medium text-bg shadow-[0_8px_24px_rgb(15_23_42/0.25)] sm:bottom-6 print:hidden"
+      ref={inset}
+      style={{ bottom: bottomAbove() }}
+      className="fixed left-1/2 z-30 flex h-11 max-w-[calc(100vw-32px)] -translate-x-1/2 animate-rise-in-sm items-center gap-2.5 rounded-full bg-fg py-0 pr-2.5 pl-4 text-[13px] font-medium text-bg shadow-[0_8px_24px_rgb(15_23_42/0.25)] print:hidden"
     >
       <span
         aria-hidden="true"
@@ -219,12 +223,15 @@ function TailoringPill() {
 // A job (or its resume) is a pushed screen on phones: it has its own back link and bottom
 // action bar, so the tab bar steps aside (design board 2).
 const isPushedScreen = (path: string) => /^\/jobs\/[^/]+/.test(path);
+// Onboarding is a focused flow: no tab bar to wander off through mid-step (UI audit N5).
+const hidesTabBar = (path: string) => isPushedScreen(path) || path === '/welcome';
 
 export function AppShell() {
   useClearNotificationBadge();
   const { pathname } = useLocation();
   const toReview = useToReview();
   const jobsHref = useJobsHref();
+  const tabBar = useBottomInset('bar');
   const badge = (l: (typeof LINKS)[number]) => (l.to === '/evidence' ? toReview : undefined);
   return (
     <div className="min-h-dvh">
@@ -253,8 +260,9 @@ export function AppShell() {
       <InstallPrompt />
 
       {/* Phones: a frosted tab bar at the bottom, within thumb reach. */}
-      {!isPushedScreen(pathname) && (
+      {!hidesTabBar(pathname) && (
         <nav
+          ref={tabBar}
           aria-label="Main"
           className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-3 border-t border-border bg-glass px-3 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur-xl sm:hidden print:hidden"
         >

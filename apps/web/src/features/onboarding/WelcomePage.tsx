@@ -88,9 +88,10 @@ function SourcesStep({ onDone }: { onDone: () => void }) {
           Remote OK, Remotive, Himalayas, We Work Remotely and others, checked every night and filtered by what you just
           set.
         </p>
+        {/* Tinted, not primary: "Done" below is the one primary action on this step. */}
         <Button
           className="w-full"
-          variant={boards.isSuccess ? 'secondary' : 'primary'}
+          variant={boards.isSuccess ? 'secondary' : 'tinted'}
           disabled={boards.isPending || boards.isSuccess}
           onClick={() => boards.mutate()}
         >
@@ -104,7 +105,14 @@ function SourcesStep({ onDone }: { onDone: () => void }) {
         <p className="text-[13px] text-muted">
           Shortlist can read the job-alert emails those sites send you — only from one Gmail label you choose.
         </p>
-        <PushLink to="/sources" dir="forward" className={`${buttonStyles('secondary')} w-full`}>
+        {/* Leaving for Sources finishes onboarding: until something is saved, the gate in
+            App.tsx would otherwise send the user straight back to step 1 (UI audit N3). */}
+        <PushLink
+          to="/sources"
+          dir="forward"
+          onClick={() => localStorage.setItem(ONBOARDING_DONE_KEY, '1')}
+          className={`${buttonStyles('secondary')} w-full`}
+        >
           Set up on Sources
         </PushLink>
       </Card>

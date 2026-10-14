@@ -150,7 +150,7 @@ export function RoleForm({ role, onDone }: { role?: WorkExperience; onDone: () =
             max={thisMonth()}
             value={v.start}
             onChange={(e) => setV({ ...v, start: e.target.value })}
-            className={`${INPUT} h-12 px-2.5 text-[15px]`}
+            className={`${INPUT} h-12 px-2.5`}
           />
         </div>
         <div className="space-y-1.5">
@@ -164,7 +164,7 @@ export function RoleForm({ role, onDone }: { role?: WorkExperience; onDone: () =
             value={v.isCurrent ? '' : v.end}
             disabled={v.isCurrent}
             onChange={(e) => setV({ ...v, end: e.target.value })}
-            className={`${INPUT} h-12 px-2.5 text-[15px] disabled:opacity-50`}
+            className={`${INPUT} h-12 px-2.5 disabled:opacity-50`}
           />
         </div>
       </div>
@@ -268,7 +268,7 @@ export function ProjectForm({ project, onDone }: { project?: Project; onDone: ()
           id="project-role"
           value={v.workExperienceId}
           onChange={(e) => setV({ ...v, workExperienceId: e.target.value })}
-          className={`${INPUT} h-12 px-2.5 text-[15px]`}
+          className={`${INPUT} h-12 px-2.5`}
         >
           <option value="">A personal project</option>
           {(roles.data ?? []).map((r) => (
@@ -289,7 +289,7 @@ export function ProjectForm({ project, onDone }: { project?: Project; onDone: ()
             max={thisMonth()}
             value={v.start}
             onChange={(e) => setV({ ...v, start: e.target.value })}
-            className={`${INPUT} h-12 px-2.5 text-[15px]`}
+            className={`${INPUT} h-12 px-2.5`}
           />
         </div>
         <div className="space-y-1.5">
@@ -302,7 +302,7 @@ export function ProjectForm({ project, onDone }: { project?: Project; onDone: ()
             max={thisMonth()}
             value={v.end}
             onChange={(e) => setV({ ...v, end: e.target.value })}
-            className={`${INPUT} h-12 px-2.5 text-[15px]`}
+            className={`${INPUT} h-12 px-2.5`}
           />
         </div>
       </div>

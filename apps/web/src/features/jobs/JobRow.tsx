@@ -64,7 +64,7 @@ export function JobRow({ job, selected }: { job: JobListItem; selected: boolean 
               status: 'DISCOVERED',
               label: 'Back to New',
               icon: <Undo2 className="size-5" />,
-              tone: 'bg-accent text-on-accent',
+              tone: 'bg-accent-strong text-on-accent',
             },
           }
         : interested
@@ -81,7 +81,7 @@ export function JobRow({ job, selected }: { job: JobListItem; selected: boolean 
                 status: 'INTERESTED',
                 label: 'Interested',
                 icon: <Star className="size-5 fill-current" />,
-                tone: 'bg-accent text-on-accent',
+                tone: 'bg-accent-strong text-on-accent',
               },
               left: {
                 status: 'SKIPPED',

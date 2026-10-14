@@ -79,7 +79,7 @@ export function ResumeImport() {
           value={text}
           placeholder="Choose a PDF, or paste your resume's text here."
           onChange={(e) => setText(e.target.value)}
-          className={`${INPUT} py-3 text-[13px] leading-snug`}
+          className={`${INPUT} py-3 leading-snug`}
         />
         <p className="text-[13px] text-muted">
           Only this text is sent. Everything found is added <strong>unverified</strong> — you confirm each item before

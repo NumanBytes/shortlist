@@ -222,7 +222,7 @@ function EvidenceForm({
               value={existing?.category ?? category}
               disabled={!!existing}
               onChange={(e) => setCategory(e.target.value as Skill['category'])}
-              className={`${INPUT} h-12 px-2.5 text-[15px]`}
+              className={`${INPUT} h-12 px-2.5`}
             >
               {SkillCategory.options.map((c) => (
                 <option key={c} value={c}>
@@ -286,7 +286,7 @@ function EvidenceForm({
             id="ev-link"
             value={draft.link}
             onChange={(e) => set('link', e.target.value)}
-            className={`${INPUT} h-12 px-2.5 text-[15px]`}
+            className={`${INPUT} h-12 px-2.5`}
           >
             <option value="">Not linked</option>
             {(roles.data ?? []).length > 0 && (
@@ -319,7 +319,7 @@ function EvidenceForm({
             value={draft.lastUsed}
             max={thisMonth()}
             onChange={(e) => set('lastUsed', e.target.value)}
-            className={`${INPUT} h-12 px-2.5 text-[15px] tabular-nums`}
+            className={`${INPUT} h-12 px-2.5 tabular-nums`}
           />
         </div>
       </div>

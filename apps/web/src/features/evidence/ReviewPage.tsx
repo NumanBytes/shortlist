@@ -7,6 +7,7 @@ import { EvidenceItem } from './EvidenceItem';
 import { Badge, Button, Card, EmptyState, Skeleton } from '../../components/ui';
 import { useProjects, useSkills, useWorkExperiences } from '../../lib/queries';
 import type { Evidence, Skill } from '../../lib/types';
+import { bottomAbove } from '../../lib/hooks/useBottomInset';
 
 // Evidence (design board 4): what you've done, grouped by skill, and the review queue.
 // Only verified evidence is used to score jobs or write a resume (Agents.md §6).
@@ -111,7 +112,9 @@ export function ReviewPage() {
         <button
           type="button"
           onClick={() => setSheet({ kind: 'new-skill' })}
-          className="fixed right-4 bottom-[calc(76px+env(safe-area-inset-bottom))] z-10 flex h-13 items-center gap-2 rounded-full bg-fg pr-5 pl-4 text-[15px] font-semibold text-bg shadow-[0_10px_28px_rgb(15_23_42/0.28)] sm:static sm:shadow-none print:hidden"
+          // Stacks above the tab bar, the tailoring pill and a toast (UI audit G7).
+          style={{ bottom: bottomAbove('pill', 'toast') }}
+          className="fixed right-4 z-10 flex h-13 items-center gap-2 rounded-full bg-accent-strong pr-5 pl-4 text-[15px] font-semibold text-on-accent shadow-[0_10px_28px_rgb(15_23_42/0.28)] sm:static sm:shadow-none print:hidden"
         >
           <Plus className="size-5" /> Add skill
         </button>
