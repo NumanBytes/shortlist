@@ -4,7 +4,7 @@ import { Link } from 'react-router';
 import { useAuth } from './AuthProvider';
 import { Logo } from '../../components/Logo';
 import { Eye, EyeOff } from 'lucide-react';
-import { Button, INPUT, TextField } from '../../components/ui';
+import { Button, INPUT, SELECTED, TextField } from '../../components/ui';
 import { ApiError } from '../../lib/api';
 
 // Login and register share one form. Validation uses the same Zod schemas the API
@@ -60,12 +60,12 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
     <div className="mx-auto flex min-h-dvh max-w-sm flex-col px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:justify-center sm:gap-10">
       <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center sm:flex-none">
         <Logo size="lg" />
-        <p className="max-w-[17rem] text-[15px] text-muted">
+        <p className="max-w-[17rem] text-body text-muted">
           Jobs that fit your real skills. Resumes that stay true. You hit submit.
         </p>
       </div>
       <form onSubmit={onSubmit} noValidate className="space-y-4">
-        <nav aria-label="Sign in or register" className="grid grid-cols-2 gap-0.5 rounded-xl bg-surface-2 p-[3px]">
+        <nav aria-label="Sign in or register" className="grid grid-cols-2 gap-0.5 rounded-md bg-surface-2 p-[3px]">
           {(
             [
               ['/login', 'Sign in', !isRegister],
@@ -76,7 +76,7 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
               key={to}
               to={to}
               aria-current={on ? 'page' : undefined}
-              className={`grid h-[38px] place-items-center rounded-[9px] text-sm font-medium ${on ? 'bg-surface text-fg shadow-[0_1px_2px_rgb(15_23_42/0.08),0_0_0_1px_var(--border)]' : 'text-muted'}`}
+              className={`grid h-[38px] place-items-center rounded-sm text-footnote font-medium ${on ? SELECTED : 'text-muted'}`}
             >
               {label}
             </Link>
@@ -104,7 +104,7 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
           className="h-[52px]"
         />
         <div className="space-y-1.5">
-          <label htmlFor="password" className="block text-[13px] font-medium text-muted">
+          <label htmlFor="password" className="block text-footnote font-medium text-muted">
             Password
           </label>
           <div className="relative">
@@ -129,13 +129,13 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
             </button>
           </div>
           {errors.password && (
-            <p id="password-error" className="text-[13px] text-danger-fg">
+            <p id="password-error" className="text-footnote text-danger-fg">
               {errors.password}
             </p>
           )}
         </div>
         {formError && (
-          <p role="alert" className="text-sm text-danger-fg">
+          <p role="alert" className="text-footnote text-danger-fg">
             {formError}
           </p>
         )}

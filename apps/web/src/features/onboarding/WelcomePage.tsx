@@ -31,8 +31,8 @@ export function WelcomePage() {
   return (
     <main className="mx-auto max-w-md space-y-4 pb-8">
       <header className="space-y-1 pt-2">
-        <p className="text-[13px] font-medium text-muted tabular-nums">Step {n} of 3</p>
-        <h1 className="text-2xl font-bold tracking-[-0.01em] text-fg">
+        <p className="text-footnote font-medium text-muted tabular-nums">Step {n} of 3</p>
+        <h1 className="text-title font-bold tracking-[-0.01em] text-fg">
           {step === 'resume'
             ? 'Start from your resume'
             : step === 'search'
@@ -43,7 +43,7 @@ export function WelcomePage() {
 
       {step === 'resume' && (
         <>
-          <p className="text-[15px] text-muted">
+          <p className="text-body text-muted">
             Shortlist tailors each resume only from things you've confirmed you did. Importing your current resume gives
             you a list to confirm instead of typing it all.
           </p>
@@ -84,7 +84,7 @@ function SourcesStep({ onDone }: { onDone: () => void }) {
         <p className="flex items-center gap-2 font-semibold text-fg">
           <Globe className="size-4" aria-hidden="true" /> Remote job boards
         </p>
-        <p className="text-[13px] text-muted">
+        <p className="text-footnote text-muted">
           Remote OK, Remotive, Himalayas, We Work Remotely and others, checked every night and filtered by what you just
           set.
         </p>
@@ -102,7 +102,7 @@ function SourcesStep({ onDone }: { onDone: () => void }) {
         <p className="flex items-center gap-2 font-semibold text-fg">
           <Mail className="size-4" aria-hidden="true" /> LinkedIn, Indeed and other job alerts
         </p>
-        <p className="text-[13px] text-muted">
+        <p className="text-footnote text-muted">
           Shortlist can read the job-alert emails those sites send you — only from one Gmail label you choose.
         </p>
         {/* Leaving for Sources finishes onboarding: until something is saved, the gate in

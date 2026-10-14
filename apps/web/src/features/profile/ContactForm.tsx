@@ -57,8 +57,7 @@ export function ContactForm({ profile: p, onDone }: { profile: PublicUser; onDon
 
   return (
     <form onSubmit={save} noValidate className="space-y-3">
-      <p className="text-[17px] font-semibold text-fg">Edit profile</p>
-      <p className="text-[13px] text-muted">Your resume's header. Claims about your work live in Evidence.</p>
+      <p className="text-footnote text-muted">Your resume's header. Claims about your work live in Evidence.</p>
       {FIELDS.map((f) => (
         <TextField
           key={f.key}

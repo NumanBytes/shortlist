@@ -25,21 +25,21 @@ function SpendTiles() {
   const status = useDiscoveryStatus();
   // The month name, read once (calling Date during render isn't pure).
   const [month] = useState(() => new Date().toLocaleString(undefined, { month: 'long' }));
-  if (usage.isPending) return <Skeleton className="h-40 w-full rounded-2xl" />;
+  if (usage.isPending) return <Skeleton className="h-40 w-full rounded-lg" />;
   if (!usage.isSuccess) return null;
   const u = usage.data;
   return (
     <div className="space-y-2.5">
       <Card className="space-y-1 px-4 py-3.5">
         <div className="flex items-baseline justify-between">
-          <p className="text-[13px] text-muted">AI spend · {month}</p>
-          <Link to="/profile" className="-my-3 py-3 text-[13px] font-medium text-accent-fg">
+          <p className="text-footnote text-muted">AI spend · {month}</p>
+          <Link to="/profile" className="-my-3 py-3 text-footnote font-medium text-accent-fg">
             Budget
           </Link>
         </div>
-        <p className="text-[26px] leading-8 font-bold tracking-[-0.03em] text-fg tabular-nums">
+        <p className="text-title font-bold tracking-[-0.03em] text-fg tabular-nums">
           {money(u.monthToDateUsd)}{' '}
-          <span className="text-[13px] font-medium tracking-normal text-muted">
+          <span className="text-footnote font-medium tracking-normal text-muted">
             of {money(u.settings.monthlyBudgetUsd)}
           </span>
         </p>
@@ -56,14 +56,12 @@ function SpendTiles() {
       </Card>
       <div className="grid grid-cols-2 gap-2.5">
         <Card className="space-y-1 px-4 py-3.5">
-          <p className="text-[13px] text-muted">Today</p>
-          <p className="text-[26px] leading-8 font-bold tracking-[-0.03em] text-fg tabular-nums">
-            {money(u.last24hUsd)}
-          </p>
+          <p className="text-footnote text-muted">Today</p>
+          <p className="text-title font-bold tracking-[-0.03em] text-fg tabular-nums">{money(u.last24hUsd)}</p>
         </Card>
         <Card className="space-y-1 px-4 py-3.5">
-          <p className="text-[13px] text-muted">Jobs this week</p>
-          <p className="text-[26px] leading-8 font-bold tracking-[-0.03em] text-fg tabular-nums">
+          <p className="text-footnote text-muted">Jobs this week</p>
+          <p className="text-title font-bold tracking-[-0.03em] text-fg tabular-nums">
             {status.data?.jobsThisWeek ?? '–'}
           </p>
         </Card>
@@ -94,17 +92,19 @@ function AttentionRow({ source }: { source: DiscoverySource }) {
     <li className="space-y-2.5 px-4 py-3.5">
       <div className="flex items-center gap-2.5">
         <div className="min-w-0 flex-1">
-          <p className="text-[15px] font-semibold text-fg">{source.name}</p>
-          <p className="text-xs text-muted">
+          <p className="text-body font-semibold text-fg">{source.name}</p>
+          <p className="text-caption text-muted">
             {providerLabel(source.provider)} · ran {timeAgo(source.lastRunAt)}
           </p>
         </div>
         <Badge tone={failed ? 'danger' : 'stretch'}>{failed ? 'Failed' : 'Empty'}</Badge>
       </div>
       {failed ? (
-        <p className="rounded-lg bg-surface-2 px-2.5 py-2 font-mono text-xs break-words text-fg">{run.errorMessage}</p>
+        <p className="rounded-sm bg-surface-2 px-2.5 py-2 font-mono text-caption break-words text-fg">
+          {run.errorMessage}
+        </p>
       ) : (
-        <p className="text-[13px] text-muted">
+        <p className="text-footnote text-muted">
           The board returned no postings at all — check it still exists, or turn it off.
         </p>
       )}
@@ -123,7 +123,7 @@ function AttentionRow({ source }: { source: DiscoverySource }) {
           </Button>
         )}
       </div>
-      {retry.isError && <p className="text-xs text-danger-fg">{retry.error.message}</p>}
+      {retry.isError && <p className="text-caption text-danger-fg">{retry.error.message}</p>}
       {source.board !== null && (
         <Sheet open={editing} onClose={() => setEditing(false)} title={`Edit ${source.name}'s address`}>
           <AddressForm source={source} onDone={() => setEditing(false)} />
@@ -147,8 +147,7 @@ function AddressForm({ source, onDone }: { source: DiscoverySource; onDone: () =
         save.mutate({ id: source.id, address }, { onSuccess: onDone });
       }}
     >
-      <p className="text-[17px] font-semibold text-fg">Edit address</p>
-      <p className="text-[13px] text-muted">
+      <p className="text-footnote text-muted">
         {source.name} on {providerLabel(source.provider)} — now{' '}
         <span className="font-mono text-fg">{source.board}</span>. Paste the board's new link, or just its name.
       </p>
@@ -173,12 +172,12 @@ function SourceRow({ source }: { source: DiscoverySource }) {
   return (
     <li className="flex min-h-[68px] items-center gap-3 py-2.5 pr-3 pl-4">
       <div className="min-w-0 flex-1 space-y-0.5">
-        <p className="text-[15px] font-semibold text-fg">{source.name}</p>
-        <p className="text-xs text-muted tabular-nums">
+        <p className="text-body font-semibold text-fg">{source.name}</p>
+        <p className="text-caption text-muted tabular-nums">
           {providerLabel(source.provider)} · <JobsLink sourceId={source.id} count={source.jobCount} /> ·{' '}
           {source.isEnabled ? (source.lastRunAt ? `ran ${timeAgo(source.lastRunAt)}` : 'not run yet') : 'paused'}
         </p>
-        {toggle.isError && <p className="text-xs text-danger-fg">{toggle.error.message}</p>}
+        {toggle.isError && <p className="text-caption text-danger-fg">{toggle.error.message}</p>}
       </div>
       <Switch
         checked={source.isEnabled}
@@ -205,12 +204,12 @@ export function SourcesPage() {
       <PageHeader title="Sources" />
       <SpendTiles />
 
-      {sources.isPending && <Skeleton className="h-64 w-full rounded-2xl" />}
+      {sources.isPending && <Skeleton className="h-64 w-full rounded-lg" />}
       {sources.isError && <p className="text-danger-fg">Couldn't load sources: {sources.error.message}</p>}
       {sources.isSuccess && sources.data.length === 0 && (
-        <p className="text-sm text-muted">
+        <p className="text-footnote text-muted">
           No sources yet. Seed them with{' '}
-          <code className="rounded bg-surface-2 px-1">pnpm --filter @shortlist/db db:seed:sources</code>.
+          <code className="rounded-sm bg-surface-2 px-1">pnpm --filter @shortlist/db db:seed:sources</code>.
         </p>
       )}
 
@@ -221,7 +220,7 @@ export function SourcesPage() {
               Needs attention · <span className="tabular-nums">{attention.length}</span>
             </span>
           </SectionLabel>
-          <ul className="divide-y divide-border rounded-2xl border border-border bg-surface">
+          <ul className="divide-y divide-border rounded-lg border border-border bg-surface">
             {attention.map((s) => (
               <AttentionRow key={s.id} source={s} />
             ))}
@@ -234,7 +233,7 @@ export function SourcesPage() {
           <SectionLabel>
             <span id="healthy">Healthy</span>
           </SectionLabel>
-          <ul className="divide-y divide-border rounded-2xl border border-border bg-surface">
+          <ul className="divide-y divide-border rounded-lg border border-border bg-surface">
             {healthy.map((s) => (
               <SourceRow key={s.id} source={s} />
             ))}
@@ -254,7 +253,7 @@ export function SourcesPage() {
             <ChevronDown className={`size-4 transition ${showPlanned ? 'rotate-180' : ''}`} />
           </Button>
           {showPlanned && (
-            <ul className="mt-1 divide-y divide-border rounded-2xl border border-border bg-surface text-sm">
+            <ul className="mt-1 divide-y divide-border rounded-lg border border-border bg-surface text-body">
               {planned.map((s) => (
                 <li key={s.id} className="flex justify-between gap-3 px-4 py-3">
                   <span className="text-fg">{s.name}</span>

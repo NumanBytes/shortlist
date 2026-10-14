@@ -69,7 +69,7 @@ export function FindNewJobs() {
   const cooling = !busy && !!s?.availableAt && !gmailOn;
   const justChecked = s?.lastCheckedAt && now - new Date(s.lastCheckedAt).getTime() < 60_000;
   return (
-    <div className="rounded-[14px] border border-border bg-surface">
+    <div className="rounded-md border border-border bg-surface">
       <div className="flex items-center gap-2 py-1 pr-1 pl-3.5">
         {busy ? (
           <span
@@ -79,7 +79,7 @@ export function FindNewJobs() {
         ) : (
           <Clock className="size-4 shrink-0 text-muted" aria-hidden="true" />
         )}
-        <p className={`min-w-0 flex-1 truncate text-[13px] ${busy ? 'font-medium text-fg' : 'text-muted'}`}>
+        <p className={`min-w-0 flex-1 truncate text-footnote ${busy ? 'font-medium text-fg' : 'text-muted'}`}>
           {busy
             ? running
               ? `Checking ${s!.running} ${s!.running === 1 ? 'source' : 'sources'}…`
@@ -113,7 +113,7 @@ export function FindNewJobs() {
         </Button>
       </div>
       {s?.workerOnline === false && (
-        <output className="flex gap-1.5 border-t border-border px-3.5 py-2 text-xs text-stretch-fg">
+        <output className="flex gap-1.5 border-t border-border px-3.5 py-2 text-caption text-stretch-fg">
           <AlertTriangle className="mt-px size-3.5 shrink-0" />
           The background worker isn't running, so checks wait in the queue until it starts.
         </output>

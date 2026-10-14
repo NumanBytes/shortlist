@@ -1,6 +1,10 @@
 import type { Verdict } from '../lib/types';
 
-const STROKE: Record<Verdict, string> = { APPLY: 'stroke-apply', STRETCH: 'stroke-stretch', SKIP: 'stroke-skip' };
+const STROKE: Record<Verdict, string> = {
+  APPLY: 'stroke-ring-apply',
+  STRETCH: 'stroke-ring-stretch',
+  SKIP: 'stroke-ring-skip',
+};
 
 // The match score as a ring — the single most important number on a job, so it leads.
 // `outOf`: the large hero ring adds "of 100" under the number (design board 2).
@@ -31,7 +35,7 @@ export function ScoreRing({
       style={{ width: size, height: size, ...(sharedId ? { ['--vt-name' as string]: `ring-${sharedId}` } : {}) }}
     >
       <svg viewBox="0 0 48 48" className="size-full -rotate-90" aria-hidden="true">
-        <circle cx="24" cy="24" r={r} fill="none" strokeWidth="4" className="stroke-surface-2" />
+        <circle cx="24" cy="24" r={r} fill="none" strokeWidth="4" className="stroke-ring-track" />
         <circle
           cx="24"
           cy="24"
@@ -52,7 +56,7 @@ export function ScoreRing({
         >
           {score}
         </span>
-        {outOf && <span className="mt-1 text-xs text-muted">of 100</span>}
+        {outOf && <span className="mt-1 text-caption text-muted">of 100</span>}
       </span>
     </div>
   );
@@ -62,7 +66,7 @@ export function ScoreRing({
 export function PendingRing({ size = 44 }: { size?: number }) {
   return (
     <div
-      className="flex shrink-0 items-center justify-center rounded-full border-4 border-dashed border-surface-2 text-xs text-muted"
+      className="flex shrink-0 items-center justify-center rounded-full border-4 border-dashed border-input-border text-caption text-muted"
       style={{ width: size, height: size }}
       aria-hidden="true"
     >

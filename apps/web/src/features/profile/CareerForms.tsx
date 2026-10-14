@@ -11,7 +11,7 @@ import { useDeleteProject, useDeleteRole, useSaveProject, useSaveRole, useWorkEx
 import type { Project, WorkExperience } from '../../lib/types';
 import { Button, INPUT, Switch, TextField } from '../../components/ui';
 
-const LABEL = 'block text-[13px] font-medium text-muted';
+const LABEL = 'block text-footnote font-medium text-muted';
 const month = (iso: string | null | undefined) => (iso ? iso.slice(0, 7) : '');
 const toDate = (m: string) => (m ? `${m}-01` : null);
 const thisMonth = () => new Date().toISOString().slice(0, 7);
@@ -29,7 +29,7 @@ function changed<T extends Record<string, unknown>>(next: T, prev: Record<string
 
 function ClaimNote({ what }: { what: string }) {
   return (
-    <p className="flex gap-2 rounded-xl bg-stretch-bg px-3 py-2.5 text-[13px] text-fg">
+    <p className="flex gap-2 rounded-md bg-stretch-bg px-3 py-2.5 text-footnote text-fg">
       <ShieldAlert className="mt-px size-4 shrink-0 text-stretch-fg" aria-hidden="true" />
       <span>Changing {what} makes the evidence linked to it unverified — you'll confirm it again.</span>
     </p>
@@ -55,8 +55,8 @@ function DeleteButton({
       </Button>
     );
   return (
-    <div className="space-y-2 rounded-xl bg-danger-bg p-3">
-      <p className="text-[13px] text-fg">{warning}</p>
+    <div className="space-y-2 rounded-md bg-danger-bg p-3">
+      <p className="text-footnote text-fg">{warning}</p>
       <div className="grid grid-cols-2 gap-2">
         <Button variant="secondary" onClick={() => setConfirming(false)}>
           Keep it
@@ -120,7 +120,6 @@ export function RoleForm({ role, onDone }: { role?: WorkExperience; onDone: () =
 
   return (
     <form onSubmit={submit} noValidate className="space-y-3" aria-label={role ? 'Edit role' : 'Add role'}>
-      <p className="text-[17px] font-semibold text-fg">{role ? 'Edit role' : 'Add role'}</p>
       <TextField
         id="role-title"
         label="Title"
@@ -168,12 +167,12 @@ export function RoleForm({ role, onDone }: { role?: WorkExperience; onDone: () =
           />
         </div>
       </div>
-      <div className="flex items-center justify-between rounded-xl border border-border px-3.5 py-2.5">
-        <span className="text-[15px] text-fg">I work here now</span>
+      <div className="flex items-center justify-between rounded-md border border-border px-3.5 py-2.5">
+        <span className="text-body text-fg">I work here now</span>
         <Switch checked={v.isCurrent} onChange={(isCurrent) => setV({ ...v, isCurrent })} label="I work here now" />
       </div>
       {role && <ClaimNote what="the company, title or dates" />}
-      {error && <p className="text-sm text-danger-fg">{error}</p>}
+      {error && <p className="text-footnote text-danger-fg">{error}</p>}
       <Button type="submit" size="lg" className="w-full" disabled={save.isPending}>
         Save
       </Button>
@@ -246,7 +245,6 @@ export function ProjectForm({ project, onDone }: { project?: Project; onDone: ()
 
   return (
     <form onSubmit={submit} noValidate className="space-y-3" aria-label={project ? 'Edit project' : 'Add project'}>
-      <p className="text-[17px] font-semibold text-fg">{project ? 'Edit project' : 'Add project'}</p>
       <TextField id="project-name" label="Name" value={v.name} onChange={(e) => setV({ ...v, name: e.target.value })} />
       <div className="space-y-1.5">
         <label htmlFor="project-description" className={LABEL}>
@@ -306,8 +304,8 @@ export function ProjectForm({ project, onDone }: { project?: Project; onDone: ()
           />
         </div>
       </div>
-      <div className="flex items-center justify-between rounded-xl border border-border px-3.5 py-2.5">
-        <span className="text-[15px] text-fg">It shipped to real users</span>
+      <div className="flex items-center justify-between rounded-md border border-border px-3.5 py-2.5">
+        <span className="text-body text-fg">It shipped to real users</span>
         <Switch
           checked={v.isShipped}
           onChange={(isShipped) => setV({ ...v, isShipped })}
@@ -315,10 +313,10 @@ export function ProjectForm({ project, onDone }: { project?: Project; onDone: ()
         />
       </div>
       {/* docs/resume.md §13.7: tailoring rewords a pinned project's bullets but never drops it. */}
-      <div className="flex items-center justify-between gap-3 rounded-xl border border-border px-3.5 py-2.5">
+      <div className="flex items-center justify-between gap-3 rounded-md border border-border px-3.5 py-2.5">
         <span>
-          <span className="block text-[15px] text-fg">Always on my resume</span>
-          <span className="block text-[13px] text-muted">
+          <span className="block text-body text-fg">Always on my resume</span>
+          <span className="block text-footnote text-muted">
             Tailoring rewords it for each job but never leaves it out.
           </span>
         </span>
@@ -339,7 +337,7 @@ export function ProjectForm({ project, onDone }: { project?: Project; onDone: ()
         onChange={(e) => setV({ ...v, repoUrl: e.target.value })}
       />
       {project && <ClaimNote what="the name, description, dates, role or whether it shipped" />}
-      {error && <p className="text-sm text-danger-fg">{error}</p>}
+      {error && <p className="text-footnote text-danger-fg">{error}</p>}
       <Button type="submit" size="lg" className="w-full" disabled={save.isPending}>
         Save
       </Button>

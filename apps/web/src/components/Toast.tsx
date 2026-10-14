@@ -47,14 +47,14 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {toast && (
           <output
             key={toast.id}
-            className={`pointer-events-auto flex min-h-13 w-full max-w-md ${leaving ? 'animate-drop-out' : 'animate-rise-in'} items-center gap-2.5 rounded-[14px] bg-fg py-1 pr-1.5 pl-4 text-[15px] font-medium text-bg shadow-[0_12px_32px_rgb(15_23_42/0.3)]`}
+            className={`pointer-events-auto flex min-h-13 w-full max-w-md ${leaving ? 'animate-drop-out' : 'animate-rise-in'} items-center gap-2.5 rounded-md bg-fg py-1 pr-1.5 pl-4 text-body font-medium text-bg shadow-[0_12px_32px_rgb(15_23_42/0.3)]`}
           >
             <Check className="size-4 shrink-0 text-toast-accent" aria-hidden="true" />
             <span className="min-w-0 flex-1">{toast.text}</span>
             {toast.action && (
               <button
                 type="button"
-                className="min-h-11 rounded-[10px] px-3 font-semibold text-toast-accent"
+                className="min-h-11 rounded-sm px-3 font-semibold text-toast-accent"
                 onClick={() => {
                   toast.action!.onClick();
                   setLeaving(true);

@@ -23,10 +23,10 @@ export function Budget() {
     <Group label="Budget">
       <div className="flex items-center gap-3 px-4 py-3">
         <div className="min-w-0 flex-1">
-          <p className="text-[15px] font-semibold text-fg">Monthly AI cap</p>
-          <p className="text-[13px] text-muted tabular-nums">${u.monthToDateUsd.toFixed(2)} used this month</p>
+          <p className="text-body font-semibold text-fg">Monthly AI cap</p>
+          <p className="text-footnote text-muted tabular-nums">${u.monthToDateUsd.toFixed(2)} used this month</p>
         </div>
-        <div className="flex h-11 items-center overflow-hidden rounded-xl border border-input-border">
+        <div className="flex h-11 items-center overflow-hidden rounded-md border border-input-border">
           <button
             type="button"
             aria-label="Lower the cap by $1"
@@ -47,7 +47,7 @@ export function Budget() {
             // Number('') is 0 — an emptied field must not silently set a $0 budget.
             onBlur={() => saveCap(draft === null || draft.trim() === '' ? Number.NaN : Number(draft.replace('$', '')))}
             onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
-            className="h-full w-16 border-x border-input-border bg-transparent text-center text-base font-semibold text-fg tabular-nums focus:outline-none"
+            className="h-full w-16 border-x border-input-border bg-transparent text-center text-control font-semibold text-fg tabular-nums focus:outline-none"
           />
           <button
             type="button"
@@ -61,10 +61,10 @@ export function Budget() {
       </div>
       <div className="space-y-2 px-4 py-3">
         <div className="flex items-baseline justify-between">
-          <label htmlFor="reuse" className="text-[15px] font-semibold text-fg">
+          <label htmlFor="reuse" className="text-body font-semibold text-fg">
             Resume reuse threshold
           </label>
-          <span className="text-[15px] font-semibold text-accent-fg tabular-nums">{pct}%</span>
+          <span className="text-body font-semibold text-accent-fg tabular-nums">{pct}%</span>
         </div>
         <input
           id="reuse"
@@ -78,12 +78,12 @@ export function Budget() {
           onKeyUp={() => overlap !== null && update.mutate({ resumeReuseMinOverlap: overlap })}
           className="w-full accent-[var(--accent)]"
         />
-        <p className="text-xs text-muted">
+        <p className="text-caption text-muted">
           Offer an approved resume instead of tailoring when it matches a job at least this well. Lower saves money;
           higher fits better.
         </p>
       </div>
-      {update.isError && <p className="px-4 pb-3 text-xs text-danger-fg">{update.error.message}</p>}
+      {update.isError && <p className="px-4 pb-3 text-caption text-danger-fg">{update.error.message}</p>}
     </Group>
   );
 }

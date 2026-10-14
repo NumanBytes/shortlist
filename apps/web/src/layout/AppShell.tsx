@@ -64,15 +64,15 @@ function NavItem({
       className={({ isActive }) => {
         const active = link.to === '/' ? isJobsPath(pathname) : isActive;
         return mobile
-          ? `flex h-[49px] flex-col items-center justify-center gap-[3px] text-[11px] font-medium ${active ? 'text-accent-fg' : 'text-muted'}`
-          : `relative inline-flex h-9 items-center gap-2 rounded-xl px-3 text-sm font-medium ${active ? 'bg-accent-soft text-accent-fg' : 'text-muted hover:text-fg'}`;
+          ? `flex h-[49px] flex-col items-center justify-center gap-[3px] text-caption-2 font-medium ${active ? 'text-accent-fg' : 'text-muted'}`
+          : `relative inline-flex h-9 items-center gap-2 rounded-md px-3 text-body font-medium ${active ? 'bg-accent-soft text-accent-fg' : 'text-muted hover:text-fg'}`;
       }}
     >
       <span className="relative flex">
         {link.icon}
         {badge ? (
           <span
-            className={`${mobile ? 'absolute -top-[5px] left-[15px]' : 'absolute -top-2 -right-3'} h-[18px] min-w-[18px] rounded-full bg-danger px-[5px] text-center text-[11px] leading-[18px] font-semibold text-on-danger tabular-nums`}
+            className={`${mobile ? 'absolute -top-[5px] left-[15px]' : 'absolute -top-2 -right-3'} h-[18px] min-w-[18px] rounded-full bg-danger px-[5px] text-center text-caption-2 leading-[18px] font-semibold text-on-danger tabular-nums`}
             aria-label={`${badge} to review`}
           >
             {badge}
@@ -105,7 +105,7 @@ export function AccountButton() {
         onClick={() => setOpen(true)}
         className="grid size-11 shrink-0 place-items-center rounded-full focus-visible:outline-2 focus-visible:outline-accent"
       >
-        <span className="grid size-8 place-items-center rounded-full bg-accent-soft text-[13px] font-semibold text-accent-fg">
+        <span className="grid size-8 place-items-center rounded-full bg-accent-soft text-footnote font-semibold text-accent-fg">
           {initials}
         </span>
       </button>
@@ -119,21 +119,21 @@ function AccountSheet({ open, onClose, initials }: { open: boolean; onClose: () 
   const gmail = useGmail();
   const theme = useTheme();
   if (state.status !== 'signedIn') return null;
-  const row = 'flex min-h-14 w-full items-center gap-3 px-1 text-left text-base font-medium';
-  const icon = 'grid size-9 shrink-0 place-items-center rounded-[10px] bg-surface-2 text-muted';
+  const row = 'flex min-h-14 w-full items-center gap-3 px-1 text-left text-body font-medium';
+  const icon = 'grid size-9 shrink-0 place-items-center rounded-sm bg-surface-2 text-muted';
   return (
     <Sheet open={open} onClose={onClose} title="Account">
       <div className="flex items-center gap-3 pb-4">
-        <span className="grid size-11 place-items-center rounded-full bg-accent-soft text-[15px] font-semibold text-accent-fg">
+        <span className="grid size-11 place-items-center rounded-full bg-accent-soft text-body font-semibold text-accent-fg">
           {initials}
         </span>
         <div className="min-w-0">
           <p className="truncate font-semibold text-fg">{state.user.name}</p>
-          <p className="truncate text-[13px] text-muted">{state.user.email}</p>
+          <p className="truncate text-footnote text-muted">{state.user.email}</p>
         </div>
       </div>
       <div className="mb-4 space-y-2">
-        <p className="px-1 text-xs font-semibold tracking-[0.06em] text-muted uppercase">Appearance</p>
+        <p className="px-1 text-caption font-semibold tracking-[0.06em] text-muted uppercase">Appearance</p>
         <Segmented<ThemeChoice>
           label="Appearance"
           value={theme}
@@ -145,7 +145,7 @@ function AccountSheet({ open, onClose, initials }: { open: boolean; onClose: () 
           ]}
         />
       </div>
-      <nav aria-label="Account" className="divide-y divide-border rounded-2xl border border-border px-3">
+      <nav aria-label="Account" className="divide-y divide-border rounded-lg border border-border px-3">
         <Link to="/profile" onClick={onClose} className={row}>
           <span className={icon}>
             <UserRound className="size-[18px]" />
@@ -158,13 +158,13 @@ function AccountSheet({ open, onClose, initials }: { open: boolean; onClose: () 
             <Mail className="size-[18px]" />
           </span>
           <span className="flex-1">Gmail</span>
-          <span className="text-[13px] font-normal text-muted">
+          <span className="text-footnote font-normal text-muted">
             {gmail.data?.connection ? 'Connected' : 'Not connected'}
           </span>
           <ChevronRight className="size-4 text-muted" />
         </Link>
         <button type="button" onClick={() => void logout()} className={`${row} text-danger-fg`}>
-          <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-danger-bg">
+          <span className="grid size-9 shrink-0 place-items-center rounded-sm bg-danger-bg">
             <LogOut className="size-[18px]" />
           </span>
           Sign out
@@ -179,7 +179,7 @@ function AccountSheet({ open, onClose, initials }: { open: boolean; onClose: () 
 export function PageHeader({ title, children }: { title: string; children?: ReactNode }) {
   return (
     <header className="flex items-center justify-between gap-3">
-      <h1 className="text-[30px] leading-9 font-bold tracking-[-0.025em] text-fg">{title}</h1>
+      <h1 className="text-large-title font-bold tracking-[-0.025em] text-fg">{title}</h1>
       <div className="flex items-center gap-1">
         {children}
         <div className="sm:hidden">
@@ -205,7 +205,7 @@ function TailoringPill() {
       to={`/jobs/${first.jobId}`}
       ref={inset}
       style={{ bottom: bottomAbove() }}
-      className="fixed left-1/2 z-30 flex h-11 max-w-[calc(100vw-32px)] -translate-x-1/2 animate-rise-in-sm items-center gap-2.5 rounded-full bg-fg py-0 pr-2.5 pl-4 text-[13px] font-medium text-bg shadow-[0_8px_24px_rgb(15_23_42/0.25)] print:hidden"
+      className="fixed left-1/2 z-30 flex h-11 max-w-[calc(100vw-32px)] -translate-x-1/2 animate-rise-in-sm items-center gap-2.5 rounded-full bg-fg py-0 pr-2.5 pl-4 text-footnote font-medium text-bg shadow-[0_8px_24px_rgb(15_23_42/0.25)] print:hidden"
     >
       <span
         aria-hidden="true"

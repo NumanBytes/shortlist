@@ -65,24 +65,23 @@ export function InstallPrompt({ delayMs = 4000 }: { delayMs?: number }) {
   };
 
   return (
-    <Sheet open={open} onClose={notNow} title="Add Shortlist to your Home Screen">
-      <div className="flex items-center gap-3">
-        <Logo withName={false} size="md" />
-        <div>
-          <p className="text-[17px] font-semibold text-fg">Add Shortlist to your Home Screen</p>
-          <p className="text-[13px] text-muted">Opens full-screen, like an app. No App Store.</p>
-        </div>
-      </div>
+    <Sheet
+      open={open}
+      onClose={notNow}
+      title="Add Shortlist to your Home Screen"
+      description="Opens full-screen, like an app. No App Store."
+      icon={<Logo withName={false} size="md" />}
+    >
       {!event && (
-        <ol className="mt-4 space-y-3 text-[15px] text-fg">
+        <ol className="space-y-3 text-body text-fg">
           <li className="flex items-center gap-3">
-            <span className="grid size-7 shrink-0 place-items-center rounded-full bg-surface-2 text-[13px] font-semibold">
+            <span className="grid size-7 shrink-0 place-items-center rounded-full bg-surface-2 text-footnote font-semibold">
               1
             </span>
             Tap <Share className="size-5 text-accent-fg" aria-label="Share" /> in Safari's toolbar
           </li>
           <li className="flex items-center gap-3">
-            <span className="grid size-7 shrink-0 place-items-center rounded-full bg-surface-2 text-[13px] font-semibold">
+            <span className="grid size-7 shrink-0 place-items-center rounded-full bg-surface-2 text-footnote font-semibold">
               2
             </span>
             Choose <b className="font-semibold">Add to Home Screen</b>{' '}

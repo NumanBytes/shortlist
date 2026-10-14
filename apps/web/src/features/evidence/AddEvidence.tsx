@@ -42,7 +42,7 @@ const CATEGORY_LABEL: Record<Skill['category'], string> = {
   CONCEPT: 'Concept',
 };
 
-const FIELD_LABEL = 'block text-[13px] font-medium text-muted';
+const FIELD_LABEL = 'block text-footnote font-medium text-muted';
 const thisMonth = () => new Date().toISOString().slice(0, 7);
 // Only to validate the evidence fields before the skill exists; never sent.
 const PLACEHOLDER_ID = '00000000-0000-4000-8000-000000000000';
@@ -191,13 +191,6 @@ function EvidenceForm({
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-3.5" aria-label={title}>
-      <div className="-mt-1 grid grid-cols-[4rem_1fr_4rem] items-center">
-        <button type="button" onClick={onClose} className="min-h-11 text-left text-[15px] font-medium text-muted">
-          Cancel
-        </button>
-        <h2 className="truncate text-center text-[17px] font-semibold text-fg">{title}</h2>
-      </div>
-
       {mode.kind === 'new-skill' && (
         <div className="grid grid-cols-[1fr_8.5rem] gap-2.5">
           <div className="space-y-1.5">
@@ -232,7 +225,7 @@ function EvidenceForm({
             </select>
           </div>
           {existing && (
-            <p className="col-span-2 text-xs text-muted">
+            <p className="col-span-2 text-caption text-muted">
               You already have {existing.name} — this adds evidence to it.
             </p>
           )}
@@ -240,7 +233,7 @@ function EvidenceForm({
       )}
 
       {mode.kind === 'new-skill' && (
-        <p className="pt-1 text-xs font-semibold tracking-[0.06em] text-muted uppercase">First evidence</p>
+        <p className="pt-1 text-caption font-semibold tracking-[0.06em] text-muted uppercase">First evidence</p>
       )}
 
       <div className="space-y-1.5">
@@ -274,7 +267,7 @@ function EvidenceForm({
           onChange={(v) => set('depth', v)}
           options={DEPTHS.map(({ value, label }) => ({ value, label }))}
         />
-        <p className="px-1 text-xs text-muted">{DEPTHS.find((d) => d.value === draft.depth)?.hint}</p>
+        <p className="px-1 text-caption text-muted">{DEPTHS.find((d) => d.value === draft.depth)?.hint}</p>
       </div>
 
       <div className="grid grid-cols-2 gap-2.5">
@@ -324,7 +317,7 @@ function EvidenceForm({
         </div>
       </div>
 
-      <div className="flex gap-2 rounded-xl bg-stretch-bg px-3 py-2.5 text-[13px] text-fg">
+      <div className="flex gap-2 rounded-md bg-stretch-bg px-3 py-2.5 text-footnote text-fg">
         <ShieldCheck className="mt-px size-4 shrink-0 text-stretch-fg" aria-hidden="true" />
         <p>
           {editing ? (
@@ -338,7 +331,7 @@ function EvidenceForm({
           )}
         </p>
       </div>
-      {error && <p className="text-sm text-danger-fg">{error}</p>}
+      {error && <p className="text-footnote text-danger-fg">{error}</p>}
       <Button type="submit" size="lg" className="w-full" disabled={busy}>
         {editing ? 'Save changes' : 'Save evidence'}
       </Button>

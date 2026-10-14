@@ -30,12 +30,12 @@ export function ResumeSection({ job }: { job: JobDetail }) {
       <Card className="p-4">
         <div className="flex items-center gap-2.5">
           <FileText className="size-5 text-muted" strokeWidth={1.75} aria-hidden="true" />
-          <h2 id="resume-heading" className="flex-1 text-[15px] font-semibold text-fg">
+          <h2 id="resume-heading" className="flex-1 text-body font-semibold text-fg">
             Resume for this job
           </h2>
           {resume.data?.variant && <VariantBadge resume={resume.data} />}
         </div>
-        <div className="mt-3 text-sm">
+        <div className="mt-3 text-body">
           {job.status === 'DISCOVERED' ? (
             <p className="text-muted">Mark it Interested to prepare a tailored resume.</p>
           ) : (
@@ -66,12 +66,12 @@ function Callout({
   const tones = { stretch: 'bg-stretch-bg', danger: 'bg-danger-bg' };
   const iconTone = { stretch: 'text-stretch-fg', danger: 'text-danger-fg' };
   return (
-    <div className={`rounded-[14px] p-3.5 ${tones[tone]}`}>
+    <div className={`rounded-md p-3.5 ${tones[tone]}`}>
       <div className="flex gap-2.5">
         <span className={`mt-px shrink-0 ${iconTone[tone]}`}>{icon}</span>
         <div className="min-w-0 flex-1">
           <p className="font-semibold text-fg">{title}</p>
-          {children && <div className="mt-0.5 text-[13px] text-muted">{children}</div>}
+          {children && <div className="mt-0.5 text-footnote text-muted">{children}</div>}
         </div>
       </div>
     </div>
@@ -94,7 +94,7 @@ export function TailoringProgress({ jobId, resume }: { jobId: string; resume: Jo
       <Button variant="ghost" className="w-full" onClick={() => cancel.mutate(jobId)} disabled={cancel.isPending}>
         {cancel.isPending ? 'Cancelling…' : 'Cancel'}
       </Button>
-      {cancel.isError && <p className="text-center text-xs text-danger-fg">{cancel.error.message}</p>}
+      {cancel.isError && <p className="text-center text-caption text-danger-fg">{cancel.error.message}</p>}
     </>
   );
   const waited = resume.queuedAt ? now - new Date(resume.queuedAt).getTime() : 0;
@@ -140,7 +140,7 @@ export function TailoringProgress({ jobId, resume }: { jobId: string; resume: Jo
             Cancel
           </Button>
         </div>
-        {cancel.isError && <p className="text-center text-xs text-danger-fg">{cancel.error.message}</p>}
+        {cancel.isError && <p className="text-center text-caption text-danger-fg">{cancel.error.message}</p>}
       </div>
     );
   }
@@ -153,13 +153,13 @@ export function TailoringProgress({ jobId, resume }: { jobId: string; resume: Jo
             className="size-4 shrink-0 animate-spin rounded-full border-2 border-accent border-r-transparent"
           />
           <span className="flex-1 font-semibold text-fg">Tailoring from your verified evidence</span>
-          <span className="text-[13px] text-muted tabular-nums">{time}</span>
+          <span className="text-footnote text-muted tabular-nums">{time}</span>
         </span>
         {/* Indeterminate: it moves, but claims no percentage it doesn't know. */}
         <span aria-hidden="true" className="relative block h-1.5 overflow-hidden rounded-full bg-surface-2">
           <span className="absolute inset-y-0 w-1/3 animate-[indeterminate_1.4s_ease-in-out_infinite] rounded-full bg-accent motion-reduce:animate-none" />
         </span>
-        <span className="block text-xs text-muted">
+        <span className="block text-caption text-muted">
           {waited > SLOW_MS
             ? 'Taking longer than usual — Claude may be busy; it retries on its own.'
             : 'Usually under a minute. Runs on the server — you can leave this page.'}
@@ -220,7 +220,9 @@ function Body({ job, resume }: { job: JobDetail; resume: JobResume }) {
       <div className="space-y-3">
         {pending}
         {problem}
-        {(pending || problem) && <p className="text-xs text-muted">Your current resume for this job is still below.</p>}
+        {(pending || problem) && (
+          <p className="text-caption text-muted">Your current resume for this job is still below.</p>
+        )}
         {stale ? (
           <Callout
             tone="stretch"
@@ -234,7 +236,7 @@ function Body({ job, resume }: { job: JobDetail; resume: JobResume }) {
             <p className="font-semibold text-fg">
               {approved ? `Approved ${v.approvedAt ? shortDate(v.approvedAt) : ''}` : 'Resume ready to review'}
             </p>
-            <p className="text-[13px] text-muted">
+            <p className="text-footnote text-muted">
               {resume.reused && current
                 ? `Reusing a resume you approved — ${Math.round((resume.overlap ?? 0) * 100)}% of this job's requirements.`
                 : `${bullets} bullets, each from your own verified words.`}
@@ -271,23 +273,25 @@ function Body({ job, resume }: { job: JobDetail; resume: JobResume }) {
       {problem}
       {resume.reuse.map((r) => (
         <div key={r.variantId} className="space-y-3">
-          <div className="flex items-center gap-3 rounded-[14px] bg-surface-2 p-3">
+          <div className="flex items-center gap-3 rounded-md bg-surface-2 p-3">
             <span
               aria-hidden="true"
-              className="grid h-11 w-9 shrink-0 place-items-center rounded-md border border-border bg-surface"
+              className="grid h-11 w-9 shrink-0 place-items-center rounded-sm border border-border bg-surface"
             >
               <FileText className="size-4 text-muted" />
             </span>
             <div className="min-w-0">
               <p className="font-semibold text-fg">Reuse your approved resume</p>
-              <p className="text-[13px] text-muted">
+              <p className="text-footnote text-muted">
                 {/* Not a score: how much of this job's requirement list the resume was built for. */}
                 <span className="font-semibold text-accent-fg">
                   Covers {Math.round(r.overlap * 100)}% of this job's requirements
                 </span>
                 {r.approvedAt && ` · approved ${shortDate(r.approvedAt)}`}
               </p>
-              {r.usedFor.length > 0 && <p className="truncate text-xs text-muted">Used for {r.usedFor.join(', ')}</p>}
+              {r.usedFor.length > 0 && (
+                <p className="truncate text-caption text-muted">Used for {r.usedFor.join(', ')}</p>
+              )}
             </div>
           </div>
           <Button
@@ -317,7 +321,7 @@ function Body({ job, resume }: { job: JobDetail; resume: JobResume }) {
                   : 'Try again'}
             <span className="font-normal opacity-80">~$0.03</span>
           </Button>
-          <p className="text-xs text-muted">Uses only your verified evidence. Takes about a minute.</p>
+          <p className="text-caption text-muted">Uses only your verified evidence. Takes about a minute.</p>
         </div>
       ) : resume.needsDescription ? (
         <p className="text-muted">
@@ -355,6 +359,11 @@ function TailorAgain({
         open={confirming}
         onClose={() => setConfirming(false)}
         title="Tailor again?"
+        icon={
+          <div className="grid size-11 place-items-center rounded-sm bg-stretch-bg text-stretch-fg">
+            <RefreshCw className="size-5" />
+          </div>
+        }
         footer={
           <div className="space-y-1">
             <Button
@@ -374,11 +383,7 @@ function TailorAgain({
           </div>
         }
       >
-        <div className="grid size-11 place-items-center rounded-xl bg-stretch-bg text-stretch-fg">
-          <RefreshCw className="size-5" />
-        </div>
-        <p className="mt-3 text-[17px] font-semibold text-fg">Tailor again?</p>
-        <p className="mt-1 text-[15px] text-muted">
+        <p className="text-body text-muted">
           This replaces the resume from {shortDate(approvedAt)} and needs a fresh review. It costs about $0.03 and takes
           a minute.
         </p>

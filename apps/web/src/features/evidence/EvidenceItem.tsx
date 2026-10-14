@@ -27,14 +27,14 @@ export function EvidenceItem({
 
   return (
     <li className="flex flex-col gap-2.5 border-t border-border px-4 pt-3.5 pb-1.5">
-      <p className="text-[15px] leading-[21px] text-fg">“{evidence.whatIDid}”</p>
+      <p className="text-body text-fg">“{evidence.whatIDid}”</p>
       <div className="flex flex-wrap items-center gap-1.5">
         <Badge>{title(evidence.context)}</Badge>
         <Badge>{title(evidence.depth)}</Badge>
-        <span className="text-xs text-muted tabular-nums">Last used {monthYear(evidence.lastUsed)}</span>
-        {source && <span className="text-xs text-muted">· {source}</span>}
+        <span className="text-caption text-muted tabular-nums">Last used {monthYear(evidence.lastUsed)}</span>
+        {source && <span className="text-caption text-muted">· {source}</span>}
       </div>
-      {failed && <p className="text-sm text-danger-fg">{failed.message}</p>}
+      {failed && <p className="text-footnote text-danger-fg">{failed.message}</p>}
       <div className="flex items-center gap-1">
         {evidence.isVerified ? (
           <Badge tone="accent">

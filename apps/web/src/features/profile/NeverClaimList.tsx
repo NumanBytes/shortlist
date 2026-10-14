@@ -59,8 +59,7 @@ function NeverClaimForm({ onDone }: { onDone: () => void }) {
 
   return (
     <form onSubmit={submit} noValidate className="space-y-3" aria-label="Add a term">
-      <p className="text-[17px] font-semibold text-fg">Never on my resume</p>
-      <p className="text-[13px] text-muted">
+      <p className="text-footnote text-muted">
         Something you haven't done that could slip into a tailored resume. Any bullet mentioning it is removed.
       </p>
       <TextField
@@ -70,10 +69,10 @@ function NeverClaimForm({ onDone }: { onDone: () => void }) {
         value={v.term}
         onChange={(e) => setV({ ...v, term: e.target.value })}
       />
-      <div className="flex items-center justify-between gap-3 rounded-xl border border-border px-3.5 py-2.5">
+      <div className="flex items-center justify-between gap-3 rounded-md border border-border px-3.5 py-2.5">
         <span>
-          <span className="block text-[15px] text-fg">Only in paid work</span>
-          <span className="block text-[13px] text-muted">Allowed in personal projects, never under a job.</span>
+          <span className="block text-body text-fg">Only in paid work</span>
+          <span className="block text-footnote text-muted">Allowed in personal projects, never under a job.</span>
         </span>
         <Switch checked={v.paidOnly} onChange={(paidOnly) => setV({ ...v, paidOnly })} label="Only in paid work" />
       </div>
@@ -83,7 +82,7 @@ function NeverClaimForm({ onDone }: { onDone: () => void }) {
         value={v.note}
         onChange={(e) => setV({ ...v, note: e.target.value })}
       />
-      {error && <p className="text-sm text-danger-fg">{error}</p>}
+      {error && <p className="text-footnote text-danger-fg">{error}</p>}
       <Button type="submit" size="lg" className="w-full" disabled={add.isPending}>
         Add
       </Button>

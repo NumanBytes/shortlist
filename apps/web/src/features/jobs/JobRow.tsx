@@ -102,12 +102,12 @@ export function JobRow({ job, selected }: { job: JobListItem; selected: boolean 
 
   const meta = [job.company, location, job.salary].filter(Boolean).join(' · ');
   return (
-    <li ref={row} style={swipe.rowStyle} className="relative rounded-2xl">
+    <li ref={row} style={swipe.rowStyle} className="relative rounded-lg">
       {/* What letting go will do: green (right) or grey (left), behind the card. */}
       {under && (
         <div
           aria-hidden="true"
-          className={`absolute inset-0 flex items-center gap-2 rounded-2xl px-5 text-sm font-semibold ${under.tone} ${swipe.dir === 'left' ? 'justify-end' : ''}`}
+          className={`absolute inset-0 flex items-center gap-2 rounded-lg px-5 text-body font-semibold ${under.tone} ${swipe.dir === 'left' ? 'justify-end' : ''}`}
         >
           <span className={`transition-transform duration-150 ${swipe.armed ? 'scale-[1.15]' : ''}`}>{under.icon}</span>
           {under.label}
@@ -116,7 +116,7 @@ export function JobRow({ job, selected }: { job: JobListItem; selected: boolean 
       <div
         {...swipe.handlers}
         style={swipe.cardStyle}
-        className={`relative rounded-2xl border bg-surface shadow-card select-none ${selected ? 'border-accent ring-1 ring-accent' : 'border-border hover:border-fg/25'}`}
+        className={`relative rounded-lg border bg-surface shadow-card select-none ${selected ? 'border-accent ring-1 ring-accent' : 'border-border hover:border-fg/25'}`}
       >
         <PushLink
           to={href}
@@ -129,7 +129,7 @@ export function JobRow({ job, selected }: { job: JobListItem; selected: boolean 
           }
           aria-current={selected ? 'page' : undefined}
           draggable={false}
-          className="flex gap-3 rounded-t-2xl px-3.5 pt-3.5 focus-visible:outline-2 focus-visible:outline-accent"
+          className="flex gap-3 rounded-t-lg px-3.5 pt-3.5 focus-visible:outline-2 focus-visible:outline-accent"
         >
           {job.match ? (
             <ScoreRing score={job.match.overallScore} verdict={job.match.verdict} ringRef={ringRef} />
@@ -137,10 +137,10 @@ export function JobRow({ job, selected }: { job: JobListItem; selected: boolean 
             <PendingRing />
           )}
           <div className="flex min-w-0 flex-1 flex-col gap-[3px]">
-            <h3 className="line-clamp-2 text-base leading-[21px] font-semibold tracking-[-0.01em] text-fg">
+            <h3 className="line-clamp-2 text-headline leading-[21px] font-semibold tracking-[-0.01em] text-fg">
               {job.title}
             </h3>
-            <p className="truncate text-[13px] text-muted">{meta}</p>
+            <p className="truncate text-footnote text-muted">{meta}</p>
             <div className="flex flex-wrap gap-1.5 pt-1.5">
               {job.match && <VerdictBadge verdict={job.match.verdict} />}
               {showMode && (
@@ -165,7 +165,7 @@ export function JobRow({ job, selected }: { job: JobListItem; selected: boolean 
         </PushLink>
 
         <div className="mt-2.5 flex items-center border-t border-border py-0.5 pr-0.5 pl-3.5">
-          <div className="flex min-w-0 flex-1 flex-col text-xs leading-4 text-muted">
+          <div className="flex min-w-0 flex-1 flex-col text-caption leading-4 text-muted">
             <span className="truncate">{source}</span>
             {/* The one time on the card: when Shortlist found it (user's choice, 2026-10-04). */}
             <time dateTime={job.discoveredAt} title={new Date(job.discoveredAt).toLocaleString()}>
@@ -183,7 +183,7 @@ export function JobRow({ job, selected }: { job: JobListItem; selected: boolean 
                 aria-label="Open posting"
                 title="Open posting"
                 draggable={false}
-                className="inline-flex size-11 items-center justify-center rounded-xl text-muted hover:bg-surface-2 hover:text-fg focus-visible:outline-2 focus-visible:outline-accent"
+                className="inline-flex size-11 items-center justify-center rounded-md text-muted hover:bg-surface-2 hover:text-fg focus-visible:outline-2 focus-visible:outline-accent"
               >
                 <ExternalLink className="size-5" strokeWidth={1.75} />
               </a>
@@ -217,7 +217,7 @@ export function JobRow({ job, selected }: { job: JobListItem; selected: boolean 
             )}
           </div>
         </div>
-        {setStatus.isError && <p className="px-3 pb-2 text-xs text-danger-fg">{setStatus.error.message}</p>}
+        {setStatus.isError && <p className="px-3 pb-2 text-caption text-danger-fg">{setStatus.error.message}</p>}
       </div>
     </li>
   );

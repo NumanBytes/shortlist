@@ -441,3 +441,37 @@ Each phase ends with the headless-browser pass at 390 / 768 / 1280px in light an
     unchanged whichever view is showing. A PDF printed from the phone's Read view was
     checked: one Letter page, the CV layout, no Read-view content.
 
+**Phase 2 built (2026-10-14).** Checked on the audit stack at 390px and 1280px, light and dark.
+- **Type scale (G9):** seven named steps in `index.css` `@theme`, after Apple's text styles:
+  `caption-2` 11 (tab labels, the badge), `caption` 12, `footnote` 13 (secondary lines, field
+  labels, errors, compact controls), `body` 15 (reading text, rows, buttons), `headline` 17
+  (card and sheet titles, large buttons), `title` 22 (a screen's subject, big stats),
+  `large-title` 30 (page titles), plus `control` 16 for form fields only (keeps the iOS
+  zoom rule, G3, enforceable by name). Each step carries its line height.
+  - The old 14px (`text-sm`) uses were sorted by role, not mapped blindly: errors and muted
+    help became `footnote` (the size `TextField` errors already used), reading content
+    `body`. The small button and filter chips are `footnote`, medium buttons `body`, large
+    buttons `headline`.
+- **Radius scale (G10):** `rounded-sm` 8, `md` 12, `lg` 16, `sheet` 28 (plus `full`),
+  replacing eight values. Tailwind's own `sm`/`md`/`lg` are overridden, so every old use
+  was converted in the same change.
+- **Guard:** `src/test/design-scale.test.ts` fails on any raw size or radius class (`text-sm`,
+  `text-[13px]`, `rounded-xl`, bare `rounded`, …) in a component. The printed resume
+  (`ResumeDocument`, sized in points for Letter) is exempt. A test, not a lint rule: oxlint
+  has no class-name rule, and a test needs no extra tool.
+- **Sheet header (G8):** `Sheet` draws the visible title (it also names the dialog), an
+  optional line under it (`description`) and icon, and a Close button, on every screen
+  size, not just sm+ as first proposed: the grab handle is phone-only and hidden from screen
+  readers, so a visible Close is the one way out everyone can see. Forms dropped their own
+  title copies, Evidence its "Cancel · title" row and the status sheet its "Done" button.
+  The header stays put while the content scrolls.
+- **One selected style (G11):** `SELECTED` in `ui.tsx` (accent tint, `accent-fg` text at
+  4.8:1, semibold, a 1px inset accent edge so selection isn't shown by the tint alone, WCAG
+  1.4.11) for segments, filter chips and the Sign in / Register switch. The status sheet and
+  desktop nav already used the tint. The dark fill is now only for the toast and the
+  tailoring pill.
+- **Score ring (G5, and J3):** arcs use `ring-apply` / `ring-stretch` / `ring-skip`, darker
+  in light mode (#059669 3.8:1, #d97706 3.2:1, #848d9e 3.3:1 on white; the verdict colours
+  were 2.2–2.5:1). The track uses `ring-track` (#dde2e9), which nothing used before. The
+  unscored ring's dashed edge is `input-border`, so it no longer reads as an empty gap.
+

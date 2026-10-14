@@ -93,6 +93,11 @@ function StatusSheet({ job, open, onClose }: { job: JobDetail; open: boolean; on
       open={open}
       onClose={onClose}
       title="Set status"
+      description={
+        <span className="block truncate">
+          {job.company} · {job.title}
+        </span>
+      }
       footer={
         job.status !== 'DISCOVERED' && (
           <Button
@@ -107,24 +112,11 @@ function StatusSheet({ job, open, onClose }: { job: JobDetail; open: boolean; on
         )
       }
     >
-      <div className="flex items-start justify-between gap-3 pb-1">
-        <div className="min-w-0">
-          <p className="text-[17px] font-semibold text-fg">Set status</p>
-          <p className="truncate text-[13px] text-muted">
-            {job.company} · {job.title}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="min-h-11 rounded-xl px-2 text-[15px] font-semibold text-accent-fg"
-        >
-          Done
-        </button>
-      </div>
       {GROUPS.map((g) => (
         <fieldset key={g.label} className="mt-3 border-0 p-0">
-          <legend className="mb-1 px-1 text-xs font-semibold tracking-[0.06em] text-muted uppercase">{g.label}</legend>
+          <legend className="mb-1 px-1 text-caption font-semibold tracking-[0.06em] text-muted uppercase">
+            {g.label}
+          </legend>
           {g.statuses.map((st) => {
             const on = st === job.status;
             return (
@@ -134,7 +126,7 @@ function StatusSheet({ job, open, onClose }: { job: JobDetail; open: boolean; on
                 aria-pressed={on}
                 onClick={() => move(st)}
                 disabled={setStatus.isPending}
-                className={`flex min-h-12 w-full items-center gap-3 rounded-xl px-2 text-left text-base ${on ? 'bg-accent-soft font-medium text-fg' : 'text-fg hover:bg-surface-2'}`}
+                className={`flex min-h-12 w-full items-center gap-3 rounded-md px-2 text-left text-body ${on ? 'bg-accent-soft font-medium text-fg' : 'text-fg hover:bg-surface-2'}`}
               >
                 <span
                   aria-hidden="true"
@@ -143,13 +135,13 @@ function StatusSheet({ job, open, onClose }: { job: JobDetail; open: boolean; on
                   {on && <Check className="size-3.5" strokeWidth={3} />}
                 </span>
                 <span className="flex-1">{STATUS_LABEL[st]}</span>
-                {hint(st) && <span className="text-xs text-muted">{hint(st)}</span>}
+                {hint(st) && <span className="text-caption text-muted">{hint(st)}</span>}
               </button>
             );
           })}
         </fieldset>
       ))}
-      {setStatus.isError && <p className="mt-2 text-sm text-danger-fg">{setStatus.error.message}</p>}
+      {setStatus.isError && <p className="mt-2 text-footnote text-danger-fg">{setStatus.error.message}</p>}
     </Sheet>
   );
 }
