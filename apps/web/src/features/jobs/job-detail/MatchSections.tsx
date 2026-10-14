@@ -34,15 +34,15 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    <section aria-labelledby={id} className="overflow-hidden rounded-2xl border border-border bg-surface">
+    <section aria-labelledby={id} className="overflow-hidden rounded-lg border border-border bg-surface">
       <div className="flex items-center gap-2.5 px-4 pt-3.5 pb-3">
         <span className="text-muted" aria-hidden="true">
           {icon}
         </span>
-        <h2 id={id} className="flex-1 text-[15px] font-semibold text-fg">
+        <h2 id={id} className="flex-1 text-body font-semibold text-fg">
           {title}
         </h2>
-        {meta && <span className="text-xs text-muted">{meta}</span>}
+        {meta && <span className="text-caption text-muted">{meta}</span>}
       </div>
       {children}
     </section>
@@ -62,9 +62,9 @@ export function Strengths({ strengths }: { strengths: string[] }) {
         {strengths.map((s) => {
           const p = parseStrength(s);
           return (
-            <li key={s} className="px-4 py-3 text-sm">
+            <li key={s} className="px-4 py-3 text-body">
               <p className="text-fg">{p.requirement}</p>
-              <p className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs text-muted">
+              <p className="mt-1.5 flex flex-wrap items-center gap-1.5 text-caption text-muted">
                 <CornerDownRight className="size-4 shrink-0" aria-hidden="true" />
                 <Badge tone="accent">{p.skill}</Badge>
                 {p.evidence && <span>{p.evidence}</span>}
@@ -88,19 +88,16 @@ export function Gaps({ gaps }: { gaps: Gap[] }) {
     >
       <ul className="divide-y divide-border border-t border-border">
         {gaps.map((g) => (
-          <li key={g.skillName} className="px-4 py-3 text-sm">
+          <li key={g.skillName} className="px-4 py-3 text-body">
             <div className="flex items-start justify-between gap-3">
               <span className="font-semibold text-fg">{g.skillName}</span>
               <Badge tone={SEVERITY_TONE[g.severity]}>{SEVERITY_LABEL[g.severity]}</Badge>
             </div>
-            {g.note && <p className="mt-0.5 text-[13px] text-muted">{g.note}</p>}
+            {g.note && <p className="mt-0.5 text-footnote text-muted">{g.note}</p>}
           </li>
         ))}
       </ul>
-      <Link
-        to="/evidence"
-        className="block border-t border-border px-4 py-3.5 text-[15px] font-semibold text-accent-fg"
-      >
+      <Link to="/evidence" className="block border-t border-border px-4 py-3.5 text-body font-semibold text-accent-fg">
         Have experience here? Add evidence
       </Link>
     </Section>
@@ -115,7 +112,7 @@ export function Risks({ risks }: { risks: string[] }) {
     <Section id="risks" icon={<CircleAlert className="size-5 text-danger" strokeWidth={1.75} />} title="Risks">
       <ul className="divide-y divide-border border-t border-border">
         {other.map((r) => (
-          <li key={r} className="flex items-start gap-2.5 px-4 py-3 text-sm text-fg">
+          <li key={r} className="flex items-start gap-2.5 px-4 py-3 text-body text-fg">
             <span aria-hidden="true" className="mt-1.5 size-1.5 shrink-0 rounded-full bg-stretch" />
             {r}
           </li>

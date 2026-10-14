@@ -39,7 +39,12 @@
   --danger: #dc2626;
   --danger-bg: #fee2e2;
   --danger-fg: #b91c1c;
-  --ring-track: #e6e9ee;
+  /* Score ring (UI audit G5): arcs ≥3:1 against a card (WCAG 1.4.11) — the verdict colours
+     above are 2.2–2.5:1 on white — on a track that reads as a track. */
+  --ring-track: #dde2e9;
+  --ring-apply: #059669;
+  --ring-stretch: #d97706;
+  --ring-skip: #848d9e;
   --scrim: rgb(15 23 42 / 0.36); /* behind a bottom sheet */
   --glass: rgb(255 255 255 / 0.88); /* frosted tab bar */
   --toast-accent: #34d399; /* Undo / spinner on the dark toast and pill */
@@ -82,6 +87,9 @@
     --danger-bg: rgb(248 113 113 / 0.14);
     --danger-fg: #fca5a5;
     --ring-track: #253047;
+    --ring-apply: #10b981;
+    --ring-stretch: #f59e0b;
+    --ring-skip: #a3acba;
     --scrim: rgb(0 0 0 / 0.6);
     --glass: rgb(18 24 37 / 0.88);
     --toast-accent: #047857;
@@ -119,6 +127,9 @@
   --danger-bg: rgb(248 113 113 / 0.14);
   --danger-fg: #fca5a5;
   --ring-track: #253047;
+  --ring-apply: #10b981;
+  --ring-stretch: #f59e0b;
+  --ring-skip: #a3acba;
   --scrim: rgb(0 0 0 / 0.6);
   --glass: rgb(18 24 37 / 0.88);
   --toast-accent: #047857;
@@ -162,11 +173,42 @@
   --color-danger-bg: var(--danger-bg);
   --color-danger-fg: var(--danger-fg);
   --color-ring-track: var(--ring-track);
+  --color-ring-apply: var(--ring-apply);
+  --color-ring-stretch: var(--ring-stretch);
+  --color-ring-skip: var(--ring-skip);
   /* The resume is a printed document, not UI: the same paper and ink in dark mode. */
   --color-paper: #ffffff;
   --color-ink: #111111;
   --color-ink-muted: #444444;
   --color-ink-danger: #b91c1c;
+}
+
+/* Type and radius scales (UI audit G9, G10, docs/web-design.md §8.5). One named step per
+   role, after Apple's text styles, instead of 12 mixed sizes; `control` is for form fields
+   only (16px, or iOS Safari zooms on focus). Use these names — `src/test/design-scale.test.ts`
+   fails on a raw `text-[13px]`, `text-sm`, `rounded-xl`, … outside the printed resume. */
+@theme {
+  --text-caption-2: 11px; /* tab-bar labels, the tab badge */
+  --text-caption-2--line-height: 13px;
+  --text-caption: 12px; /* section labels, badges, timestamps */
+  --text-caption--line-height: 16px;
+  --text-footnote: 13px; /* secondary lines, field labels, errors, compact controls */
+  --text-footnote--line-height: 18px;
+  --text-body: 15px; /* reading text, rows, buttons */
+  --text-body--line-height: 21px;
+  --text-control: 16px; /* inputs, selects, textareas */
+  --text-control--line-height: 24px;
+  --text-headline: 17px; /* card and sheet titles, large buttons */
+  --text-headline--line-height: 22px;
+  --text-title: 22px; /* a screen's subject (job title, profile name), big stats */
+  --text-title--line-height: 28px;
+  --text-large-title: 30px; /* page titles */
+  --text-large-title--line-height: 36px;
+
+  --radius-sm: 8px; /* badges, small buttons, tiles, segments */
+  --radius-md: 12px; /* buttons, inputs, banners, the toast */
+  --radius-lg: 16px; /* cards, grouped lists */
+  --radius-sheet: 28px; /* sheets */
 }
 
 body {

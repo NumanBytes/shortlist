@@ -48,7 +48,7 @@ export function ReviewPage() {
       {all.length > 0 && (
         <Card className="space-y-2.5 px-4 py-3.5">
           <div className="flex items-baseline justify-between gap-3">
-            <p className="text-[15px] font-semibold text-fg">
+            <p className="text-body font-semibold text-fg">
               {toReview > 0 ? (
                 <>
                   <span className="tabular-nums">{toReview}</span> to review
@@ -57,7 +57,7 @@ export function ReviewPage() {
                 'All verified'
               )}
             </p>
-            <p className="text-xs text-muted tabular-nums">
+            <p className="text-caption text-muted tabular-nums">
               {verified} of {all.length} verified
             </p>
           </div>
@@ -67,7 +67,7 @@ export function ReviewPage() {
             value={verified}
             className="block h-1.5 w-full appearance-none overflow-hidden rounded-full bg-surface-2 [&::-moz-progress-bar]:rounded-full [&::-moz-progress-bar]:bg-accent [&::-webkit-progress-bar]:bg-surface-2 [&::-webkit-progress-value]:rounded-full [&::-webkit-progress-value]:bg-accent"
           />
-          <p className="text-xs text-muted">
+          <p className="text-caption text-muted">
             Resumes only use evidence you've verified. Verify an item only if it's true as worded.
           </p>
         </Card>
@@ -75,15 +75,15 @@ export function ReviewPage() {
 
       {skills.isPending && (
         <div className="space-y-2.5" aria-busy="true">
-          <Skeleton className="h-14 w-full rounded-2xl" />
-          <Skeleton className="h-14 w-full rounded-2xl" />
+          <Skeleton className="h-14 w-full rounded-lg" />
+          <Skeleton className="h-14 w-full rounded-lg" />
         </div>
       )}
       {skills.isError && <p className="text-danger-fg">Couldn't load your skills: {skills.error.message}</p>}
       {skills.isSuccess && all.length === 0 && (
-        <div className="space-y-2 text-sm text-muted">
+        <div className="space-y-2 text-body text-muted">
           <p>No evidence yet. Tap “Add skill”, or load your career data with the seed, then refresh:</p>
-          <pre className="overflow-x-auto rounded-lg bg-surface-2 p-3 text-xs text-fg">
+          <pre className="overflow-x-auto rounded-sm bg-surface-2 p-3 text-caption text-fg">
             {`SEED_USER_EMAIL=${email ?? 'you@example.com'} pnpm --filter @shortlist/db db:seed:career`}
           </pre>
           <p>Everything added starts unverified.</p>
@@ -114,7 +114,7 @@ export function ReviewPage() {
           onClick={() => setSheet({ kind: 'new-skill' })}
           // Stacks above the tab bar, the tailoring pill and a toast (UI audit G7).
           style={{ bottom: bottomAbove('pill', 'toast') }}
-          className="fixed right-4 z-10 flex h-13 items-center gap-2 rounded-full bg-accent-strong pr-5 pl-4 text-[15px] font-semibold text-on-accent shadow-[0_10px_28px_rgb(15_23_42/0.28)] sm:static sm:shadow-none print:hidden"
+          className="fixed right-4 z-10 flex h-13 items-center gap-2 rounded-full bg-accent-strong pr-5 pl-4 text-body font-semibold text-on-accent shadow-[0_10px_28px_rgb(15_23_42/0.28)] sm:static sm:shadow-none print:hidden"
         >
           <Plus className="size-5" /> Add skill
         </button>
@@ -147,7 +147,7 @@ function SkillGroup({
   return (
     <section
       aria-label={`${skill.name} evidence`}
-      className="overflow-hidden rounded-2xl border border-border bg-surface"
+      className="overflow-hidden rounded-lg border border-border bg-surface"
     >
       <button
         type="button"
@@ -155,12 +155,12 @@ function SkillGroup({
         onClick={onToggle}
         className="flex min-h-13 w-full items-center gap-2.5 pr-2 pl-4 text-left"
       >
-        <span className="flex-1 text-[15px] font-semibold text-fg">
+        <span className="flex-1 text-body font-semibold text-fg">
           {skill.name}
-          {learning && <span className="text-xs font-medium text-muted"> · learning</span>}
+          {learning && <span className="text-caption font-medium text-muted"> · learning</span>}
         </span>
         {open || pending === 0 ? (
-          <span className="text-xs text-muted tabular-nums">
+          <span className="text-caption text-muted tabular-nums">
             {verified} of {skill.evidence.length} verified
           </span>
         ) : (

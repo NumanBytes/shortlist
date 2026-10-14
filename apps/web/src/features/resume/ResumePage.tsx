@@ -86,12 +86,12 @@ export function ResumePage() {
       <PushLink
         to={`/jobs/${jobId}`}
         dir="back"
-        className="-ml-1 flex min-h-11 min-w-0 items-center gap-0.5 text-[17px] font-medium text-accent-fg"
+        className="-ml-1 flex min-h-11 min-w-0 items-center gap-0.5 text-headline font-medium text-accent-fg"
       >
         <ChevronLeft className="size-6 shrink-0" />
         <span className="truncate">{company ?? 'Job'}</span>
       </PushLink>
-      <h1 className="text-[15px] font-semibold whitespace-nowrap text-fg">Review resume</h1>
+      <h1 className="text-body font-semibold whitespace-nowrap text-fg">Review resume</h1>
       <span className="justify-self-end">{menu}</span>
     </nav>
   );
@@ -131,7 +131,7 @@ export function ResumePage() {
         <Badge className="font-semibold tracking-[0.04em]" tone={stale ? 'danger' : approved ? 'accent' : 'neutral'}>
           {stale ? 'OUT OF DATE' : approved ? 'APPROVED' : 'DRAFT'}
         </Badge>
-        <p className="text-xs text-muted">Tap any bullet to see the evidence behind it.</p>
+        <p className="text-caption text-muted">Tap any bullet to see the evidence behind it.</p>
       </div>
 
       <div className="sm:hidden print:hidden">
@@ -157,7 +157,7 @@ export function ResumePage() {
       )}
 
       {stale && (
-        <p className="flex gap-2 rounded-xl bg-danger-bg px-3 py-2.5 text-sm text-danger-fg print:hidden">
+        <p className="flex gap-2 rounded-md bg-danger-bg px-3 py-2.5 text-body text-danger-fg print:hidden">
           <AlertTriangle className="mt-0.5 size-4 shrink-0" />
           Evidence it uses has changed ({v.stale.join(' · ')}). Tailor it again from the job page before sending.
         </p>
@@ -165,7 +165,7 @@ export function ResumePage() {
 
       {/* The "desk": the page on a tinted band, scaled to fit a phone (pinch to zoom). */}
       <div
-        className={`-mx-4 bg-surface-2 px-4 py-5 sm:mx-0 sm:block sm:rounded-2xl print:m-0 print:block print:bg-transparent print:p-0 ${view === 'read' ? 'hidden' : ''}`}
+        className={`-mx-4 bg-surface-2 px-4 py-5 sm:mx-0 sm:block sm:rounded-lg print:m-0 print:block print:bg-transparent print:p-0 ${view === 'read' ? 'hidden' : ''}`}
       >
         <FitToWidth>
           <ResumeDocument
@@ -178,7 +178,7 @@ export function ResumePage() {
           />
         </FitToWidth>
         <p className="mt-3 flex justify-center print:hidden">
-          <span className="inline-flex h-7 items-center gap-1.5 rounded-full border border-border bg-surface px-2.5 text-xs text-muted sm:hidden">
+          <span className="inline-flex h-7 items-center gap-1.5 rounded-full border border-border bg-surface px-2.5 text-caption text-muted sm:hidden">
             <ZoomIn className="size-3.5" /> Pinch to zoom
           </span>
         </p>
@@ -186,14 +186,14 @@ export function ResumePage() {
 
       {dropped.length > 0 && (
         <section aria-labelledby="removed" className="space-y-2.5 pt-2 print:hidden">
-          <h2 id="removed" className="px-1 text-xs font-semibold tracking-[0.06em] text-muted uppercase">
+          <h2 id="removed" className="px-1 text-caption font-semibold tracking-[0.06em] text-muted uppercase">
             Removed by checks · <span className="tabular-nums">{dropped.length}</span>
           </h2>
-          <ul className="divide-y divide-border rounded-2xl border border-border bg-surface">
+          <ul className="divide-y divide-border rounded-lg border border-border bg-surface">
             {dropped.map((d, i) => (
               <li key={i} className="space-y-2 px-4 py-3.5">
-                <p className="text-sm text-muted line-through">{d.text}</p>
-                <p className="flex items-start gap-1.5 text-sm font-medium text-danger-fg">
+                <p className="text-body text-muted line-through">{d.text}</p>
+                <p className="flex items-start gap-1.5 text-body font-medium text-danger-fg">
                   <ShieldX className="mt-px size-4 shrink-0" />
                   <span>
                     {d.reason}
@@ -230,14 +230,14 @@ export function ResumePage() {
             >
               <Check className="size-5" /> {approve.isPending ? 'Approving…' : 'Approve'}
             </Button>
-            <p className="text-center text-[13px] text-muted">
+            <p className="text-center text-footnote text-muted">
               {stale
                 ? "An out-of-date resume can't be approved."
                 : 'Read every bullet first. Approving removes the watermark and unlocks Save as PDF.'}
             </p>
           </>
         )}
-        {approve.isError && <p className="text-center text-sm text-danger-fg">{approve.error.message}</p>}
+        {approve.isError && <p className="text-center text-footnote text-danger-fg">{approve.error.message}</p>}
       </div>
 
       <BulletSheet bullet={bullet} sources={resume.data.sources} onClose={() => setBullet(null)} />
@@ -303,12 +303,12 @@ function BulletSheet({
     >
       {bullet && (
         <div className="space-y-3">
-          <p className="text-xs font-semibold tracking-[0.06em] text-muted uppercase">Bullet</p>
-          <p className="text-[15px] leading-[21px] text-fg">
+          <p className="text-caption font-semibold tracking-[0.06em] text-muted uppercase">Bullet</p>
+          <p className="text-body text-fg">
             “{bullet.label && `${bullet.label}: `}
             {bullet.text}”
           </p>
-          <p className="text-xs text-muted">
+          <p className="text-caption text-muted">
             Built from {bullet.evidenceIds.length} verified evidence{' '}
             {bullet.evidenceIds.length === 1 ? 'item' : 'items'} — your words:
           </p>
@@ -316,10 +316,10 @@ function BulletSheet({
             {bullet.evidenceIds.map((id) => {
               const s = sources[id];
               return (
-                <li key={id} className="space-y-2.5 rounded-[14px] border border-border p-3.5">
+                <li key={id} className="space-y-2.5 rounded-md border border-border p-3.5">
                   {s ? (
                     <>
-                      <p className="text-[15px] leading-[21px] text-fg">“{s.whatIDid}”</p>
+                      <p className="text-body text-fg">“{s.whatIDid}”</p>
                       <div className="flex flex-wrap items-center gap-1.5">
                         <Badge>{s.skillName}</Badge>
                         <Badge>{title(s.context)}</Badge>
@@ -329,11 +329,11 @@ function BulletSheet({
                         ) : (
                           <Badge tone="danger">No longer verified</Badge>
                         )}
-                        <span className="text-xs text-muted tabular-nums">{monthYear(s.lastUsed)}</span>
+                        <span className="text-caption text-muted tabular-nums">{monthYear(s.lastUsed)}</span>
                       </div>
                     </>
                   ) : (
-                    <p className="text-sm text-danger-fg">An item this bullet used was deleted.</p>
+                    <p className="text-footnote text-danger-fg">An item this bullet used was deleted.</p>
                   )}
                 </li>
               );

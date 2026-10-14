@@ -4,7 +4,7 @@
 const TILE = {
   sm: 'size-8', // header
   md: 'size-12', // install sheet
-  lg: 'size-16 rounded-[14px] shadow-[0_10px_24px_-8px_rgb(5_150_105/0.5)]', // sign-in
+  lg: 'size-16 rounded-md shadow-[0_10px_24px_-8px_rgb(5_150_105/0.5)]', // sign-in
 };
 
 export function Logo({ withName = true, size = 'sm' }: { withName?: boolean; size?: keyof typeof TILE }) {
@@ -21,7 +21,7 @@ export function Logo({ withName = true, size = 'sm' }: { withName?: boolean; siz
       </svg>
       {withName && (
         <span
-          className={`font-bold tracking-tight text-fg ${size === 'lg' ? 'text-[28px] leading-none' : 'text-base'}`}
+          className={`font-bold tracking-tight text-fg ${size === 'lg' ? 'text-large-title leading-none' : 'text-headline'}`}
         >
           Shortlist
         </span>

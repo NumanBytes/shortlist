@@ -40,7 +40,6 @@ export function EducationForm({ initial, onDone }: { initial?: Education; onDone
 
   return (
     <form onSubmit={submit} noValidate className="space-y-3">
-      <p className="text-[17px] font-semibold text-fg">{initial ? 'Edit education' : 'Add education'}</p>
       <TextField
         id="edu-degree"
         label="Degree"
@@ -76,7 +75,7 @@ export function EducationForm({ initial, onDone }: { initial?: Education; onDone
           onChange={(e) => setV({ ...v, endYear: e.target.value })}
         />
       </div>
-      {error && <p className="text-sm text-danger-fg">{error}</p>}
+      {error && <p className="text-footnote text-danger-fg">{error}</p>}
       <Button type="submit" size="lg" className="w-full" disabled={save.isPending}>
         Save
       </Button>

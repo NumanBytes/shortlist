@@ -47,18 +47,18 @@ export function Detail({ job }: { job: JobDetail }) {
             <ScoreRing score={m.overallScore} verdict={m.verdict} size={88} outOf sharedId={job.id} />
             <div className="min-w-0 space-y-1.5">
               <VerdictBadge verdict={m.verdict} />
-              <p className="text-[13px] leading-[18px] text-muted">{fitSummary(job)}</p>
+              <p className="text-footnote leading-[18px] text-muted">{fitSummary(job)}</p>
             </div>
           </div>
         ) : (
           <AnalysisState job={job} />
         )}
         {job.analysisStatus === 'PENDING' && m && (
-          <p className="text-xs text-muted">Re-scoring with your newly verified skills…</p>
+          <p className="text-caption text-muted">Re-scoring with your newly verified skills…</p>
         )}
         <div>
-          <h1 className="text-2xl leading-[30px] font-bold tracking-[-0.02em] text-fg">{job.title}</h1>
-          <p className="mt-1 text-[15px] text-fg">
+          <h1 className="text-title font-bold tracking-[-0.02em] text-fg">{job.title}</h1>
+          <p className="mt-1 text-body text-fg">
             {job.company}
             {location && <> · {location}</>}
           </p>
@@ -72,7 +72,7 @@ export function Detail({ job }: { job: JobDetail }) {
             )}
           </div>
         )}
-        <p className="text-xs text-muted">
+        <p className="text-caption text-muted">
           via {where} · Found {timeAgo(job.discoveredAt)}
           {posted && ` · ${posted.charAt(0).toUpperCase()}${posted.slice(1)}`}
         </p>
@@ -87,7 +87,7 @@ export function Detail({ job }: { job: JobDetail }) {
       </header>
 
       {job.redFlags.length > 0 && (
-        <div role="alert" className="flex gap-3 rounded-2xl bg-danger-bg p-4 text-sm text-danger-fg">
+        <div role="alert" className="flex gap-3 rounded-lg bg-danger-bg p-4 text-body text-danger-fg">
           <AlertTriangle className="mt-0.5 size-4 shrink-0" />
           <div>
             <p className="font-semibold">Possible scam — check before applying</p>
@@ -112,24 +112,24 @@ export function Detail({ job }: { job: JobDetail }) {
         </>
       )}
 
-      <details className="group overflow-hidden rounded-2xl border border-border bg-surface">
+      <details className="group overflow-hidden rounded-lg border border-border bg-surface">
         <summary className="cursor-pointer list-none px-4 pt-3.5 pb-3 marker:hidden">
-          <span className="block text-[15px] font-semibold text-fg">
+          <span className="block text-body font-semibold text-fg">
             {job.isPartial ? 'Alert summary' : 'Description'}
           </span>
-          <span className="mt-1 line-clamp-3 text-sm leading-relaxed whitespace-pre-line text-muted group-open:hidden">
+          <span className="mt-1 line-clamp-3 text-body leading-relaxed whitespace-pre-line text-muted group-open:hidden">
             {job.rawJD || 'No description.'}
           </span>
-          <span className="mt-2 flex items-center justify-center gap-1 text-[15px] font-semibold text-accent-fg group-open:hidden">
+          <span className="mt-2 flex items-center justify-center gap-1 text-body font-semibold text-accent-fg group-open:hidden">
             Read more <ChevronDown className="size-4" />
           </span>
         </summary>
-        <div className="max-h-[60vh] overflow-y-auto px-4 pb-4 text-sm leading-relaxed whitespace-pre-line text-muted">
+        <div className="max-h-[60vh] overflow-y-auto px-4 pb-4 text-body leading-relaxed whitespace-pre-line text-muted">
           {job.rawJD || 'No description.'}
         </div>
       </details>
 
-      <p className="flex gap-2 px-1 text-xs text-muted">
+      <p className="flex gap-2 px-1 text-caption text-muted">
         <Info className="mt-px size-3.5 shrink-0" aria-hidden="true" />
         Shortlist prepares everything. You apply yourself, on{' '}
         {isAggregator(job) ? 'the original posting' : `${job.company}'s site`}.
@@ -144,7 +144,7 @@ function AnalysisState({ job }: { job: JobDetail }) {
   const failed = job.analysisStatus === 'FAILED';
   const pending = job.analysisStatus === 'PENDING';
   return (
-    <Card className="p-4 text-sm">
+    <Card className="p-4 text-body">
       <p className={`font-medium ${failed ? 'text-danger-fg' : pending ? 'text-fg' : 'text-stretch-fg'}`}>
         {pending ? 'Scoring in progress' : failed ? 'Scoring failed' : 'Scoring deferred'}
       </p>

@@ -18,10 +18,10 @@ export function Row({
 }) {
   const body = (
     <>
-      <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-surface-2 text-muted">{icon}</span>
+      <span className="grid size-9 shrink-0 place-items-center rounded-sm bg-surface-2 text-muted">{icon}</span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-[15px] font-semibold text-fg">{title}</span>
-        {sub && <span className="block truncate text-[13px] text-muted">{sub}</span>}
+        <span className="block truncate text-body font-semibold text-fg">{title}</span>
+        {sub && <span className="block truncate text-footnote text-muted">{sub}</span>}
       </span>
       {trailing}
       {onClick && <ChevronRight className="size-4 shrink-0 text-muted" />}
@@ -41,7 +41,7 @@ export function Group({ label, children }: { label: string; children: ReactNode 
   return (
     <section className="space-y-2 pt-2" aria-label={label}>
       <SectionLabel>{label}</SectionLabel>
-      <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-surface">
+      <div className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-surface">
         {children}
       </div>
     </section>
@@ -53,7 +53,7 @@ export function AddRow({ onClick, children }: { onClick: () => void; children: R
     <button
       type="button"
       onClick={onClick}
-      className="flex min-h-12 w-full items-center gap-2 px-4 text-[15px] font-semibold text-accent-fg"
+      className="flex min-h-12 w-full items-center gap-2 px-4 text-body font-semibold text-accent-fg"
     >
       <Plus className="size-4" /> {children}
     </button>

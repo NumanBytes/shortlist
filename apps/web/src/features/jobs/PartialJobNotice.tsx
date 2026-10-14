@@ -13,7 +13,7 @@ export function PartialJobNotice({ job }: { job: JobDetail }) {
   const portal = providerLabel(job.source);
   const canPaste = job.status !== 'DISCOVERED' && job.status !== 'SKIPPED';
   return (
-    <Card className="p-4 text-sm">
+    <Card className="p-4 text-body">
       <div className="flex gap-3">
         <Mail className="mt-0.5 size-4.5 shrink-0 text-accent" />
         <div className="min-w-0 flex-1">
@@ -43,7 +43,7 @@ function PasteForm({ job }: { job: JobDetail }) {
   };
   return (
     <div className="mt-3 space-y-2">
-      <label htmlFor="paste-jd" className="block text-xs font-medium text-fg">
+      <label htmlFor="paste-jd" className="block text-caption font-medium text-fg">
         Full job description
       </label>
       <textarea
@@ -55,12 +55,12 @@ function PasteForm({ job }: { job: JobDetail }) {
         aria-invalid={error ? true : undefined}
         className={`${INPUT} py-3 leading-snug`}
       />
-      {(error || paste.isError) && <p className="text-xs text-danger-fg">{error ?? paste.error?.message}</p>}
+      {(error || paste.isError) && <p className="text-caption text-danger-fg">{error ?? paste.error?.message}</p>}
       <div className="flex flex-wrap items-center gap-3">
         <Button size="sm" onClick={submit} disabled={paste.isPending || text.trim().length === 0}>
           <ClipboardPaste className="size-4" /> {paste.isPending ? 'Saving…' : 'Save and score again'}
         </Button>
-        <span className="text-xs text-subtle">Scoring again costs about $0.006</span>
+        <span className="text-caption text-subtle">Scoring again costs about $0.006</span>
       </div>
     </div>
   );

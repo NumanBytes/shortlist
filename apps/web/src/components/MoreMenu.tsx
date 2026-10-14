@@ -20,8 +20,7 @@ export function MoreMenu({ title, actions }: { title: string; actions: MenuActio
         <MoreHorizontal className="size-5" />
       </IconButton>
       <Sheet open={open} onClose={() => setOpen(false)} title={title}>
-        <p className="pb-2 text-[13px] text-muted">{title}</p>
-        <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border">
+        <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border">
           {actions.map((a) => (
             <li key={a.label}>
               <button
@@ -31,10 +30,10 @@ export function MoreMenu({ title, actions }: { title: string; actions: MenuActio
                   setOpen(false);
                   a.onSelect();
                 }}
-                className={`flex min-h-14 w-full items-center gap-3 px-4 text-left text-base font-medium disabled:opacity-45 ${a.danger ? 'text-danger-fg' : 'text-fg'} hover:bg-surface-2`}
+                className={`flex min-h-14 w-full items-center gap-3 px-4 text-left text-body font-medium disabled:opacity-45 ${a.danger ? 'text-danger-fg' : 'text-fg'} hover:bg-surface-2`}
               >
                 <span
-                  className={`grid size-9 shrink-0 place-items-center rounded-[10px] ${a.danger ? 'bg-danger-bg' : 'bg-surface-2 text-muted'}`}
+                  className={`grid size-9 shrink-0 place-items-center rounded-sm ${a.danger ? 'bg-danger-bg' : 'bg-surface-2 text-muted'}`}
                 >
                   {a.icon}
                 </span>

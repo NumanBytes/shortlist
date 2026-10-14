@@ -8,7 +8,7 @@ import { Button, INPUT, Switch, TextField } from '../../components/ui';
 import { ApiError } from '../../lib/api';
 import { useSavePreferences } from '../../lib/queries';
 
-const LABEL = 'block text-sm font-medium text-fg';
+const LABEL = 'block text-footnote font-medium text-fg';
 const list = (s: string) =>
   s
     .split(/[,\n]/)
@@ -79,7 +79,7 @@ export function SearchSettingsForm({
         onChange={(e) => setV({ ...v, [id]: e.target.value })}
         className={`${INPUT} py-3 leading-snug`}
       />
-      <p className="text-[13px] text-muted">{hint}</p>
+      <p className="text-footnote text-muted">{hint}</p>
     </div>
   );
 
@@ -103,8 +103,8 @@ export function SearchSettingsForm({
         'Cities or countries you can commute to. Empty: remote only.',
         'lahore, pakistan',
       )}
-      <div className="flex items-center justify-between rounded-xl border border-border px-3.5 py-2.5">
-        <span className="text-[15px] text-fg">Open to remote work</span>
+      <div className="flex items-center justify-between rounded-md border border-border px-3.5 py-2.5">
+        <span className="text-body text-fg">Open to remote work</span>
         <Switch
           checked={v.allowRemote}
           onChange={(allowRemote) => setV({ ...v, allowRemote })}
@@ -125,7 +125,7 @@ export function SearchSettingsForm({
         value={v.maxPostingAgeDays}
         onChange={(e) => setV({ ...v, maxPostingAgeDays: e.target.value })}
       />
-      {error && <p className="text-sm text-danger-fg">{error}</p>}
+      {error && <p className="text-footnote text-danger-fg">{error}</p>}
       <Button type="submit" size="lg" className="w-full" disabled={save.isPending}>
         {submitLabel}
       </Button>

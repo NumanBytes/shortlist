@@ -29,14 +29,17 @@ export function ProfilePage() {
   return (
     <main className="mx-auto max-w-2xl space-y-3 pb-6">
       <nav className="grid grid-cols-[1fr_auto_1fr] items-center">
-        <Link to="/" className="-ml-1 inline-flex min-h-11 items-center gap-0.5 text-[17px] font-medium text-accent-fg">
+        <Link
+          to="/"
+          className="-ml-1 inline-flex min-h-11 items-center gap-0.5 text-headline font-medium text-accent-fg"
+        >
           <ChevronLeft className="size-6" /> Jobs
         </Link>
-        <h1 className="text-[15px] font-semibold text-fg">Profile</h1>
+        <h1 className="text-body font-semibold text-fg">Profile</h1>
         <button
           type="button"
           onClick={() => setEditing(true)}
-          className="min-h-11 justify-self-end px-1 text-[15px] font-semibold text-accent-fg"
+          className="min-h-11 justify-self-end px-1 text-body font-semibold text-accent-fg"
         >
           Edit
         </button>
@@ -65,12 +68,12 @@ export function ProfilePage() {
 function Identity({ profile: p }: { profile: PublicUser }) {
   return (
     <header className="flex flex-col items-center gap-1 px-4 pt-2 pb-2 text-center">
-      <span className="mb-2 grid size-[72px] place-items-center rounded-full bg-accent-soft text-2xl font-semibold text-accent-fg">
+      <span className="mb-2 grid size-[72px] place-items-center rounded-full bg-accent-soft text-title font-semibold text-accent-fg">
         {initialsOf(p.name)}
       </span>
-      <p className="text-xl font-bold tracking-[-0.01em] text-fg">{p.name}</p>
-      {p.headline && <p className="text-[15px] text-muted">{p.headline}</p>}
-      <p className="text-[13px] text-muted">{[p.location, p.email].filter(Boolean).join(' · ')}</p>
+      <p className="text-title font-bold tracking-[-0.01em] text-fg">{p.name}</p>
+      {p.headline && <p className="text-body text-muted">{p.headline}</p>}
+      <p className="text-footnote text-muted">{[p.location, p.email].filter(Boolean).join(' · ')}</p>
     </header>
   );
 }

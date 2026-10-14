@@ -1,5 +1,7 @@
+import { X } from 'lucide-react';
 import {
   useEffect,
+  useId,
   useRef,
   useState,
   type ButtonHTMLAttributes,
@@ -23,11 +25,15 @@ const VARIANTS: Record<Variant, string> = {
   danger: 'bg-danger-bg text-danger-fg hover:brightness-95',
 };
 const SIZES: Record<Size, string> = {
-  sm: 'min-h-9 gap-1.5 rounded-[10px] px-3 text-sm',
-  md: 'min-h-11 gap-2 rounded-xl px-4 text-[15px]',
-  lg: 'min-h-13 gap-2 rounded-[14px] px-5 text-base',
+  sm: 'min-h-9 gap-1.5 rounded-sm px-3 text-footnote',
+  md: 'min-h-11 gap-2 rounded-md px-4 text-body',
+  lg: 'min-h-13 gap-2 rounded-md px-5 text-headline',
 };
 const FOCUS = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent';
+// The one "selected" look (UI audit G11): an accent tint, accent text (4.8:1) and a 1px
+// accent edge, so selection doesn't rest on the tint alone (WCAG 1.4.11). Segments, chips,
+// the status sheet and the nav all use it; the dark fill is only for the toast and the pill.
+export const SELECTED = 'bg-accent-soft font-semibold text-accent-fg shadow-[inset_0_0_0_1px_var(--accent)]';
 
 // The same look for a link that navigates (a real <a>, so it stays a link for screen
 // readers and right-click) — e.g. "Review resume", "Open posting".
@@ -61,7 +67,7 @@ export function IconButton({
       type="button"
       aria-label={label}
       title={label}
-      className={`inline-flex shrink-0 items-center justify-center rounded-xl text-muted transition hover:bg-surface-2 hover:text-fg disabled:opacity-45 ${FOCUS} ${className.includes('size-') ? '' : 'size-11'} ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center rounded-md text-muted transition hover:bg-surface-2 hover:text-fg disabled:opacity-45 ${FOCUS} ${className.includes('size-') ? '' : 'size-11'} ${className}`}
       {...props}
     >
       {children}
@@ -90,7 +96,7 @@ export function Badge({
 }) {
   return (
     <span
-      className={`inline-flex h-[22px] items-center gap-1 rounded-md px-2 text-xs leading-none font-medium whitespace-nowrap ${TONES[tone]} ${className}`}
+      className={`inline-flex h-[22px] items-center gap-1 rounded-sm px-2 text-caption leading-none font-medium whitespace-nowrap ${TONES[tone]} ${className}`}
     >
       {children}
     </span>
@@ -98,13 +104,15 @@ export function Badge({
 }
 
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <div className={`rounded-2xl border border-border bg-surface ${className}`}>{children}</div>;
+  return <div className={`rounded-lg border border-border bg-surface ${className}`}>{children}</div>;
 }
 
 // Small uppercase heading above a group ("NEEDS ATTENTION · 2", "EXPERIENCE").
 export function SectionLabel({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
-    <h2 className={`px-1 text-xs font-semibold tracking-[0.06em] text-muted uppercase ${className}`}>{children}</h2>
+    <h2 className={`px-1 text-caption font-semibold tracking-[0.06em] text-muted uppercase ${className}`}>
+      {children}
+    </h2>
   );
 }
 
@@ -112,7 +120,7 @@ export function Skeleton({ className = '' }: { className?: string }) {
   return (
     <div
       aria-hidden="true"
-      className={`animate-pulse rounded-md bg-surface-2 motion-reduce:animate-none ${className}`}
+      className={`animate-pulse rounded-sm bg-surface-2 motion-reduce:animate-none ${className}`}
     />
   );
 }
@@ -163,7 +171,7 @@ export function Segmented<T extends string>({
   const compact = options.length >= 4 && options.some((o) => o.label.length >= 11);
   return (
     <fieldset
-      className="mx-0 grid min-w-0 gap-0.5 rounded-xl border-0 bg-surface-2 p-[3px]"
+      className="mx-0 grid min-w-0 gap-0.5 rounded-md border-0 bg-surface-2 p-[3px]"
       style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
     >
       <legend className="sr-only">{label}</legend>
@@ -175,14 +183,12 @@ export function Segmented<T extends string>({
             type="button"
             aria-pressed={active}
             onClick={() => onChange(o.value)}
-            className={`flex h-[38px] min-w-0 items-center justify-center gap-1 rounded-[9px] px-1 ${compact ? 'text-xs tracking-tight' : 'text-[13px]'} font-medium whitespace-nowrap transition ${FOCUS} ${
-              active
-                ? 'bg-surface text-fg shadow-[0_1px_2px_rgb(15_23_42/0.08),0_0_0_1px_var(--border)]'
-                : 'text-muted hover:text-fg'
+            className={`flex h-[38px] min-w-0 items-center justify-center gap-1 rounded-sm px-1 ${compact ? 'text-caption tracking-tight' : 'text-footnote'} font-medium whitespace-nowrap transition ${FOCUS} ${
+              active ? SELECTED : 'text-muted hover:text-fg'
             }`}
           >
             <span className="truncate">{o.label}</span>
-            {o.count !== undefined && <span className="tabular-nums opacity-70">{o.count}</span>}
+            {o.count !== undefined && <span className="tabular-nums">{o.count}</span>}
           </button>
         );
       })}
@@ -210,19 +216,19 @@ export function Chip({
       type="button"
       aria-pressed={pressed}
       onClick={onClick}
-      className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3 text-sm font-medium whitespace-nowrap transition ${FOCUS} ${
-        pressed ? 'border-fg bg-fg text-bg' : 'border-border bg-surface text-fg hover:bg-surface-2'
+      className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3 text-footnote font-medium whitespace-nowrap transition ${FOCUS} ${
+        pressed ? `border-accent ${SELECTED}` : 'border-border bg-surface text-fg hover:bg-surface-2'
       }`}
     >
       {dot && <span aria-hidden="true" className={`size-2 rounded-full ${dots[dot]}`} />}
       {children}
-      {count !== undefined && <span className={`tabular-nums ${pressed ? 'opacity-70' : 'text-muted'}`}>{count}</span>}
+      {count !== undefined && <span className={`tabular-nums ${pressed ? '' : 'text-muted'}`}>{count}</span>}
     </button>
   );
 }
 
 export const INPUT =
-  'block w-full rounded-xl border border-input-border bg-surface px-3.5 text-base text-fg placeholder:text-muted transition focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-soft)] focus:outline-none aria-invalid:border-danger';
+  'block w-full rounded-md border border-input-border bg-surface px-3.5 text-control text-fg placeholder:text-muted transition focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-soft)] focus:outline-none aria-invalid:border-danger';
 
 export function TextField({
   label,
@@ -233,7 +239,7 @@ export function TextField({
 }: InputHTMLAttributes<HTMLInputElement> & { label: string; error?: string; id: string }) {
   return (
     <div className="space-y-1.5">
-      <label htmlFor={id} className="block text-[13px] font-medium text-muted">
+      <label htmlFor={id} className="block text-footnote font-medium text-muted">
         {label}
       </label>
       <input
@@ -244,7 +250,7 @@ export function TextField({
         {...props}
       />
       {error && (
-        <p id={`${id}-error`} className="text-[13px] text-danger-fg">
+        <p id={`${id}-error`} className="text-footnote text-danger-fg">
           {error}
         </p>
       )}
@@ -255,9 +261,9 @@ export function TextField({
 export function EmptyState({ icon, title, children }: { icon: ReactNode; title: string; children?: ReactNode }) {
   return (
     <div className="flex flex-col items-center px-6 py-12 text-center">
-      <div className="grid size-16 place-items-center rounded-2xl bg-surface-2 text-muted">{icon}</div>
-      <p className="mt-4 text-base font-semibold text-fg">{title}</p>
-      {children && <div className="mt-1.5 max-w-xs text-sm text-muted">{children}</div>}
+      <div className="grid size-16 place-items-center rounded-lg bg-surface-2 text-muted">{icon}</div>
+      <p className="mt-4 text-headline font-semibold text-fg">{title}</p>
+      {children && <div className="mt-1.5 max-w-xs text-body text-muted">{children}</div>}
     </div>
   );
 }
@@ -267,22 +273,30 @@ export function EmptyState({ icon, title, children }: { icon: ReactNode; title: 
 // focus returned to the trigger — the accessibility a hand-made overlay would have to
 // re-implement. Motion (design spec): in 240 ms, out 180 ms ease-in, scrim fades; on
 // phones it can be dragged down to dismiss (past 30% of its height, or a fast flick).
+// One header for every sheet (UI audit G8, docs/web-design.md §8.5): the visible title, an
+// optional line under it and an icon, and a Close button on every screen size — the grab
+// handle is phone-only and hidden from screen readers. Content never repeats the title.
 const CLOSE_MS = 180;
 
 export function Sheet({
   open,
   onClose,
   title,
+  description,
+  icon,
   children,
   footer,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
+  description?: ReactNode;
+  icon?: ReactNode;
   children: ReactNode;
   footer?: ReactNode;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
   const [rendered, setRendered] = useState(open); // keeps content while it slides out
   const [dragY, setDragY] = useState(0);
   const [dragging, setDragging] = useState(false);
@@ -349,7 +363,7 @@ export function Sheet({
     // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions
     <dialog
       ref={ref}
-      aria-label={title}
+      aria-labelledby={titleId}
       onCancel={(e) => {
         e.preventDefault();
         onClose();
@@ -364,7 +378,7 @@ export function Sheet({
             ? `transform ${CLOSE_MS}ms ease-in`
             : 'transform 200ms cubic-bezier(.2,.8,.2,1)',
       }}
-      className="m-0 mt-auto max-h-[92dvh] w-full max-w-none overflow-hidden rounded-t-[28px] bg-surface p-0 text-fg shadow-[0_-12px_40px_rgb(0_0_0/0.18)] backdrop:bg-scrim open:animate-sheet-up sm:m-auto sm:max-w-md sm:rounded-[28px] print:hidden"
+      className="m-0 mt-auto max-h-[92dvh] w-full max-w-none overflow-hidden rounded-t-sheet bg-surface p-0 text-fg shadow-[0_-12px_40px_rgb(0_0_0/0.18)] backdrop:bg-scrim open:animate-sheet-up sm:m-auto sm:max-w-md sm:rounded-sheet print:hidden"
     >
       {rendered && (
         // Focus lands on the sheet itself, not its first button: a ring on "Copy posting
@@ -382,7 +396,19 @@ export function Sheet({
           >
             <span className="h-[5px] w-9 rounded-full bg-border" />
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-1 pb-4 sm:pt-5">{children}</div>
+          <header className="flex shrink-0 items-start gap-3 pt-1 pr-2 pb-3 pl-5 sm:pt-4">
+            {icon && <div className="shrink-0">{icon}</div>}
+            <div className="min-w-0 flex-1 pt-2.5">
+              <h2 id={titleId} className="text-headline font-semibold text-fg">
+                {title}
+              </h2>
+              {description && <p className="mt-0.5 text-footnote text-muted">{description}</p>}
+            </div>
+            <IconButton label="Close" onClick={onClose}>
+              <X className="size-5" />
+            </IconButton>
+          </header>
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-4">{children}</div>
           {footer && <div className="shrink-0 px-5 pt-2 pb-[max(1.25rem,env(safe-area-inset-bottom))]">{footer}</div>}
         </div>
       )}

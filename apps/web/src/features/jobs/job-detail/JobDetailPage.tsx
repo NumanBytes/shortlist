@@ -27,7 +27,7 @@ export function JobDetailPage() {
         <PushLink
           to={back}
           dir="back"
-          className="-ml-1 inline-flex min-h-11 items-center gap-1 text-[17px] font-medium text-accent-fg lg:invisible"
+          className="-ml-1 inline-flex min-h-11 items-center gap-1 text-headline font-medium text-accent-fg lg:invisible"
         >
           <ChevronLeft className="size-5" /> Jobs
         </PushLink>

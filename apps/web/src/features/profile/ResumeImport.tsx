@@ -50,11 +50,11 @@ export function ResumeImport() {
   const run = latest.data;
   if (run?.status === 'PENDING') {
     return (
-      <output className="flex items-center gap-3 rounded-[14px] bg-surface-2 p-4">
+      <output className="flex items-center gap-3 rounded-md bg-surface-2 p-4">
         <Loader2 className="size-5 shrink-0 animate-spin text-muted" aria-hidden="true" />
         <div>
           <p className="font-semibold text-fg">Reading your resume…</p>
-          <p className="text-[13px] text-muted">Usually under a minute. You can leave this screen.</p>
+          <p className="text-footnote text-muted">Usually under a minute. You can leave this screen.</p>
         </div>
       </output>
     );
@@ -70,7 +70,7 @@ export function ResumeImport() {
         <input type="file" accept="application/pdf,.pdf" className="sr-only" onChange={pick} disabled={reading} />
       </label>
       <div className="space-y-1.5">
-        <label htmlFor="import-text" className="block text-sm font-medium text-fg">
+        <label htmlFor="import-text" className="block text-footnote font-medium text-fg">
           Resume text
         </label>
         <textarea
@@ -81,12 +81,12 @@ export function ResumeImport() {
           onChange={(e) => setText(e.target.value)}
           className={`${INPUT} py-3 leading-snug`}
         />
-        <p className="text-[13px] text-muted">
+        <p className="text-footnote text-muted">
           Only this text is sent. Everything found is added <strong>unverified</strong> — you confirm each item before
           it can appear on a resume.
         </p>
       </div>
-      {error && <p className="text-sm text-danger-fg">{error}</p>}
+      {error && <p className="text-footnote text-danger-fg">{error}</p>}
       <Button className="w-full" size="lg" onClick={() => void submit()} disabled={start.isPending || !text.trim()}>
         Import
       </Button>
@@ -100,7 +100,7 @@ function LastImport({ run }: { run: NonNullable<ReturnType<typeof useLatestImpor
   // Waiting on the budget (or credit): the text was kept, so it can run again as it was.
   if (run.status === 'DEFERRED') {
     return (
-      <div className="space-y-2 rounded-[14px] bg-stretch-bg p-3.5 text-sm text-fg">
+      <div className="space-y-2 rounded-md bg-stretch-bg p-3.5 text-body text-fg">
         <p>Your resume is waiting{run.error ? `: ${run.error}` : '.'}</p>
         <Button size="sm" variant="secondary" disabled={retry.isPending} onClick={() => retry.mutate(run.id)}>
           Try again
@@ -110,7 +110,7 @@ function LastImport({ run }: { run: NonNullable<ReturnType<typeof useLatestImpor
   }
   if (run.status !== 'DONE') {
     return (
-      <p className="rounded-[14px] bg-stretch-bg p-3 text-sm text-fg">
+      <p className="rounded-md bg-stretch-bg p-3 text-body text-fg">
         The last import didn't finish{run.error ? `: ${run.error}` : '.'}
       </p>
     );
@@ -118,12 +118,12 @@ function LastImport({ run }: { run: NonNullable<ReturnType<typeof useLatestImpor
   const c = run.created;
   const dropped = run.dropped ?? [];
   return (
-    <div className="space-y-2 rounded-[14px] bg-apply-bg p-3.5">
+    <div className="space-y-2 rounded-md bg-apply-bg p-3.5">
       <p className="flex items-center gap-2 font-semibold text-fg">
         <CheckCircle2 className="size-4 text-apply" aria-hidden="true" /> Imported — all unverified
       </p>
       {c && (
-        <p className="text-[13px] text-fg">
+        <p className="text-footnote text-fg">
           {c.roles} roles, {c.projects} projects, {c.skills} skills and {c.evidence} items added.
         </p>
       )}
@@ -136,12 +136,12 @@ function LastImport({ run }: { run: NonNullable<ReturnType<typeof useLatestImpor
             type="button"
             onClick={() => setOpen((o) => !o)}
             aria-expanded={open}
-            className="flex items-center gap-1 text-[13px] font-medium text-muted"
+            className="flex items-center gap-1 text-footnote font-medium text-muted"
           >
             {dropped.length} left out <ChevronDown className={`size-3.5 transition ${open ? 'rotate-180' : ''}`} />
           </button>
           {open && (
-            <ul className="mt-1 space-y-1 text-[13px] text-muted">
+            <ul className="mt-1 space-y-1 text-footnote text-muted">
               {dropped.map((d, i) => (
                 <li key={i}>
                   <span className="text-fg">{d.what}</span> — {d.reason}

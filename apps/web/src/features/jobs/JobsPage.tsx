@@ -118,7 +118,7 @@ function JobsList({ selectedId }: { selectedId?: string }) {
       <PageHeader title="Jobs" />
 
       {s.source && (
-        <div className="flex items-center gap-2 rounded-[14px] bg-surface-2 py-1 pr-1 pl-3.5 text-sm text-muted">
+        <div className="flex items-center gap-2 rounded-md bg-surface-2 py-1 pr-1 pl-3.5 text-footnote text-muted">
           <Filter className="size-4 shrink-0" />
           <span className="min-w-0 flex-1 truncate">
             Only jobs from <span className="font-medium text-fg">{all[0]?.jobSource?.name ?? 'one source'}</span>
@@ -172,7 +172,7 @@ function JobsList({ selectedId }: { selectedId?: string }) {
             </Chip>
           </fieldset>
           <div className="flex items-center justify-between">
-            <p className="px-1 text-xs text-muted tabular-nums">
+            <p className="px-1 text-caption text-muted tabular-nums">
               {visible.length} {visible.length === 1 ? 'match' : 'matches'}
             </p>
             <Button
@@ -221,10 +221,10 @@ function JobsList({ selectedId }: { selectedId?: string }) {
           <section key={d.key} aria-labelledby={`day-${d.key}`} className="space-y-2.5">
             <h2
               id={`day-${d.key}`}
-              className="flex items-baseline justify-between px-1 pt-1 text-sm font-semibold text-fg"
+              className="flex items-baseline justify-between px-1 pt-1 text-body font-semibold text-fg"
             >
               {d.label}
-              <span className="text-xs font-normal text-muted tabular-nums">{d.jobs.length}</span>
+              <span className="text-caption font-normal text-muted tabular-nums">{d.jobs.length}</span>
             </h2>
             <ul className="space-y-2.5">
               {d.jobs.map((j) => (
@@ -270,7 +270,7 @@ function ListSkeleton() {
   return (
     <ul className="space-y-2.5" aria-busy="true" aria-label="Loading jobs">
       {[0, 1, 2, 3].map((i) => (
-        <li key={i} className="flex gap-3 rounded-2xl border border-border bg-surface p-3.5">
+        <li key={i} className="flex gap-3 rounded-lg border border-border bg-surface p-3.5">
           <Skeleton className="size-11 rounded-full" />
           <div className="flex-1 space-y-2">
             <Skeleton className="h-4 w-3/4" />
