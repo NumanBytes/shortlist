@@ -5,6 +5,7 @@ export * from './evidence.schema.js';
 export * from './work-experience.schema.js';
 export * from './project.schema.js';
 export * from './job-source.schema.js';
+export * from './source-link.js';
 export * from './discovery-preferences.schema.js';
 export * from './discovery-queue.js';
 export * from './job.schema.js';

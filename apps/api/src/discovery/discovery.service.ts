@@ -5,6 +5,8 @@ import {
   MANUAL_RUN_COOLDOWN_HOURS,
   isBoardProvider,
   parseBoardAddress,
+  sourceFromLink,
+  type AddSourceInput,
   type UpdateJobSourceInput,
   type UpdateSourceAddressInput,
 } from '@shortlist/shared';
@@ -16,6 +18,15 @@ const boardNameOf = (config: unknown): string | null => {
   const name = c.board ?? c.site ?? c.company ?? c.account;
   return typeof c.provider === 'string' && isBoardProvider(c.provider) && typeof name === 'string' ? name : null;
 };
+
+// The page a page-based source reads (careers page, JazzHR, …), for "Edit URL".
+const linkOf = (config: unknown): string | null => {
+  const c = (config ?? {}) as Record<string, unknown>;
+  return typeof c.url === 'string' ? c.url : null;
+};
+// Sources with an address the user may change or remove: company boards and pages, not the
+// fixed-address aggregators or email inboxes.
+const isCompanySource = (type: string) => type === 'ATS_BOARD' || type === 'MANUAL';
 
 const COOLDOWN_MS = MANUAL_RUN_COOLDOWN_HOURS * 3600 * 1000;
 const RUNNING_WINDOW_MS = 30 * 60 * 1000;
@@ -48,6 +59,8 @@ export class DiscoveryService {
         supported: ImplementedSourceConfigSchema.safeParse(config).success,
         // The company board's name, for "Edit URL" (null for aggregators — fixed addresses).
         board: boardNameOf(config),
+        // A page-based source's link, for "Edit URL" (null for boards and aggregators).
+        link: linkOf(config),
         jobCount: _count.jobs,
         lastRun: discoveryRuns[0] ?? null,
       };
@@ -140,14 +153,53 @@ export class DiscoveryService {
     const source = await this.prisma.jobSource.findFirst({ where: { id, userId } });
     if (!source) throw new NotFoundException('Source not found');
     const provider = (source.config as { provider?: string } | null)?.provider ?? '';
-    if (!isBoardProvider(provider)) throw new BadRequestException("This source's address can't be edited");
-    const parsed = parseBoardAddress(provider, input.address);
+    if (isBoardProvider(provider)) {
+      const parsed = parseBoardAddress(provider, input.address);
+      if (!parsed.ok) throw new BadRequestException(parsed.error);
+      return this.prisma.jobSource.update({
+        where: { id },
+        data: { config: parsed.config, lastRunAt: null, lastRunStatus: null },
+        select: { id: true, config: true },
+      });
+    }
+    // A page-based company source: the new link decides the provider again (a company may
+    // have moved its jobs from its own page to a Greenhouse board). The key stays.
+    if (!linkOf(source.config) || !isCompanySource(source.type))
+      throw new BadRequestException("This source's address can't be edited");
+    const parsed = sourceFromLink(source.name, input.address);
     if (!parsed.ok) throw new BadRequestException(parsed.error);
     return this.prisma.jobSource.update({
       where: { id },
-      data: { config: parsed.config, lastRunAt: null, lastRunStatus: null },
+      data: { config: parsed.config, type: parsed.type, lastRunAt: null, lastRunStatus: null },
       select: { id: true, config: true },
     });
+  }
+
+  // "Add a source" (docs/discovery.md §9.15): a row, not code. The first run is queued at
+  // once, best effort — if the queue is down, tonight's run picks it up.
+  async addSource(userId: string, input: AddSourceInput) {
+    const parsed = sourceFromLink(input.name, input.link);
+    if (!parsed.ok) throw new BadRequestException(parsed.error);
+    const existing = await this.prisma.jobSource.findUnique({
+      where: { userId_key: { userId, key: parsed.key } },
+      select: { name: true },
+    });
+    if (existing) throw new ConflictException(`You already follow this as “${existing.name}”`);
+    const source = await this.prisma.jobSource.create({
+      data: { userId, key: parsed.key, name: input.name, type: parsed.type, config: parsed.config },
+      select: { id: true, name: true, config: true },
+    });
+    await this.queue.enqueueSources([source.id], `added-${Date.now()}`).catch(() => undefined);
+    return source;
+  }
+
+  // Jobs it found stay (their source link is cleared); its run history goes with it.
+  async removeSource(userId: string, id: string) {
+    const source = await this.prisma.jobSource.findFirst({ where: { id, userId }, select: { type: true } });
+    if (!source) throw new NotFoundException('Source not found');
+    if (!isCompanySource(source.type))
+      throw new BadRequestException('Turn this source off instead — it can be followed again from onboarding');
+    await this.prisma.jobSource.delete({ where: { id } });
   }
 
   // "Retry" on one source that failed or came back empty. Same cooldown as "run now", so a

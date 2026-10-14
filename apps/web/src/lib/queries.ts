@@ -15,6 +15,7 @@ import type {
   UpdateProfileInput,
   UpdateSkillEvidenceInput,
   PrepareResumeInput,
+  AddSourceInput,
 } from '@shortlist/shared';
 import { api } from './api';
 import type {
@@ -226,6 +227,28 @@ export function useCancelTailoring() {
       queryClient.setQueryData(resumeKeys.job(jobId), data);
       void queryClient.invalidateQueries({ queryKey: resumesActiveKey });
     },
+  });
+}
+
+// "Add a source" (docs/discovery.md §9.15): the API detects the platform from the link and
+// queues the first run.
+export function useAddSource() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: AddSourceInput) =>
+      api<{ id: string; name: string }>('/discovery/sources', { method: 'POST', body }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: jobKeys.sources });
+      void queryClient.invalidateQueries({ queryKey: jobKeys.discoveryStatus });
+    },
+  });
+}
+
+export function useRemoveSource() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api(`/discovery/sources/${id}`, { method: 'DELETE' }),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: jobKeys.sources }),
   });
 }
 
