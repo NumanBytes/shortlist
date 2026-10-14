@@ -129,6 +129,16 @@ describe('ProfilePage', () => {
     );
   });
 
+  // A job the user asks about isn't held by this limit; it paces automatic scoring.
+  it('raises the daily scoring limit in steps of 5', async () => {
+    const fetchMock = setup();
+    renderWithProviders(<ProfilePage />, SETTINGS);
+    await userEvent.click(await screen.findByRole('button', { name: /Raise the daily limit/ }));
+    await waitFor(() =>
+      expect(patches(fetchMock)).toEqual([{ url: '/api/v1/ai/settings', body: { maxAnalysesPerDay: 45 } }]),
+    );
+  });
+
   it('does not turn an emptied budget field into a $0 budget', async () => {
     const fetchMock = setup();
     renderWithProviders(<ProfilePage />, SETTINGS);

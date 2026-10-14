@@ -319,7 +319,12 @@ function Body({ job, resume }: { job: JobDetail; resume: JobResume }) {
           The alert only had a summary. Paste the full description above, and a resume can be tailored to it.
         </p>
       ) : (
-        <p className="text-muted">Tailoring uses this job's requirements, so it can start once scoring finishes.</p>
+        <p className="text-muted">
+          {/* A held score is the usual blocker; say why and what unblocks it. */}
+          {job.analysisStatus === 'DEFERRED' || job.analysisStatus === 'FAILED'
+            ? `Tailoring needs this job's score first, and scoring is held: ${job.analysisError ?? 'see above'}. Tap Retry above — a job you ask about isn't held by the daily limit.`
+            : "Tailoring uses this job's requirements, so it can start once scoring finishes."}
+        </p>
       )}
       {error}
     </div>
