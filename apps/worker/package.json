@@ -30,6 +30,7 @@
     "bullmq": "^6.3.11",
     "fast-xml-parser": "^5.11.2",
     "ioredis": "^6.0.0",
+    "nodemailer": "^10.1.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
     "zod": "^4.6.5"
@@ -39,6 +40,7 @@
     "@nestjs/schematics": "^12.0.6",
     "@nestjs/testing": "^12.1.2",
     "@types/node": "^22.20.5",
+    "@types/nodemailer": "^8.0.2",
     "typescript": "^6.0.3",
     "vitest": "^5.0.3"
   }

@@ -7,6 +7,7 @@ import type { Env } from './config/env.js';
 import { DiscoveryModule } from './discovery/discovery.module.js';
 import { EmailModule } from './email/email.module.js';
 import { HeartbeatModule } from './heartbeat/heartbeat.module.js';
+import { MailModule } from './mail/mail.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { createRedis } from './redis.js';
@@ -22,6 +23,7 @@ import { ResumeModule } from './resume/resume.module.js';
       useFactory: (env: Env) => ({ connection: createRedis(env.REDIS_URL) }),
     }),
     NotificationsModule,
+    MailModule,
     DiscoveryModule,
     AnalysisModule,
     ResumeModule,

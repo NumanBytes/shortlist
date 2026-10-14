@@ -2,7 +2,7 @@ import { ChevronRight } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 // Set-up details for whoever runs this Shortlist server (UI audit G12, docs/web-design.md
-// §8.5). Users read plain words and get a real next step; env var names, commands and doc
+// §8.6). Users read plain words and get a real next step; env var names, commands and doc
 // sections wait behind this disclosure instead of reading like an error.
 export function AdminNote({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (

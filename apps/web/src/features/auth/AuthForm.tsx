@@ -6,6 +6,7 @@ import { Logo } from '../../components/Logo';
 import { Eye, EyeOff } from 'lucide-react';
 import { Button, INPUT, SELECTED, TextField } from '../../components/ui';
 import { ApiError } from '../../lib/api';
+import { useAuthOptions } from '../../lib/queries';
 
 // Login and register share one form. Validation uses the same Zod schemas the API
 // enforces, so the browser rejects exactly what the server would — before a round trip.
@@ -17,6 +18,8 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const isRegister = mode === 'register';
+  // Only when this server can send the reset email (docs/security.md §8.7).
+  const emailEnabled = useAuthOptions().data?.emailEnabled === true;
 
   const set = (key: keyof typeof fields) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setFields((f) => ({ ...f, [key]: e.target.value }));
@@ -141,6 +144,11 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
             )
           )}
         </div>
+        {!isRegister && emailEnabled && (
+          <Link to="/forgot-password" className="-mt-2 block text-right text-footnote font-medium text-accent-fg">
+            Forgot password?
+          </Link>
+        )}
         {formError && (
           <p role="alert" className="text-footnote text-danger-fg">
             {formError}

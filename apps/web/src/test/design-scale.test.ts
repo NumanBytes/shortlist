@@ -1,4 +1,4 @@
-// The type and radius scales (index.css, UI audit G9/G10, docs/web-design.md §8.5) hold
+// The type and radius scales (index.css, UI audit G9/G10, docs/web-design.md §8.6) hold
 // only if nobody reaches past them. This fails on a raw size or radius class anywhere in
 // the app's components, so a new screen can't quietly bring back a 14th font size.
 // The printed resume is exempt: it is a Letter page sized in points, not UI.

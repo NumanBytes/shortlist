@@ -183,7 +183,7 @@
   --color-ink-danger: #b91c1c;
 }
 
-/* Type and radius scales (UI audit G9, G10, docs/web-design.md §8.5). One named step per
+/* Type and radius scales (UI audit G9, G10, docs/web-design.md §8.6). One named step per
    role, after Apple's text styles, instead of 12 mixed sizes; `control` is for form fields
    only (16px, or iOS Safari zooms on focus). Use these names — `src/test/design-scale.test.ts`
    fails on a raw `text-[13px]`, `text-sm`, `rounded-xl`, … outside the printed resume. */

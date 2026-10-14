@@ -11,6 +11,9 @@ interface AuthContextValue {
   login: (input: LoginInput) => Promise<void>;
   register: (input: RegisterInput) => Promise<void>;
   logout: () => Promise<void>;
+  // Fetch a fresh session (and access token) — after verifying the email, so the new
+  // token carries the verified claim.
+  reload: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -51,6 +54,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       state,
       login: async (input) => start(await api<AuthResponse>('/auth/login', { method: 'POST', body: input })),
       register: async (input) => start(await api<AuthResponse>('/auth/register', { method: 'POST', body: input })),
+      reload: async () => {
+        const session = await refreshSession();
+        if (session) setState({ status: 'signedIn', user: session.user });
+      },
       logout: async () => {
         // Revoke server-side first; sign out locally even if the request fails.
         await api('/auth/logout', { method: 'POST' }).catch(() => undefined);

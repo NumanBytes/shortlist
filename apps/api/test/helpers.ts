@@ -18,7 +18,7 @@ export const TEST_PASSWORD = 'correct horse battery';
 export const uniqueEmail = () => `user-${crypto.randomUUID()}${TEST_EMAIL_DOMAIN}`;
 
 export interface TestUser {
-  user: { id: string; email: string };
+  user: { id: string; email: string; emailVerifiedAt: string | null };
   accessToken: string;
   auth: { Authorization: string };
   // "shortlist_refresh=<token>", ready to send back as a Cookie header.
@@ -51,6 +51,10 @@ export async function createTestApp(configure: (b: TestingModuleBuilder) => Test
       loginPerIp: LOTS,
       loginFailuresPerAccount: LOTS,
       registerPerIp: LOTS,
+      resetRequestsPerIp: LOTS,
+      resetRequestsPerAccount: LOTS,
+      resetAttemptsPerIp: LOTS,
+      verificationEmailsPerUser: LOTS,
       prefix: `test-rl:${crypto.randomUUID()}`,
     });
   const moduleRef = await configure(base).compile();

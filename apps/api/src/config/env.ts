@@ -45,6 +45,12 @@ const EnvSchema = z
         z.array(z.url().refine((o) => new URL(o).origin === o, 'Must be a bare origin, no path or trailing slash')),
       ),
 
+    // Account emails (docs/security.md §8.7) are sent by the worker over SMTP; the API only
+    // needs to know whether they can be. Set = new accounts must verify their address and
+    // "Forgot password" works; unset = new accounts are verified at once (no email could
+    // reach them) and password reset is unavailable. Same value as the worker's.
+    SMTP_HOST: z.string().min(1).optional(),
+
     // Where the browser lands after connecting Gmail (the web app's own URL).
     WEB_APP_URL: z.url().default('http://localhost:5173'),
 

@@ -1,7 +1,13 @@
-import { Injectable, UnauthorizedException, type CanActivate, type ExecutionContext } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  UnauthorizedException,
+  type CanActivate,
+  type ExecutionContext,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { AuthenticatedRequest } from './current-user.decorator.js';
-import { IS_PUBLIC_KEY } from './public.decorator.js';
+import { ALLOW_UNVERIFIED_KEY, IS_PUBLIC_KEY } from './public.decorator.js';
 import { TokensService } from './tokens.service.js';
 
 // A guard runs before the route handler and decides whether the request may proceed.
@@ -27,13 +33,24 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException('Missing bearer token');
     }
 
+    let payload;
     try {
-      const { sub } = this.tokens.verifyAccessToken(token);
-      request.user = { id: sub };
-      return true;
+      payload = this.tokens.verifyAccessToken(token);
     } catch {
       // Same message for expired / tampered / malformed — no hints for an attacker.
       throw new UnauthorizedException('Invalid or expired access token');
     }
+    request.user = { id: payload.sub };
+    // An unverified account may only see itself, resend the email, and sign out (docs/security.md
+    // §8.7). 403, not 401: the token is fine; the account isn't allowed yet. The code lets the
+    // web app tell this apart from any other 403.
+    const allowUnverified = this.reflector.getAllAndOverride<boolean>(ALLOW_UNVERIFIED_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    if (!payload.ev && !allowUnverified) {
+      throw new ForbiddenException({ message: 'Verify your email address first', code: 'EMAIL_UNVERIFIED' });
+    }
+    return true;
   }
 }

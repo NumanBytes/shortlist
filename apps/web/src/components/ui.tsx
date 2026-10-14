@@ -11,7 +11,7 @@ import {
 
 // Shared UI primitives, built only on the semantic tokens in index.css. Sizes follow the
 // mobile design (2026-10-04): 44px touch targets, 12px radius buttons, 16px cards. Contrast
-// follows the UI audit (docs/web-design.md §8.5): text-bearing fills use accent-strong, form
+// follows the UI audit (docs/web-design.md §8.6): text-bearing fills use accent-strong, form
 // controls use input-border, and inputs stay at 16px so iOS Safari doesn't zoom on focus.
 
 type Variant = 'primary' | 'secondary' | 'tinted' | 'ghost' | 'danger';
@@ -275,7 +275,7 @@ export function EmptyState({ icon, title, children }: { icon: ReactNode; title: 
 // focus returned to the trigger — the accessibility a hand-made overlay would have to
 // re-implement. Motion (design spec): in 240 ms, out 180 ms ease-in, scrim fades; on
 // phones it can be dragged down to dismiss (past 30% of its height, or a fast flick).
-// One header for every sheet (UI audit G8, docs/web-design.md §8.5): the visible title, an
+// One header for every sheet (UI audit G8, docs/web-design.md §8.6): the visible title, an
 // optional line under it and an icon, and a Close button on every screen size — the grab
 // handle is phone-only and hidden from screen readers. Content never repeats the title.
 const CLOSE_MS = 180;

@@ -562,3 +562,13 @@ export function usePasteDescription() {
     },
   });
 }
+
+// ── Account (docs/security.md §8.7) ──
+
+// What the server can do before anyone signs in: whether account emails work.
+export const useAuthOptions = () =>
+  useQuery({
+    queryKey: ['auth', 'options'],
+    queryFn: () => api<{ emailEnabled: boolean }>('/auth/options'),
+    staleTime: Infinity,
+  });

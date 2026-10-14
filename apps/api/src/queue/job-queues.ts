@@ -8,6 +8,9 @@ import {
   DiscoveryJob,
   EMAIL_QUEUE,
   EmailJob,
+  MAIL_QUEUE,
+  MailJob,
+  type SendAuthEmailData,
   NOTIFICATIONS_QUEUE,
   NotifyJob,
   type NotifySendData,
@@ -48,6 +51,7 @@ export class JobQueues implements OnModuleDestroy {
   private readonly email: Queue;
   private readonly career: Queue;
   private readonly notifications: Queue;
+  private readonly mail: Queue;
 
   constructor(@Inject(ENV) env: Env) {
     this.connection = new Redis(env.REDIS_URL, { maxRetriesPerRequest: 1, lazyConnect: true });
@@ -58,6 +62,7 @@ export class JobQueues implements OnModuleDestroy {
     this.email = new Queue(EMAIL_QUEUE, { connection: this.connection });
     this.career = new Queue(CAREER_QUEUE, { connection: this.connection });
     this.notifications = new Queue(NOTIFICATIONS_QUEUE, { connection: this.connection });
+    this.mail = new Queue(MAIL_QUEUE, { connection: this.connection });
     for (const q of this.all()) q.on('error', () => undefined);
   }
 
@@ -98,6 +103,18 @@ export class JobQueues implements OnModuleDestroy {
     );
   }
 
+  // A verification or password-reset email (docs/security.md §8.7): which user and which
+  // email only — the worker makes the token.
+  enqueueAuthEmail(userId: string, purpose: SendAuthEmailData['purpose']): Promise<void> {
+    return this.bounded(
+      this.mail.add(
+        MailJob.SendAuthEmail,
+        { userId, purpose } satisfies SendAuthEmailData,
+        queueJobOptions.authEmail(userId, purpose, String(Date.now())),
+      ),
+    );
+  }
+
   enqueueEmailCheck(userId: string): Promise<void> {
     return this.bounded(
       this.email.add(
@@ -129,7 +146,7 @@ export class JobQueues implements OnModuleDestroy {
   }
 
   private all() {
-    return [this.discovery, this.analysis, this.resume, this.email, this.career, this.notifications];
+    return [this.discovery, this.analysis, this.resume, this.email, this.career, this.notifications, this.mail];
   }
 
   private async bounded(add: Promise<unknown> | null): Promise<void> {
