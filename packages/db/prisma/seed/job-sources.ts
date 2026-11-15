@@ -1,6 +1,7 @@
-// The job sources to watch, from the list the user supplied (2026-10-01) plus the
-// remote-job aggregators. Every source is recorded; only those with an adapter are
-// enabled. Platform per company was identified by probing each careers URL.
+// Seed data for the shared source catalog (db:seed:catalog, docs/discovery.md §9.16): the
+// builder's list of Lahore companies (supplied 2026-10-01) plus the remote-job aggregators.
+// Only enabled sources the worker can run become catalog entries; the rest stay recorded here
+// for later milestones. Platform per company was identified by probing each careers URL.
 //
 // Turing is intentionally absent: it's a vetting marketplace (apply once, get matched),
 // not a job board, so there is nothing to fetch.
@@ -13,7 +14,12 @@ export interface SeedJobSource {
   type: JobSourceType;
   config: JobSourceConfig;
   enabled: boolean;
+  // Where it hires (SourceCatalogEntry.regions): what browsing and onboarding match on.
+  regions: string[];
 }
+
+// Every company on the builder's list hires in Lahore.
+const LAHORE = ['lahore', 'pakistan'];
 
 const ats = (key: string, name: string, config: JobSourceConfig): SeedJobSource => ({
   key,
@@ -21,6 +27,7 @@ const ats = (key: string, name: string, config: JobSourceConfig): SeedJobSource 
   type: 'ATS_BOARD',
   config,
   enabled: true,
+  regions: LAHORE,
 });
 
 const aggregator = (key: string, name: string, config: JobSourceConfig): SeedJobSource => ({
@@ -29,6 +36,7 @@ const aggregator = (key: string, name: string, config: JobSourceConfig): SeedJob
   type: 'AGGREGATOR_API',
   config,
   enabled: true,
+  regions: ['remote'],
 });
 
 // A hosted careers page (Milestone 2): the adapter reads the page itself. Same key scheme as
@@ -44,6 +52,7 @@ const hosted = (
   type: 'ATS_BOARD',
   config: { provider, url },
   enabled,
+  regions: LAHORE,
 });
 
 // A company's own careers page (Milestone 3): the change watcher reads it. Same key scheme as
@@ -54,6 +63,7 @@ const careersPage = (name: string, url: string, note?: string, enabled = true): 
   type: 'MANUAL',
   config: { provider: 'careers_page', url, ...(note ? { note } : {}) },
   enabled,
+  regions: LAHORE,
 });
 
 // Recorded for later milestones; disabled until the provider has an adapter.
@@ -68,6 +78,7 @@ const planned = (
   type: provider === 'email_alerts' ? 'EMAIL_INBOX' : 'ATS_BOARD',
   config: { provider, ...(url ? { url } : {}), ...(note ? { note } : {}) },
   enabled: false,
+  regions: [],
 });
 
 export const JOB_SOURCES: SeedJobSource[] = [

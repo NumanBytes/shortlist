@@ -24,9 +24,10 @@ created unverified, so review and verify each item afterwards):
     SEED_USER_EMAIL=you@example.com pnpm --filter @shortlist/db db:seed:career --dry-run
     SEED_USER_EMAIL=you@example.com pnpm --filter @shortlist/db db:seed:career
 
-Seed the job sources to watch (company boards + remote-job aggregators):
+Seed the shared source catalog that every account follows from (company boards + remote-job
+aggregators; the remote boards are already there after migrating):
 
-    SEED_USER_EMAIL=you@example.com pnpm --filter @shortlist/db db:seed:sources
+    pnpm --filter @shortlist/db db:seed:catalog
 
 ## Run
 

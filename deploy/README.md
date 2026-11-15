@@ -232,13 +232,17 @@ gunzip -c shortlist.sql.gz | docker compose exec -T postgres psql -U shortlist -
 docker compose up -d
 ```
 
-Skip this to start fresh: register a new account and seed it (step 7).
+Skip this to start fresh: seed the source catalog (step 7), then register in the app.
 
-## 7. Seeding a fresh account (only if you skipped step 6)
+## 7. Seeding the source catalog
+
+Every account follows sources from one shared catalog (Admin → Source catalog). The remote job
+boards are added by the migrations; this adds the starter list of companies, and links accounts
+that already watch them. Safe to run again — it never changes entries an admin edited.
 
 ```bash
-docker compose run --rm -w /app/packages/db -e SEED_USER_EMAIL=you@example.com migrate \
-  node --experimental-strip-types --no-warnings prisma/seed/seed-sources.ts
+docker compose run --rm -w /app/packages/db migrate \
+  node --experimental-strip-types --no-warnings prisma/seed/seed-catalog.ts
 ```
 
 ### Making yourself an admin

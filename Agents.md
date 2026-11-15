@@ -163,8 +163,9 @@ the user chose to make it a **hosted product that anyone can sign up for**. What
   budget; `AI_SERVER_MONTHLY_BUDGET_USD` caps all accounts together ([§12.3](docs/ai-scoring.md)).
   New accounts start with $1 a month.
 - **Sign-ups are open**, behind email verification and rate limits ([§8.7](docs/security.md)).
-- **Planned, in order** ([§17.2](docs/roadmap.md)): a shared, admin-curated source catalog
-  instead of per-user seeding; plans and usage limits counted in product units (jobs scored,
+- **A shared, admin-curated source catalog** that every user follows from, instead of seeding
+  each account on the server ([§9.16](docs/discovery.md), built 2026-11-16).
+- **Planned, in order** ([§17.2](docs/roadmap.md)): plans and usage limits counted in product units (jobs scored,
   resumes tailored), not dollars — Free (finding and tracking, a one-time AI trial), Starter
   ($5/month, daily), Pro ($20/month, "Run now") — with work over a limit deferred, never
   dropped; payments through a merchant of record (Stripe doesn't serve businesses in

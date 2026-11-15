@@ -24,9 +24,9 @@ export function renderWithProviders(
 }
 
 // fetch stub: returns `body` (or `byUrl(url)`) as JSON and records calls.
-export function mockFetch(body: unknown = {}, byUrl?: (url: string) => unknown) {
-  const fn = vi.fn((url: string, _init?: RequestInit) =>
-    Promise.resolve(new Response(JSON.stringify(byUrl ? byUrl(url) : body), { status: 200 })),
+export function mockFetch(body: unknown = {}, byUrl?: (url: string, init?: RequestInit) => unknown) {
+  const fn = vi.fn((url: string, init?: RequestInit) =>
+    Promise.resolve(new Response(JSON.stringify(byUrl ? byUrl(url, init) : body), { status: 200 })),
   );
   vi.stubGlobal('fetch', fn);
   return fn;

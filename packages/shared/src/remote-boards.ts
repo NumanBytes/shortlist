@@ -1,7 +1,8 @@
 import type { JobSourceConfig } from './job-source.schema.js';
 
 // The remote-job aggregators every user can follow — not tied to anyone's city or company
-// list. Onboarding adds them in one tap (docs/discovery.md §9.13); the seed uses the same list.
+// list. Seed data for the shared catalog (docs/discovery.md §9.16): the source_catalog
+// migration and db:seed:catalog insert them; onboarding then follows the catalog's boards.
 // Their terms require attribution and a link back (docs/discovery.md §9.10).
 export const REMOTE_BOARDS: { key: string; name: string; config: JobSourceConfig }[] = [
   { key: 'remoteok', name: 'Remote OK', config: { provider: 'remoteok' } },

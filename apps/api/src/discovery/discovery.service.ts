@@ -12,6 +12,7 @@ import {
 } from '@shortlist/shared';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { JobQueues } from '../queue/job-queues.js';
+import { CatalogService } from './catalog.service.js';
 
 const boardNameOf = (config: unknown): string | null => {
   const c = (config ?? {}) as Record<string, unknown>;
@@ -36,6 +37,7 @@ export class DiscoveryService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly queue: JobQueues,
+    private readonly catalog: CatalogService,
   ) {}
 
   // Each source with its most recent run — the health view. A FAILED or EMPTY source
@@ -50,10 +52,12 @@ export class DiscoveryService {
         _count: { select: { jobs: true } },
       },
     });
-    return sources.map(({ discoveryRuns, _count, config, ...s }) => {
+    return sources.map(({ discoveryRuns, _count, config, catalogEntryId, ...s }) => {
       const parsed = JobSourceConfigSchema.safeParse(config);
       return {
         ...s,
+        // Followed from the shared catalog: its address is kept up to date by an admin.
+        fromCatalog: catalogEntryId !== null,
         provider: parsed.success ? parsed.data.provider : 'unknown',
         // Whether the worker can run it yet (vs. recorded for a later milestone).
         supported: ImplementedSourceConfigSchema.safeParse(config).success,
@@ -156,9 +160,10 @@ export class DiscoveryService {
     if (isBoardProvider(provider)) {
       const parsed = parseBoardAddress(provider, input.address);
       if (!parsed.ok) throw new BadRequestException(parsed.error);
+      // A user's own address detaches it from the catalog: an admin's later fix mustn't undo it.
       return this.prisma.jobSource.update({
         where: { id },
-        data: { config: parsed.config, lastRunAt: null, lastRunStatus: null },
+        data: { config: parsed.config, lastRunAt: null, lastRunStatus: null, catalogEntryId: null },
         select: { id: true, config: true },
       });
     }
@@ -170,7 +175,7 @@ export class DiscoveryService {
     if (!parsed.ok) throw new BadRequestException(parsed.error);
     return this.prisma.jobSource.update({
       where: { id },
-      data: { config: parsed.config, type: parsed.type, lastRunAt: null, lastRunStatus: null },
+      data: { config: parsed.config, type: parsed.type, lastRunAt: null, lastRunStatus: null, catalogEntryId: null },
       select: { id: true, config: true },
     });
   }
@@ -185,8 +190,18 @@ export class DiscoveryService {
       select: { name: true },
     });
     if (existing) throw new ConflictException(`You already follow this as “${existing.name}”`);
+    // A link the catalog already has becomes a follow of that entry (docs/discovery.md §9.16),
+    // so it gets the admin's fixes; any other link is the user's own source.
+    const entry = await this.catalog.matchingEntry(parsed.key, parsed.config);
     const source = await this.prisma.jobSource.create({
-      data: { userId, key: parsed.key, name: input.name, type: parsed.type, config: parsed.config },
+      data: {
+        userId,
+        key: parsed.key,
+        name: entry?.name ?? input.name,
+        type: parsed.type,
+        config: parsed.config,
+        catalogEntryId: entry?.id ?? null,
+      },
       select: { id: true, name: true, config: true },
     });
     await this.queue.enqueueSources([source.id], `added-${Date.now()}`).catch(() => undefined);

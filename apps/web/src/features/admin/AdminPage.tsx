@@ -2,25 +2,47 @@ import { SetAiBudgetSchema } from '@shortlist/shared';
 import { Users } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { Navigate } from 'react-router';
-import { Button, Card, EmptyState, INPUT, Skeleton } from '../../components/ui';
+import { Button, Card, EmptyState, INPUT, Segmented, Skeleton } from '../../components/ui';
 import { PageHeader } from '../../layout/AppShell';
 import { useAdminUsers, useProfile, useSetUserBudget } from '../../lib/queries';
 import type { AdminUser } from '../../lib/types';
+import { CatalogAdmin } from './CatalogAdmin';
 
 const money = (n: number) => `$${n.toFixed(2)}`;
 
-// Accounts and their AI budgets, for an admin of hosted Shortlist (Agents.md §2.1). The
-// server's Anthropic key pays for every account, so this is the only place a monthly budget
-// is raised or lowered. Anyone else is sent to Jobs (the API answers them 404 anyway).
+type Tab = 'accounts' | 'catalog';
+
+// The admin of hosted Shortlist (Agents.md §2.1): accounts and their AI budgets — the server's
+// Anthropic key pays for every account, so this is the only place a monthly budget changes —
+// and the shared source catalog (docs/discovery.md §9.16). Anyone else is sent to Jobs (the API
+// answers them 404 anyway).
 export function AdminPage() {
   const profile = useProfile();
   const isAdmin = profile.data?.role === 'ADMIN';
-  const users = useAdminUsers(isAdmin);
+  const [tab, setTab] = useState<Tab>('accounts');
   if (profile.data && !isAdmin) return <Navigate to="/" replace />;
-  const total = (users.data ?? []).reduce((sum, u) => sum + u.monthToDateUsd, 0);
   return (
     <main className="mx-auto max-w-2xl space-y-4 pb-6">
-      <PageHeader title="Accounts" />
+      <PageHeader title="Admin" />
+      <Segmented<Tab>
+        label="Admin section"
+        value={tab}
+        onChange={setTab}
+        options={[
+          { value: 'accounts', label: 'Accounts' },
+          { value: 'catalog', label: 'Source catalog' },
+        ]}
+      />
+      {isAdmin && (tab === 'accounts' ? <Accounts /> : <CatalogAdmin />)}
+    </main>
+  );
+}
+
+function Accounts() {
+  const users = useAdminUsers(true);
+  const total = (users.data ?? []).reduce((sum, u) => sum + u.monthToDateUsd, 0);
+  return (
+    <>
       {!users.data ? (
         <Skeleton className="h-40 w-full" />
       ) : users.data.length === 0 ? (
@@ -39,7 +61,7 @@ export function AdminPage() {
           </ul>
         </>
       )}
-    </main>
+    </>
   );
 }
 

@@ -216,6 +216,7 @@ export interface DiscoverySource {
   supported: boolean;
   board: string | null; // a company board's name, editable via "Edit URL"; null for aggregators
   link: string | null; // a page-based company source's link (careers page, JazzHR, …), also editable
+  fromCatalog: boolean; // followed from the shared catalog: an admin keeps its address up to date
   isEnabled: boolean;
   lastRunAt: string | null;
   lastRunStatus: RunStatus | null;
@@ -341,4 +342,29 @@ export interface GmailStatus {
       lastRun: { status: RunStatus; jobsNew: number; finishedAt: string | null } | null;
     }[];
   };
+}
+
+// A shared catalog entry as any user browses it (GET /discovery/catalog, docs/discovery.md §9.16).
+export interface CatalogEntry {
+  id: string;
+  name: string;
+  type: DiscoverySource['type'];
+  provider: string;
+  regions: string[];
+  following: boolean; // followed and switched on
+}
+
+// The same entry as an admin manages it (GET /admin/catalog).
+export interface AdminCatalogEntry {
+  id: string;
+  key: string;
+  name: string;
+  type: DiscoverySource['type'];
+  provider: string;
+  link: string | null; // a page-based source's address; null for boards and aggregators
+  regions: string[];
+  isListed: boolean;
+  followers: number;
+  createdAt: string;
+  updatedAt: string;
 }

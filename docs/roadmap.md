@@ -52,7 +52,10 @@ designed with the user 2026-10-12).
 - ~~Phase 1, groundwork~~ — built 2026-11-15 (`feat/hosted-groundwork`): new users get the starter
   filter, an admin role and Accounts page, admin-only AI budgets ($1 default) with a server-wide
   cap, per-user time zone (digest and quiet hours) and paper size (A4/Letter).
-- Phase 2: a shared source catalog, curated by an admin, replacing per-user seeding by CLI.
+- ~~Phase 2: a shared source catalog~~ — built 2026-11-16 (`feat/source-catalog`,
+  [§9.16](discovery.md)): admin-curated entries tagged with places, browse and follow on Sources,
+  "companies near you" in onboarding, `db:seed:catalog`. Deferred: fetching once per catalog
+  source for all followers.
 - Phase 3: plans and usage limits in product units (Free / Starter $5 / Pro $20), before any
   payment provider; the Batch API and prompt caching for nightly scoring, to keep the $5 plan
   above cost.
