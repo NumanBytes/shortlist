@@ -121,4 +121,10 @@ from reaching `main`.
   changes the generator, config and connection setup, so it's a planned upgrade. A vulnerable
   package nested inside a dependency that hasn't updated yet is pinned with a pnpm
   `overrides` entry in `pnpm-workspace.yaml`, with the advisory id and when to drop it.
+- **Agent instructions (2026-11-16):** `CLAUDE.md` (read by Claude Code) and `AGENTS.md` (read
+  by Codex and other agents) carry the same rules and are both tracked. `AGENTS.md` is a copy
+  of `CLAUDE.md` with only the title and first line changed, so any change to one is made to
+  the other in the same commit. The first `AGENTS.md` was a find-and-replace of "Claude" with
+  "Codex", which also renamed the product's Claude API ("the Codex API key") and pointed to an
+  `apps/web/AGENTS.md` that doesn't exist; it was regenerated from `CLAUDE.md`.
 
