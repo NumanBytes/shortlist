@@ -26,6 +26,7 @@ export interface AdminUser {
   email: string;
   name: string;
   role: 'USER' | 'ADMIN';
+  plan: PlanUsage['name'];
   createdAt: string;
   emailVerifiedAt: string | null;
   monthlyBudgetUsd: number;
@@ -198,11 +199,25 @@ export interface JobDetail extends Omit<JobListItem, 'match'> {
 
 export interface AiUsage {
   settings: { maxAnalysesPerDay: number; monthlyBudgetUsd: number; resumeReuseMinOverlap: number };
+  plan: PlanUsage;
   monthToDateUsd: number;
   callsThisMonth: number;
   analysesLast24h: number;
   last24hUsd: number; // every AI call in the last 24h — the "Today" tile
   jobs: { pending: number; done: number; deferred: number; failed: number };
+}
+
+// The user's plan and what they've used of it (docs/ai-scoring.md §12.5).
+export interface PlanUsage {
+  name: 'FREE' | 'STARTER' | 'PRO';
+  label: string;
+  priceUsdPerMonth: number;
+  period: 'trial' | 'month';
+  resetsAt: string | null; // null: a trial, which never resets
+  runNow: boolean;
+  discoveryEveryDays: number;
+  scoredJobs: { used: number; limit: number };
+  tailoredResumes: { used: number; limit: number };
 }
 
 export type RunStatus = 'RUNNING' | 'SUCCESS' | 'FAILED' | 'EMPTY';
@@ -249,6 +264,7 @@ export interface DiscoveryStatus {
   workerOnline: boolean | null; // null: Redis didn't answer
   cooldownHours: number;
   jobsThisWeek: number;
+  canRunNow: boolean; // "Find new jobs" is in the user's plan (Pro)
 }
 
 // A resume the worker is tailoring (or waiting to) — shown on every page.

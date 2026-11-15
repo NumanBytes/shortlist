@@ -197,3 +197,48 @@ with web search ([§9.11](discovery.md)); prototyping the scoring/tailoring prom
 descriptions before spending API credits; one-off career work (rewording evidence before
 verifying, interview prep from gaps, special cover letters). Rule of thumb: anything
 automated runs on the API; anything the user does by hand can use Pro.
+
+### 12.5 Plans and usage limits (built 2026-11-16)
+
+Hosted Shortlist (Agents.md §2.1) needs limits a user understands. "$1 of AI" means nothing to
+them; "5 tailored resumes" does. So plans are counted in **units**, and the dollar budgets of
+§12.3 stay behind them as safety stops. `PLANS` in `packages/shared/src/plans.ts` is the one
+definition; the worker enforces it, and the API refuses early and reports it.
+
+| | Free | Starter ($5/month) | Pro ($20/month) |
+|---|---|---|---|
+| Period | a one-time trial, from sign-up | calendar month (UTC) | calendar month (UTC) |
+| Jobs scored | 50 | 300 | 1,000 |
+| Tailored resumes | 5 | 25 | 100 |
+| Nightly discovery | every other night | every night | every night |
+| "Find new jobs" on demand | — | — | ✓ |
+| Dollar budget set with the plan | $1 | $4 | $12 |
+
+- **Why units:** scoring (~$0.006) and tailoring (~$0.03) are what cost money (§12.2); finding
+  jobs is almost free, so limiting how often discovery runs saves little — it's a Free/paid
+  difference, not a cost control. Finding and tracking jobs never stop on any plan.
+- **Counting:** `AiUsage` rows of the unit's purpose (`ANALYZE_JOB`, `TAILOR_RESUME`) with
+  `succeeded: true`, since the plan's period start (`planPeriodStart()`). A call whose output was
+  rejected cost money — the dollar caps count it — but gave the user nothing, so it doesn't use
+  a unit. Reusing an approved resume (§13.2) makes no call and is free. Alert-email reading,
+  careers pages and resume import aren't units; the dollar budget covers them.
+- **Worker:** `BudgetGuard.checkPlan()` runs after the monthly budget (and the daily cap for
+  automatic scoring) for every analysis — automatic or asked for — and every tailoring call.
+  Over the limit, the work is **DEFERRED** with the reason ("You've used your 25 tailored resumes
+  this month (Starter)"), never dropped, and the user is told once per period (`plan:<unit>:<period>`
+  problem notification). The nightly fan-out skips a Free account's source that ran in the last
+  two days (`discoveryDue()`, six hours' slack).
+- **API:** `POST /jobs/:id/resume` (tailor) and `POST /discovery/run` are refused **before queuing**
+  with **402 Payment Required** and `code: PLAN_LIMIT` — not 403, which means "verify your
+  email" in this app. `GET /ai/usage` returns `plan` (units used and limits, period, reset);
+  `GET /discovery/status` returns `canRunNow`. Profile → Settings → Plan shows it; Jobs shows
+  "Checked automatically" instead of the button when the plan has no on-demand runs.
+- **Assigning:** until payments exist (roadmap phase 4), an admin assigns the plan (`PUT
+  /admin/users/:id/plan`, Admin → Accounts), which also sets the account's dollar budget to the
+  plan's; the budget can still be changed on its own. New accounts start on Free. **Accounts
+  from before plans existed were moved to Pro** by the `plans` migration, so nothing they used
+  (on-demand runs, nightly discovery) disappeared; their budgets were left as they were.
+- **Margin:** at measured costs, a fully used Starter plan costs about $2.55 in AI against $5
+  (before payment fees). The Batch API and prompt caching for nightly scoring (next, roadmap
+  phase 3b) should roughly halve the scoring part.
+

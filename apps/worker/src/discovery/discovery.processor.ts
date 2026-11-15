@@ -12,7 +12,7 @@ import { ENV } from '../config/config.module.js';
 import type { Env } from '../config/env.js';
 import { enqueueAnalyses } from '../analysis/analysis.processor.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { lastBoardRunStart, needsCatchUp, type DiscoverAllData } from './discovery.scheduler.js';
+import { discoveryDue, lastBoardRunStart, needsCatchUp, type DiscoverAllData } from './discovery.scheduler.js';
 import { DiscoveryService, PermanentSourceError } from './discovery.service.js';
 
 @Processor(DISCOVERY_QUEUE)
@@ -57,10 +57,13 @@ export class DiscoveryProcessor extends WorkerHost implements OnModuleInit {
       this.logger.log('Catch-up skipped: discovery has run since this worker started');
       return { enqueued: 0, skipped: 'ran since' };
     }
-    const sources = await this.prisma.jobSource.findMany({
+    const enabled = await this.prisma.jobSource.findMany({
       where: { isEnabled: true, type: { not: 'EMAIL_INBOX' } },
-      select: { id: true },
+      select: { id: true, lastRunAt: true, user: { select: { plan: true } } },
     });
+    // Free accounts' sources run every other night (docs/ai-scoring.md §12.5).
+    const now = new Date();
+    const sources = enabled.filter((s) => discoveryDue(s.user.plan, s.lastRunAt, now));
     await this.queue.addBulk(
       sources.map((s) => ({
         name: DiscoveryJob.Source,
@@ -68,8 +71,8 @@ export class DiscoveryProcessor extends WorkerHost implements OnModuleInit {
         opts: queueJobOptions.discoverSource(s.id, job.id!),
       })),
     );
-    this.logger.log(`Queued ${sources.length} enabled sources`);
-    return { enqueued: sources.length };
+    this.logger.log(`Queued ${sources.length} of ${enabled.length} enabled sources (the rest ran recently on Free)`);
+    return { enqueued: sources.length, notDue: enabled.length - sources.length };
   }
 
   private async runSource(job: Job<DiscoverSourceData>) {

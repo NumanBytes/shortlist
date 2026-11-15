@@ -21,6 +21,7 @@ const accounts = [
     email: 'someone@example.com',
     name: 'Someone',
     role: 'USER',
+    plan: 'FREE',
     createdAt: '2026-11-02T00:00:00Z',
     emailVerifiedAt: null,
     monthlyBudgetUsd: 1,
@@ -64,5 +65,14 @@ describe('AdminPage', () => {
     renderWithProviders(<AdminPage />);
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());
     expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith('/admin/users'))).toBe(false);
+  });
+
+  it('assigns a plan', async () => {
+    const fetchMock = setup('ADMIN');
+    renderWithProviders(<AdminPage />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Starter' }));
+    await waitFor(() =>
+      expect(puts(fetchMock)).toEqual([{ url: '/api/v1/admin/users/u2/plan', body: { plan: 'STARTER' } }]),
+    );
   });
 });

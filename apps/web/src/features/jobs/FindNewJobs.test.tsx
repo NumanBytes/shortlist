@@ -13,11 +13,20 @@ const status = (over: Partial<DiscoveryStatus> = {}): DiscoveryStatus => ({
   workerOnline: true,
   cooldownHours: 6,
   jobsThisWeek: 12,
+  canRunNow: true,
   ...over,
 });
 const ran: RunNowResult = { queued: ['Remotive', 'Kwanso'], skipped: [], cooldownHours: 6, emailQueued: true };
 
 describe('FindNewJobs', () => {
+  // On demand is Pro (docs/ai-scoring.md §12.5); other plans are checked on their schedule.
+  it('offers no on-demand check when the plan has none', async () => {
+    mockFetch(status({ canRunNow: false }));
+    renderWithProviders(<FindNewJobs />);
+    expect(await screen.findByText('Checked automatically')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Check for new jobs/ })).not.toBeInTheDocument();
+  });
+
   it('says how fresh the list is', async () => {
     mockFetch(status());
     renderWithProviders(<FindNewJobs />);

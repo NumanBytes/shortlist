@@ -7,6 +7,7 @@ import { useProfile } from '../../lib/queries';
 import type { PublicUser } from '../../lib/types';
 import { Account } from './Account';
 import { Budget } from './Budget';
+import { PlanCard } from './PlanCard';
 import { ClockAndPaper } from './ClockAndPaper';
 import { EducationList, Projects, Roles } from './CareerLists';
 import { ImportFromResume, JobSearch } from './JobSearch';
@@ -94,6 +95,7 @@ export function ProfilePage() {
           <JobSearch />
           <Notifications />
           <ClockAndPaper />
+          <PlanCard />
           <Budget />
           <Account />
         </>

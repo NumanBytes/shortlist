@@ -15,9 +15,11 @@ import {
 import {
   AddCatalogEntrySchema,
   SetAiBudgetSchema,
+  SetPlanSchema,
   UpdateCatalogEntrySchema,
   type AddCatalogEntryInput,
   type SetAiBudgetInput,
+  type SetPlanInput,
   type UpdateCatalogEntryInput,
 } from '@shortlist/shared';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
@@ -44,6 +46,11 @@ export class AdminController {
     @Body(new ZodValidationPipe(SetAiBudgetSchema)) body: SetAiBudgetInput,
   ) {
     return this.admin.setBudget(id, body.monthlyBudgetUsd);
+  }
+
+  @Put('users/:id/plan')
+  setPlan(@Param('id', ParseUUIDPipe) id: string, @Body(new ZodValidationPipe(SetPlanSchema)) body: SetPlanInput) {
+    return this.admin.setPlan(id, body.plan);
   }
 
   // The shared source catalog (docs/discovery.md §9.16).

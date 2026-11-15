@@ -122,7 +122,8 @@ export class ResumeService {
   // again; rethrows transient errors for the queue to retry.
   private async draft(job: NonNullable<Awaited<ReturnType<ResumeService['loadJob']>>>): Promise<Draft> {
     if (!this.writer.configured) return { status: 'DEFERRED', reason: 'ANTHROPIC_API_KEY is not set in the worker' };
-    const guard = await this.budget.checkMonthly(job.userId);
+    const monthly = await this.budget.checkMonthly(job.userId);
+    const guard = monthly.allowed ? await this.budget.checkPlan(job.userId, 'tailoredResumes') : monthly;
     if (!guard.allowed) return { status: 'DEFERRED', reason: guard.reason };
 
     // The resume reflects the evidence as read NOW, so that's its generation time. Stamping

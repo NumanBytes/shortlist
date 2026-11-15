@@ -136,6 +136,45 @@ describe('Notifier', () => {
     expect(await prisma.notification.count({ where: { userId: user.id, kind: 'PROBLEM' } })).toBe(1);
   });
 
+  // Plans (docs/ai-scoring.md §12.5): units, not dollars; failed calls don't use them up.
+  it("stops at the plan's units for its period, telling the user once", async () => {
+    const { user, notifier } = await setup();
+    await prisma.user.update({ where: { id: user.id }, data: { plan: 'FREE' } });
+    const usage = (succeeded: boolean, createdAt = new Date()) =>
+      prisma.aiUsage.create({
+        data: {
+          userId: user.id,
+          purpose: 'TAILOR_RESUME',
+          model: 'x',
+          inputTokens: 0,
+          outputTokens: 0,
+          costUsd: 0,
+          succeeded,
+          createdAt,
+        },
+      });
+    for (let i = 0; i < 4; i++) await usage(true);
+    await usage(false);
+    const guard = new BudgetGuard(prisma, notifier);
+    expect(await guard.checkPlan(user.id, 'tailoredResumes')).toEqual({ allowed: true });
+    await usage(true);
+    const refused = { allowed: false, reason: "You've used the 5 tailored resumes in the free trial" };
+    expect(await guard.checkPlan(user.id, 'tailoredResumes')).toEqual(refused);
+    expect(await guard.checkPlan(user.id, 'tailoredResumes')).toEqual(refused);
+    expect(await guard.checkPlan(user.id, 'scoredJobs')).toEqual({ allowed: true });
+    expect(
+      await prisma.notification.count({ where: { userId: user.id, key: 'problem:plan:tailoredResumes:trial' } }),
+    ).toBe(1);
+
+    // On a paid plan the count is this month's: last month's resumes don't count.
+    await prisma.user.update({ where: { id: user.id }, data: { plan: 'STARTER' } });
+    await prisma.aiUsage.updateMany({
+      where: { userId: user.id },
+      data: { createdAt: new Date(Date.now() - 40 * 24 * 3600_000) },
+    });
+    expect(await guard.checkPlan(user.id, 'tailoredResumes')).toEqual({ allowed: true });
+  });
+
   // One Anthropic key pays for every account (Agents.md §2.1).
   it('stops every user once the server-wide cap is reached, without naming the spend', async () => {
     const { user, notifier } = await setup();

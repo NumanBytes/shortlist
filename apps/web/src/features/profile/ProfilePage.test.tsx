@@ -23,6 +23,17 @@ const profile = {
 };
 const usage = {
   settings: { maxAnalysesPerDay: 40, monthlyBudgetUsd: 4.5, resumeReuseMinOverlap: 0.85 },
+  plan: {
+    name: 'STARTER',
+    label: 'Starter',
+    priceUsdPerMonth: 5,
+    period: 'month',
+    resetsAt: '2026-12-01T00:00:00Z',
+    runNow: false,
+    discoveryEveryDays: 1,
+    scoredJobs: { used: 120, limit: 300 },
+    tailoredResumes: { used: 25, limit: 25 },
+  },
   monthToDateUsd: 0.12,
   callsThisMonth: 20,
   analysesLast24h: 20,
@@ -116,6 +127,16 @@ describe('ProfilePage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect(await screen.findByText('Must be an http(s) URL')).toBeInTheDocument();
     expect(patches(fetchMock)).toHaveLength(0);
+  });
+
+  // Plans in the user's terms (docs/ai-scoring.md §12.5).
+  it('shows the plan with what has been used of it', async () => {
+    setup();
+    renderWithProviders(<ProfilePage />, SETTINGS);
+    expect(await screen.findByText('Starter')).toBeInTheDocument();
+    expect(screen.getByText('120 of 300')).toBeInTheDocument();
+    expect(screen.getByText('25 of 25')).toBeInTheDocument();
+    expect(screen.getByText(/Sources are checked every night\./)).toBeInTheDocument();
   });
 
   // The server pays for AI, so only an admin changes the allowance (Agents.md §2.1).

@@ -100,6 +100,12 @@ enum UserRole {
   ADMIN
 }
 
+enum Plan {
+  FREE
+  STARTER
+  PRO
+}
+
 enum PaperSize {
   LETTER
   A4
@@ -132,6 +138,10 @@ model User {
   timeZone  String    @default("UTC")
   // The printed resume's page. Letter in the US and Canada, A4 almost everywhere else.
   paperSize PaperSize @default(A4)
+  // What the account may use (PLANS in @shortlist/shared, docs/ai-scoring.md §12.5): jobs
+  // scored, resumes tailored, how often discovery runs, "Find new jobs". Set by an admin
+  // until payments exist.
+  plan      Plan      @default(FREE)
 
   refreshTokens        RefreshToken[]
   authTokens           AuthToken[]

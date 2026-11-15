@@ -88,29 +88,35 @@ export function FindNewJobs() {
               ? 'Checked just now'
               : `Last checked ${timeAgo(s?.lastCheckedAt ?? null)}`}
         </p>
-        <Button
-          size="sm"
-          variant="tinted"
-          onClick={start}
-          disabled={busy || cooling || s?.enabledSources === 0}
-          title={next ? `Also checks automatically every night at ${next}` : undefined}
-        >
-          {busy ? (
-            <>
-              <span
-                aria-hidden="true"
-                className="size-3.5 animate-spin rounded-full border-2 border-current border-r-transparent"
-              />{' '}
-              Checking
-            </>
-          ) : cooling ? (
-            `Available again ${timeUntil(s!.availableAt!, now)}`
-          ) : (
-            <>
-              <RefreshCw className="size-4" /> Check for new jobs
-            </>
-          )}
-        </Button>
+        {s && !s.canRunNow ? (
+          // Not in the plan (docs/ai-scoring.md §12.5): checks run on the plan's own schedule
+          // (nightly, or every other night on Free), so no time is promised here.
+          <span className="shrink-0 pr-2.5 text-caption text-muted">Checked automatically</span>
+        ) : (
+          <Button
+            size="sm"
+            variant="tinted"
+            onClick={start}
+            disabled={busy || cooling || s?.enabledSources === 0}
+            title={next ? `Also checks automatically every night at ${next}` : undefined}
+          >
+            {busy ? (
+              <>
+                <span
+                  aria-hidden="true"
+                  className="size-3.5 animate-spin rounded-full border-2 border-current border-r-transparent"
+                />{' '}
+                Checking
+              </>
+            ) : cooling ? (
+              `Available again ${timeUntil(s!.availableAt!, now)}`
+            ) : (
+              <>
+                <RefreshCw className="size-4" /> Check for new jobs
+              </>
+            )}
+          </Button>
+        )}
       </div>
       {s?.workerOnline === false && (
         <output className="flex gap-1.5 border-t border-border px-3.5 py-2 text-caption text-stretch-fg">

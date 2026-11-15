@@ -9,6 +9,7 @@ import {
 } from '@shortlist/shared';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { JobQueues } from '../queue/job-queues.js';
+import { assertPlanAllows } from '../ai/plan-usage.js';
 
 interface VariantRow {
   id: string;
@@ -122,6 +123,8 @@ export class ResumesService {
     if (job.analysisStatus !== 'DONE')
       throw new ConflictException('Score this job first — tailoring uses its requirements');
     if (job.resume?.status === 'PENDING') return this.forJob(userId, jobId); // already on its way
+    // A tailoring call is a plan unit; reusing an approved resume (above) isn't.
+    await assertPlanAllows(this.prisma, userId, 'tailoredResumes');
     await this.prisma.jobResume.upsert({
       where: { jobId },
       create: { jobId, status: 'PENDING' },

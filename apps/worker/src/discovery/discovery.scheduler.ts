@@ -1,6 +1,6 @@
 import { InjectQueue } from '@nestjs/bullmq';
 import { Inject, Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
-import { DISCOVERY_QUEUE, DiscoveryJob, NIGHTLY_DISCOVERY_SCHEDULER_ID } from '@shortlist/shared';
+import { DISCOVERY_QUEUE, DiscoveryJob, NIGHTLY_DISCOVERY_SCHEDULER_ID, PLANS, type PlanName } from '@shortlist/shared';
 import type { Queue } from 'bullmq';
 import { ENV } from '../config/config.module.js';
 import type { Env } from '../config/env.js';
@@ -88,4 +88,14 @@ export class DiscoveryScheduler implements OnApplicationBootstrap {
       this.logger.warn(`Couldn't check for a missed discovery run: ${(err as Error).message}`);
     }
   }
+}
+
+// Whether the nightly fan-out runs a source tonight, by its owner's plan (docs/ai-scoring.md §12.5):
+// every night, or every other night on Free. "Every N days" allows six hours' slack, so a run
+// that finished late last time isn't pushed back a whole night. A source that never ran is due.
+const SLACK_MS = 6 * 3600_000;
+export function discoveryDue(plan: PlanName, lastRunAt: Date | null, now: Date): boolean {
+  const days = PLANS[plan].discoveryEveryDays;
+  if (days <= 1 || !lastRunAt) return true;
+  return now.getTime() - lastRunAt.getTime() >= days * 24 * 3600_000 - SLACK_MS;
 }

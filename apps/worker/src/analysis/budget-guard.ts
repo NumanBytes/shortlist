@@ -1,5 +1,13 @@
 import { Inject, Injectable, Optional } from '@nestjs/common';
-import { aiSettingsFromRow, type AiSettingsInput } from '@shortlist/shared';
+import {
+  PLANS,
+  PLAN_UNIT_PURPOSE,
+  aiSettingsFromRow,
+  planLimitReason,
+  planPeriodStart,
+  type AiSettingsInput,
+  type PlanUnit,
+} from '@shortlist/shared';
 import { ENV } from '../config/config.module.js';
 import type { Env } from '../config/env.js';
 import { Notifier } from '../notifications/notifier.js';
@@ -89,6 +97,34 @@ export class BudgetGuard {
     if (today >= settings.maxAnalysesPerDay) {
       return { allowed: false, reason: `Daily analysis cap reached (${today} of ${settings.maxAnalysesPerDay})` };
     }
-    return { allowed: true };
+    return this.checkPlan(userId, 'scoredJobs', now);
+  }
+
+  // The plan's units (docs/ai-scoring.md §12.5): jobs scored or resumes tailored in the plan's
+  // period. Counted from AiUsage like the budgets, but only calls that succeeded — a call whose
+  // output was rejected cost money (the dollar caps count it) but gave the user nothing.
+  // Reached → the work is DEFERRED, never dropped, and the user is told once per period.
+  async checkPlan(userId: string, unit: PlanUnit, now = new Date()): Promise<BudgetDecision> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { plan: true, createdAt: true } });
+    if (!user) return { allowed: true };
+    const since = planPeriodStart(user.plan, user.createdAt, now);
+    const used = await this.prisma.aiUsage.count({
+      where: { userId, purpose: PLAN_UNIT_PURPOSE[unit], succeeded: true, createdAt: { gte: since } },
+    });
+    if (used < PLANS[user.plan][unit]) return { allowed: true };
+    const reason = planLimitReason(user.plan, unit);
+    const period = PLANS[user.plan].period === 'trial' ? 'trial' : now.toISOString().slice(0, 7);
+    await this.notifier?.problem(
+      userId,
+      `plan:${unit}:${period}`,
+      unit === 'scoredJobs' ? 'Jobs are waiting to be scored' : 'Tailoring is paused',
+      `${reason}. ${
+        unit === 'scoredJobs' ? 'New jobs are still found and kept; they' : 'Resumes'
+      } will be ${unit === 'scoredJobs' ? 'scored' : 'tailored'} ${
+        PLANS[user.plan].period === 'trial' ? 'on a paid plan' : 'when the month turns or on a bigger plan'
+      }.`,
+      '/profile?tab=settings',
+    );
+    return { allowed: false, reason };
   }
 }
