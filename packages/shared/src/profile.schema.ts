@@ -1,7 +1,8 @@
 import { z } from 'zod';
-import { NON_EMPTY_UPDATE_MESSAGE, WebUrl, nonEmptyUpdate } from './common.schema.js';
+import { NON_EMPTY_UPDATE_MESSAGE, PaperSize, TimeZone, WebUrl, nonEmptyUpdate } from './common.schema.js';
 
-// The resume header. All optional except name; clearing a field sends null.
+// The resume header, plus the user's time zone and paper size. All optional except name;
+// clearing a field sends null.
 export const UpdateProfileSchema = z
   .object({
     name: z.string().trim().min(1, 'Name is required').max(100),
@@ -14,6 +15,8 @@ export const UpdateProfileSchema = z
       .nullable(),
     linkedinUrl: WebUrl.nullable(),
     githubUrl: WebUrl.nullable(),
+    timeZone: TimeZone,
+    paperSize: PaperSize,
   })
   .partial()
   .strict()

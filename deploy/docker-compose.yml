@@ -81,6 +81,10 @@ services:
       <<: *server-env
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       DISCOVERY_TZ: ${DISCOVERY_TZ:-Asia/Karachi}
+      # Hosted Shortlist: the most all accounts together may spend on AI per month (USD).
+      AI_SERVER_MONTHLY_BUDGET_USD: ${AI_SERVER_MONTHLY_BUDGET_USD:-}
+      # The morning digest's hour on each user's own clock.
+      DIGEST_HOUR: ${DIGEST_HOUR:-8}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
       VAPID_SUBJECT: ${VAPID_SUBJECT:-}
       SMTP_PORT: ${SMTP_PORT:-587}

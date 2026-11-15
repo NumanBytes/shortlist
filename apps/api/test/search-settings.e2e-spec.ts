@@ -1,4 +1,4 @@
-import { DEFAULT_DISCOVERY_PREFERENCES, REMOTE_BOARDS, STARTER_DISCOVERY_PREFERENCES } from '@shortlist/shared';
+import { REMOTE_BOARDS, STARTER_DISCOVERY_PREFERENCES } from '@shortlist/shared';
 import { createTestApp, type TestApp, type TestUser } from './helpers.js';
 
 describe('Search settings and onboarding (e2e)', () => {
@@ -17,7 +17,7 @@ describe('Search settings and onboarding (e2e)', () => {
   it('a new account needs onboarding and searches with the defaults until it saves its own', async () => {
     expect((await t.http().get('/api/v1/onboarding').set(me.auth).expect(200)).body).toMatchObject({ needed: true });
     const before = await t.http().get('/api/v1/discovery/preferences').set(me.auth).expect(200);
-    expect(before.body).toEqual({ preferences: DEFAULT_DISCOVERY_PREFERENCES, isDefault: true });
+    expect(before.body).toEqual({ preferences: STARTER_DISCOVERY_PREFERENCES, isDefault: true });
 
     const mine = { ...STARTER_DISCOVERY_PREFERENCES, titleInclude: ['backend'], stackKeywords: ['go'] };
     const saved = await t.http().put('/api/v1/discovery/preferences').set(me.auth).send(mine).expect(200);

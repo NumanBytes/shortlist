@@ -159,13 +159,23 @@ So a bug or a sudden flood of "new" jobs can't drain the credits in one night:
    set by the user.
 2. **In the worker** (`BudgetGuard`), checked before every model call, from the
    `AiUsage` log (so it counts billed calls whose output was rejected, too):
-   month-to-date spend vs `monthlyBudgetUsd` (default **$4.50**) and analyses in the
-   last 24h vs `maxAnalysesPerDay` (default **40**). Over either → the job is
-   **DEFERRED** with the reason shown on its card, and the nightly sweep retries it —
-   never silently dropped. Settings are an `AiSettings` row per user (defaults in
-   shared), editable on Profile → Settings → Budget (monthly cap and daily limit);
-   month-to-date spend is shown on Sources (`GET /ai/usage`). With 2 parallel calls a
-   burst can overshoot a cap by at most 2.
+   month-to-date spend vs `monthlyBudgetUsd` (default **$1** for new accounts since
+   2026-11-15; $4.50 before) and analyses in the last 24h vs `maxAnalysesPerDay` (default
+   **40**). Over either → the job is **DEFERRED** with the reason shown on its card, and
+   the nightly sweep retries it — never silently dropped. Settings are an `AiSettings` row
+   per user (defaults in shared); month-to-date spend is shown on Sources (`GET /ai/usage`).
+   With 2 parallel calls a burst can overshoot a cap by at most 2.
+   **Who sets what (hosted Shortlist, 2026-11-15, [§2.1](../Agents.md)):** the server's
+   Anthropic key pays for every account, so the **monthly budget is admin-only** — `PUT
+   /admin/users/:id/ai-budget` from the Accounts page; `PATCH /ai/settings` rejects it with
+   a 400. Users still set the daily scoring limit and the resume-reuse threshold, which can't
+   spend past the budget. Profile shows the budget as a read-only allowance. Plans will set
+   it later ([§17.2](roadmap.md)).
+   **Server-wide cap:** `AI_SERVER_MONTHLY_BUDGET_USD` (worker env, optional) bounds every
+   account's spend together in a calendar month (UTC). `BudgetGuard.checkMonthly` checks it
+   after the user's own budget, before every call; over it, work is DEFERRED like any other
+   budget stop, and each affected user is told once a month that AI is paused — without the
+   server's figures, which are nobody else's business.
 3. **The daily cap paces automatic scoring only** (2026-10-14). Discovery, email alerts
    and the nightly sweep queue analyses without a flag and are held by both limits. An
    analysis the user asked for — Retry, a pasted description, a job they added — carries

@@ -24,7 +24,7 @@ and the alternatives that were rejected.
 
 | Section | File | What's there |
 |---|---|---|
-| §1 Why this exists · §2 Product scope | this file | The problem, "the human clicks submit", the incidents behind the rules |
+| §1 Why this exists · §2 Product scope | this file | The problem, "the human clicks submit", the incidents behind the rules, hosting for many users (§2.1) |
 | §3 Real-world scenarios | [docs/scenarios.md](docs/scenarios.md) | How Shortlist behaves in each situation it was designed for |
 | §4 Runtime architecture · §5 Data model · §14 Technology | [docs/architecture.md](docs/architecture.md) | API / worker / web, queues, deployment and hosting, the schema's design, stack choices |
 | §6 Truthfulness rules | this file | Non-negotiable: verified evidence only, what un-verifies it, placement |
@@ -107,9 +107,9 @@ migration SQL by diffing the live schema read-only ([§15.4](docs/development.md
 - Output quality must match or beat what he would write himself by hand.
 - ~60–70% reduction in per-application manual effort.
 - Mobile-first: a push notification saying "resume ready — just review and submit."
-- Architected as a real multi-user product (proper auth, no shortcuts), even though only
-  he uses it for now. It may be sold later — this affects naming/trademark caution and
-  some third-party setup (e.g. Google OAuth verification, [§10.3](docs/email-alerts.md)), not architecture.
+- Architected as a real multi-user product (proper auth, no shortcuts). Built for the
+  builder first; since 2026-11-15 it is a **hosted product for many users** (§2.1), and the
+  builder is one user among them.
 
 ---
 
@@ -148,6 +148,32 @@ notifies you. You make the final click.
   arrive through the user's job-alert emails instead ([§10](docs/email-alerts.md)).
 - Reading a LinkedIn feed (no API; scraping forbidden). Feed posts come in through
   manual "Add a job" ([§11](docs/discovery.md)).
+
+### 2.1 Hosted for many users (decided 2026-11-15)
+
+Shortlist started as the builder's own tool, then (2026-10-12) a self-hosted app. On
+2026-11-15, after comparing it with the builder's Claude-driven prototype ("Job Radar"),
+the user chose to make it a **hosted product that anyone can sign up for**. What that means:
+
+- **No one person's defaults.** Nothing a new account gets may be tuned to the builder —
+  not the search filter, time zone, paper size or budget. Each comes from the user's own
+  input or the browser, and the builder's own values live only in their account's rows.
+- **One Anthropic key pays for everyone**, so users can't raise their own AI budget. An
+  **admin** (`User.role`, made on the server with `db:set-role`) sets each account's monthly
+  budget; `AI_SERVER_MONTHLY_BUDGET_USD` caps all accounts together ([§12.3](docs/ai-scoring.md)).
+  New accounts start with $1 a month.
+- **Sign-ups are open**, behind email verification and rate limits ([§8.7](docs/security.md)).
+- **Planned, in order** ([§17.2](docs/roadmap.md)): a shared, admin-curated source catalog
+  instead of per-user seeding; plans and usage limits counted in product units (jobs scored,
+  resumes tailored), not dollars — Free (finding and tracking, a one-time AI trial), Starter
+  ($5/month, daily), Pro ($20/month, "Run now") — with work over a limit deferred, never
+  dropped; payments through a merchant of record (Stripe doesn't serve businesses in
+  Pakistan); **job alerts by forwarding** to a private per-user address instead of Gmail
+  OAuth (no restricted-scope verification, works with any mail provider, and only alert
+  emails ever reach Shortlist; needs a domain); the application kit ([§13.5](docs/resume.md));
+  privacy policy, terms, and account deletion with data export before a public launch.
+- The product rules don't change: the human still clicks submit (§1.2), and the
+  truthfulness rules (§6) hold for every user.
 
 ---
 

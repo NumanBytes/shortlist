@@ -22,6 +22,7 @@
     "test": "node --experimental-strip-types --no-warnings --test prisma/seed/*.test.ts",
     "db:seed:career": "node --env-file=.env --experimental-strip-types --no-warnings prisma/seed/seed-career.ts",
     "db:seed:sources": "node --env-file=.env --experimental-strip-types --no-warnings prisma/seed/seed-sources.ts",
+    "db:set-role": "node --env-file=.env --experimental-strip-types --no-warnings prisma/seed/set-role.ts",
     "lint": "oxlint --type-aware src/ prisma/seed/"
   },
   "dependencies": {

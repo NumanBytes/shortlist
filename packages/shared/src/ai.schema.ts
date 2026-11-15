@@ -49,16 +49,27 @@ export const AiSettingsSchema = z
   .strict();
 export type AiSettingsInput = z.infer<typeof AiSettingsSchema>;
 
-export const UpdateAiSettingsSchema = AiSettingsSchema.partial()
+// What a user may change themselves. Not the monthly budget: on hosted Shortlist the server's
+// Anthropic key pays for every call, so only an admin sets it (SetAiBudgetSchema, Agents.md
+// §2.1). Sending it here is a 400, not silently ignored. The daily limit and the reuse
+// threshold can't spend past the budget, so they stay the user's.
+export const UpdateAiSettingsSchema = AiSettingsSchema.omit({ monthlyBudgetUsd: true })
+  .partial()
   .strict()
   .refine((d) => Object.keys(d).length > 0, { message: 'Provide at least one field to update' });
 export type UpdateAiSettingsInput = z.infer<typeof UpdateAiSettingsSchema>;
 
-// $4.50 of the initial $5 credit, leaving headroom for manual runs; the Console's
-// prepaid balance (auto-reload off) is the hard stop behind this.
+// Admin-only (PUT /admin/users/:id/ai-budget).
+export const SetAiBudgetSchema = AiSettingsSchema.pick({ monthlyBudgetUsd: true }).strict();
+export type SetAiBudgetInput = z.infer<typeof SetAiBudgetSchema>;
+
+// A new account's allowance: $1 a month — about 50 scored jobs and 5 tailored resumes at
+// measured costs (docs/ai-scoring.md §12.2) — until an admin (later, a plan) raises it.
+// Accounts that existed before 2026-11-15 kept their $4.50 as a row. Behind every user's
+// cap sit AI_SERVER_MONTHLY_BUDGET_USD and the Console's prepaid balance (§12.3).
 export const DEFAULT_AI_SETTINGS: AiSettingsInput = {
   maxAnalysesPerDay: 40,
-  monthlyBudgetUsd: 4.5,
+  monthlyBudgetUsd: 1,
   resumeReuseMinOverlap: 0.85,
 };
 

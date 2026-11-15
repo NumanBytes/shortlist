@@ -7,7 +7,7 @@ import { PushLink } from '../../components/PushLink';
 import { setNavDirection } from '../../lib/navigation';
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import { ResumeDocument } from './ResumeDocument';
+import { PAGE_SIZES, ResumeDocument } from './ResumeDocument';
 import { ResumeReadView } from './ResumeReadView';
 import { useToast } from '../../components/Toast';
 import { ResumeStatusBadge } from './ResumeStatusBadge';
@@ -15,7 +15,6 @@ import { Badge, Button, EmptyState, Segmented, Sheet, Skeleton } from '../../com
 import { useApproveResume, useEducation, useJobDetail, useJobResume, useProfile } from '../../lib/queries';
 import type { JobResume, ResumeBullet } from '../../lib/types';
 
-const PAGE_PX = 816; // US Letter at 96 dpi — the printed page (docs/resume.md §13.1)
 const monthYear = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
 const title = (s: string) => s.charAt(0) + s.slice(1).toLowerCase();
 
@@ -166,7 +165,7 @@ export function ResumePage() {
       <div
         className={`-mx-4 bg-surface-2 px-4 py-5 sm:mx-0 sm:block sm:rounded-lg print:m-0 print:block print:bg-transparent print:p-0 ${view === 'read' ? 'hidden' : ''}`}
       >
-        <FitToWidth>
+        <FitToWidth pagePx={PAGE_SIZES[profile.data.paperSize]?.px ?? PAGE_SIZES.A4.px}>
           <ResumeDocument
             content={v.content}
             profile={profile.data}
@@ -244,30 +243,30 @@ export function ResumePage() {
   );
 }
 
-// Shows the page at its real width (816px), scaled down to fit narrower screens — like a
+// Shows the page at its real width (816px Letter, 794px A4), scaled down to fit narrower screens — like a
 // document preview — so the layout is exactly what prints. Printing undoes the scaling
 // (`!` = !important, because the scale is an inline style).
-function FitToWidth({ children }: { children: ReactNode }) {
+function FitToWidth({ pagePx, children }: { pagePx: number; children: ReactNode }) {
   const outer = useRef<HTMLDivElement>(null);
   const inner = useRef<HTMLDivElement>(null);
   const [fit, setFit] = useState<{ scale: number; height?: number }>({ scale: 1 });
   useLayoutEffect(() => {
     if (typeof ResizeObserver === 'undefined') return; // jsdom
     const measure = () => {
-      const scale = Math.min(1, (outer.current?.clientWidth ?? PAGE_PX) / PAGE_PX);
+      const scale = Math.min(1, (outer.current?.clientWidth ?? pagePx) / pagePx);
       setFit({ scale, height: (inner.current?.offsetHeight ?? 0) * scale });
     };
     const ro = new ResizeObserver(measure);
     ro.observe(outer.current!);
     ro.observe(inner.current!);
     return () => ro.disconnect();
-  }, []);
+  }, [pagePx]);
   return (
     <div ref={outer} className="overflow-hidden print:h-auto! print:overflow-visible" style={{ height: fit.height }}>
       <div
         ref={inner}
         className="origin-top-left shadow-[0_1px_2px_rgb(0_0_0/0.12),0_8px_24px_rgb(0_0_0/0.14)] print:w-auto! print:transform-none! print:shadow-none"
-        style={{ width: PAGE_PX, transform: `scale(${fit.scale})` }}
+        style={{ width: pagePx, transform: `scale(${fit.scale})` }}
       >
         {children}
       </div>

@@ -103,6 +103,12 @@ Max-Age = 30 days`.
 - **Outbound requests** identify themselves honestly (`ShortlistBot/0.1 …`), time out
   after 20 seconds, and never impersonate a browser.
 - **Gmail access** is read-only and limited by the code to one label ([§10.3](email-alerts.md)).
+- **Admin role (2026-11-15, [§2.1](../Agents.md)).** `User.role` is USER or ADMIN. Admin routes
+  (`/admin/*`) sit behind `AdminGuard`, which reads the role **from the database on every
+  request** rather than putting it in the access token: a token lives 15 minutes, and a demoted
+  admin must lose access at once. A non-admin gets **404**, as for another user's resource — a
+  403 would tell any signed-in user the routes exist. No API route can grant the role; the first
+  admin is made on the server with `db:set-role` (no request body can ever make someone one).
 
 ### 8.7 Email verification and password reset (built 2026-10-14)
 

@@ -1,4 +1,4 @@
-import { DEFAULT_DISCOVERY_PREFERENCES } from '@shortlist/shared';
+import { STARTER_DISCOVERY_PREFERENCES } from '@shortlist/shared';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { mockFetch, renderWithProviders } from '../../test/render';
@@ -7,7 +7,7 @@ import { ONBOARDING_DONE_KEY, WelcomePage } from './WelcomePage';
 describe('WelcomePage', { timeout: 20_000 }, () => {
   it('starts a new account from neutral search settings, not the builder’s defaults', async () => {
     mockFetch(undefined, (url) =>
-      url.endsWith('/discovery/preferences') ? { preferences: DEFAULT_DISCOVERY_PREFERENCES, isDefault: true } : null,
+      url.endsWith('/discovery/preferences') ? { preferences: STARTER_DISCOVERY_PREFERENCES, isDefault: true } : null,
     );
     renderWithProviders(<WelcomePage />, { path: '/welcome', route: '/welcome?step=search' });
     expect(await screen.findByText('Step 2 of 3')).toBeInTheDocument();

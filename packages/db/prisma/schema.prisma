@@ -95,24 +95,43 @@ enum DiscoveryRunStatus {
   EMPTY
 }
 
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum PaperSize {
+  LETTER
+  A4
+}
+
 model User {
-  id           String  @id @default(uuid())
-  email        String  @unique
-  passwordHash String
-  name         String
-  headline     String?
-  targetRole   String?
-  location     String?
+  id              String    @id @default(uuid())
+  email           String    @unique
+  passwordHash    String
+  name            String
+  headline        String?
+  targetRole      String?
+  location        String?
   // Resume header (contact line). Personal data: lives only in the database — never in
   // committed files (seed data, docs).
-  phone        String?
-  linkedinUrl  String?
-  githubUrl    String?
+  phone           String?
+  linkedinUrl     String?
+  githubUrl       String?
   // Set when the user follows the link in the verification email, or resets their password
   // (both prove they control the inbox). Null = unverified: the API refuses everything but
   // the verification routes (docs/security.md §8.7). Accounts made before verification
   // existed were backfilled as verified.
   emailVerifiedAt DateTime?
+
+  // Hosted Shortlist (Agents.md §2.1). ADMIN can see accounts and set their AI budgets; read
+  // from the database on every admin request, never from the access token, so a demotion
+  // takes effect at once. Set with `pnpm --filter @shortlist/db db:set-role`.
+  role      UserRole  @default(USER)
+  // IANA zone ("Asia/Karachi"): the morning digest and quiet hours run on the user's clock.
+  timeZone  String    @default("UTC")
+  // The printed resume's page. Letter in the US and Canada, A4 almost everywhere else.
+  paperSize PaperSize @default(A4)
 
   refreshTokens        RefreshToken[]
   authTokens           AuthToken[]

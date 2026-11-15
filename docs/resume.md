@@ -98,7 +98,12 @@ Tailoring, the resume library, approval and printing, and the application kit.
   absolutely positioned: Chrome writes positioned content to the PDF out of reading order
   (all headings first, then the bullet text), which would garble the text an applicant
   tracking system reads.
-- **PDF:** the browser's print → "Save as PDF" on a Letter print stylesheet (app chrome and
+- **Paper size (2026-11-15).** `User.paperSize`: LETTER or A4, guessed from the browser's
+  region at sign-up (Letter for the US, Canada and a few countries in the Americas and the
+  Philippines; A4 elsewhere) and editable on Profile → Settings → Time and paper. The same 1in
+  margins and type on both; the preview scales from the page's width (816px Letter, 794px A4)
+  and `ResumeDocument` writes the `@page` size. Accounts from before hosting kept Letter.
+- **PDF:** the browser's print → "Save as PDF" on the user's paper (app chrome and
   toasts hidden; the page title becomes the file name). No PDF library and no server-side
   rendering: the text stays selectable for applicant tracking systems, and the paper
   stays white in dark mode (`paper`/`ink` tokens).

@@ -1,4 +1,4 @@
-import { DEFAULT_DISCOVERY_PREFERENCES } from '@shortlist/shared';
+import { BUILDER_DISCOVERY_PREFERENCES } from '@shortlist/shared';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ADAPTERS } from './adapters/index.js';
 import { DiscoveryService, PermanentSourceError } from './discovery.service.js';
@@ -33,8 +33,15 @@ async function newSource(
   config: object = { provider: 'greenhouse', board: 'test' },
   type: 'ATS_BOARD' | 'AGGREGATOR_API' = 'ATS_BOARD',
 ) {
+  // A Lahore frontend developer's filter, saved as the user's own: users without settings now
+  // get the neutral starter filter (docs/discovery.md §9.13), which these postings don't test.
   const user = await prisma.user.create({
-    data: { email: `worker-${crypto.randomUUID()}@e2e.shortlist.test`, name: 'Worker Test', passwordHash: 'x' },
+    data: {
+      email: `worker-${crypto.randomUUID()}@e2e.shortlist.test`,
+      name: 'Worker Test',
+      passwordHash: 'x',
+      discoveryPrefs: { create: BUILDER_DISCOVERY_PREFERENCES },
+    },
   });
   createdUsers.push(user.id);
   return prisma.jobSource.create({
@@ -177,8 +184,9 @@ describe('DiscoveryService.runSource', () => {
 
   it("uses the user's own filter preferences when they have them", async () => {
     const source = await newSource();
-    await prisma.discoveryPreferences.create({
-      data: { userId: source.userId, ...DEFAULT_DISCOVERY_PREFERENCES, onsiteLocations: ['berlin'] },
+    await prisma.discoveryPreferences.update({
+      where: { userId: source.userId },
+      data: { onsiteLocations: ['berlin'] },
     });
     const { service } = serviceWith(async () => [posting({ location: 'Berlin' }), posting({ company: 'B' })]);
     // Berlin is now allowed; Lahore no longer is.

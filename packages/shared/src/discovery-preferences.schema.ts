@@ -23,8 +23,12 @@ export const DiscoveryPreferencesSchema = z
 
 export type DiscoveryPreferencesInput = z.infer<typeof DiscoveryPreferencesSchema>;
 
-// Tuned for a ~2-year frontend/full-stack developer in Lahore (Agents.md §1, §6).
-export const DEFAULT_DISCOVERY_PREFERENCES: DiscoveryPreferencesInput = {
+// The builder's own filter (a ~2-year frontend/full-stack developer in Lahore). Until
+// 2026-11-15 every user without saved settings got it; hosted Shortlist starts them from
+// STARTER_DISCOVERY_PREFERENCES instead, and the hosted_groundwork migration copied these
+// values into the rows of accounts that were relying on them. Kept as a realistic example
+// for tests — never use it as a fallback for a real user (docs/discovery.md §9.13).
+export const BUILDER_DISCOVERY_PREFERENCES: DiscoveryPreferencesInput = {
   titleInclude: [
     'developer',
     'engineer',

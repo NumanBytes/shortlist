@@ -31,6 +31,9 @@ export const PUBLIC_USER_SELECT = {
   linkedinUrl: true,
   githubUrl: true,
   emailVerifiedAt: true,
+  role: true,
+  timeZone: true,
+  paperSize: true,
   createdAt: true,
 } satisfies Prisma.UserSelect;
 
@@ -80,6 +83,8 @@ export class AuthService implements OnModuleInit {
           email: input.email,
           name: input.name,
           passwordHash,
+          ...(input.timeZone && { timeZone: input.timeZone }),
+          ...(input.paperSize && { paperSize: input.paperSize }),
           emailVerifiedAt: this.mailEnabled ? null : new Date(),
         },
         select: PUBLIC_USER_SELECT,

@@ -1,3 +1,4 @@
+import { BUILDER_DISCOVERY_PREFERENCES } from '@shortlist/shared';
 import { GoogleApiError, SecretBox, type GmailApi, type GmailMessage, type GoogleOAuth } from '@shortlist/shared/node';
 import type { Queue } from 'bullmq';
 import { randomBytes } from 'node:crypto';
@@ -77,8 +78,14 @@ class FakeExtractor implements EmailExtractor {
 const linkRef = (user: string, urlPart: string) => new RegExp(`(L\\d+): [^\\n]*${urlPart}`).exec(user)?.[1] ?? null;
 
 async function setup() {
+  // A Lahore frontend developer's filter, saved as the user's own (the fixtures are their alerts).
   const user = await prisma.user.create({
-    data: { email: `gmail-${crypto.randomUUID()}@e2e.shortlist.test`, name: 'Gmail Test', passwordHash: 'x' },
+    data: {
+      email: `gmail-${crypto.randomUUID()}@e2e.shortlist.test`,
+      name: 'Gmail Test',
+      passwordHash: 'x',
+      discoveryPrefs: { create: BUILDER_DISCOVERY_PREFERENCES },
+    },
   });
   createdUsers.push(user.id);
   await prisma.gmailConnection.create({

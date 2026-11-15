@@ -392,8 +392,9 @@ dialog.sheet-closing::backdrop {
   }
 }
 
-/* Printing (the resume's "Save as PDF"): the user's CV page — US Letter, 1in margins
-   (measured from their Google Docs CV) — no app chrome, white page. */
+/* Printing (the resume's "Save as PDF"): 1in margins (measured from the builder's Google Docs
+   CV), no app chrome, white page. The size is the user's paper: ResumeDocument overrides
+   this Letter default with an @page rule of its own (Letter or A4). */
 @page {
   size: letter;
   margin: 1in;

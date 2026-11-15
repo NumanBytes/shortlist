@@ -25,6 +25,10 @@ const EnvSchema = z
     // Parallel model calls. Low on purpose: bounds rate-limit pressure and how far a burst
     // can overshoot the daily cap before the guard sees it.
     ANALYSIS_CONCURRENCY: z.coerce.number().int().min(1).max(10).default(2),
+    // Hosted Shortlist (Agents.md §2.1): the most every account TOGETHER may spend on AI in a
+    // calendar month (UTC), in dollars. Unset = no server-wide cap; each user's own budget
+    // and the Console's prepaid balance still apply.
+    AI_SERVER_MONTHLY_BUDGET_USD: z.coerce.number().min(0).optional(),
 
     // Gmail job alerts (docs/email-alerts.md §10). Optional as a group, like ANTHROPIC_API_KEY: without
     // them, email checks report "not configured" instead of failing. Same values as the API.
@@ -61,8 +65,10 @@ const EnvSchema = z
     SMTP_FROM: z.string().min(3).optional(),
     // The links in those emails open the web app here.
     WEB_APP_URL: z.url().default('http://localhost:5173'),
-    // The morning digest, in DISCOVERY_TZ: after the nightly discovery (02:00) and scoring (03:00).
-    DIGEST_CRON: z.string().default('0 8 * * *'),
+    // The morning digest goes out at this hour on each user's own clock (User.timeZone,
+    // docs/notifications.md §19.4). Checked hourly; a missed hour is caught up for the
+    // next two.
+    DIGEST_HOUR: z.coerce.number().int().min(0).max(23).default(8),
   })
   .superRefine((env, ctx) => {
     const google = [env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET, env.TOKEN_ENCRYPTION_KEY];

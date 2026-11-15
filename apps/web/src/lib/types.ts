@@ -14,7 +14,22 @@ export interface PublicUser {
   linkedinUrl: string | null;
   githubUrl: string | null;
   emailVerifiedAt: string | null; // null: the app shows "check your inbox" (docs/security.md §8.7)
+  role: 'USER' | 'ADMIN';
+  timeZone: string; // IANA, the user's clock for the digest and quiet hours
+  paperSize: 'LETTER' | 'A4'; // the printed resume's page
   createdAt: string;
+}
+
+// One account as an admin sees it (GET /admin/users, Agents.md §2.1).
+export interface AdminUser {
+  id: string;
+  email: string;
+  name: string;
+  role: 'USER' | 'ADMIN';
+  createdAt: string;
+  emailVerifiedAt: string | null;
+  monthlyBudgetUsd: number;
+  monthToDateUsd: number;
 }
 
 export interface Education {

@@ -1,4 +1,5 @@
 import { LoginSchema, RegisterSchema } from '@shortlist/shared';
+import { browserPaperSize, browserTimeZone } from '../../lib/locale';
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 import { useAuth } from './AuthProvider';
@@ -42,7 +43,10 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
     setFormError(undefined);
     // Each branch keeps its own typed result, so no casts are needed below.
     const submit = isRegister
-      ? withParsed(RegisterSchema.safeParse(fields), register)
+      ? withParsed(
+          RegisterSchema.safeParse({ ...fields, timeZone: browserTimeZone(), paperSize: browserPaperSize() }),
+          register,
+        )
       : withParsed(LoginSchema.safeParse({ email: fields.email, password: fields.password }), login);
     if (!submit) return;
     setErrors({});

@@ -16,6 +16,9 @@ const profile = {
   phone: '+92 300 1234567',
   linkedinUrl: null,
   githubUrl: 'https://github.com/NumanBytes',
+  timeZone: 'Asia/Karachi',
+  paperSize: 'A4',
+  role: 'USER',
   createdAt: new Date().toISOString(),
 };
 const usage = {
@@ -115,18 +118,13 @@ describe('ProfilePage', () => {
     expect(patches(fetchMock)).toHaveLength(0);
   });
 
-  // UI audit G13: a run of taps is one request, sent when they pause.
-  it('steps the monthly AI cap, saving once per run of taps', async () => {
-    const fetchMock = setup();
+  // The server pays for AI, so only an admin changes the allowance (Agents.md §2.1).
+  it('shows the monthly AI allowance without a way to raise it', async () => {
+    setup();
     renderWithProviders(<ProfilePage />, SETTINGS);
-    const raise = await screen.findByRole('button', { name: /Raise the cap/ });
-    await userEvent.click(raise);
-    await userEvent.click(raise);
-    await userEvent.click(raise);
-    expect(screen.getByLabelText('Monthly budget in dollars')).toHaveValue('$7.5');
-    await waitFor(() =>
-      expect(patches(fetchMock)).toEqual([{ url: '/api/v1/ai/settings', body: { monthlyBudgetUsd: 7.5 } }]),
-    );
+    expect(await screen.findByText('Monthly AI allowance')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Raise the cap/ })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Monthly budget in dollars')).not.toBeInTheDocument();
   });
 
   // A job the user asks about isn't held by this limit; it paces automatic scoring.
@@ -139,25 +137,16 @@ describe('ProfilePage', () => {
     );
   });
 
-  it('does not turn an emptied budget field into a $0 budget', async () => {
+  it('saves the time zone and the resume paper on change', async () => {
     const fetchMock = setup();
     renderWithProviders(<ProfilePage />, SETTINGS);
-    const input = await screen.findByLabelText('Monthly budget in dollars');
-    await userEvent.click(input);
-    await userEvent.clear(input);
-    await userEvent.tab();
-    expect(patches(fetchMock)).toHaveLength(0);
-  });
-
-  it('saves a typed budget', async () => {
-    const fetchMock = setup();
-    renderWithProviders(<ProfilePage />, SETTINGS);
-    const input = await screen.findByLabelText('Monthly budget in dollars');
-    await userEvent.click(input);
-    await userEvent.clear(input);
-    await userEvent.type(input, '3{Enter}');
+    await userEvent.selectOptions(await screen.findByLabelText('Time zone'), 'Europe/Berlin');
+    await userEvent.click(screen.getByRole('button', { name: 'US Letter' }));
     await waitFor(() =>
-      expect(patches(fetchMock)).toEqual([{ url: '/api/v1/ai/settings', body: { monthlyBudgetUsd: 3 } }]),
+      expect(patches(fetchMock)).toEqual([
+        { url: '/api/v1/profile', body: { timeZone: 'Europe/Berlin' } },
+        { url: '/api/v1/profile', body: { paperSize: 'LETTER' } },
+      ]),
     );
   });
 });
