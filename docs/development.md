@@ -121,6 +121,11 @@ from reaching `main`.
   changes the generator, config and connection setup, so it's a planned upgrade. A vulnerable
   package nested inside a dependency that hasn't updated yet is pinned with a pnpm
   `overrides` entry in `pnpm-workspace.yaml`, with the advisory id and when to drop it.
+  TypeScript majors are skipped too (2026-11-17): TypeScript 7.0 ships only the `tsc`
+  executable, without the compiler API the Nest CLI builds through, so the API and worker
+  can't build on it. It was merged anyway (#39, with red checks) and broke `main`; every
+  package is back on `^6.0.3`. Move to 7 by hand once 7.1 restores the compiler API and the
+  Nest CLI supports it.
 - **Agent instructions (2026-11-16):** `CLAUDE.md` (read by Claude Code) and `AGENTS.md` (read
   by Codex and other agents) carry the same rules and are both tracked. `AGENTS.md` is a copy
   of `CLAUDE.md` with only the title and first line changed, so any change to one is made to
