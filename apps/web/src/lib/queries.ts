@@ -18,6 +18,7 @@ import type {
   AddSourceInput,
   AddJobInput,
   SetAiBudgetInput,
+  SetPlanInput,
   AddCatalogEntryInput,
   CatalogQuery,
   UpdateCatalogEntryInput,
@@ -586,6 +587,15 @@ export const adminKeys = { users: ['admin', 'users'] as const };
 
 export const useAdminUsers = (enabled: boolean) =>
   useQuery({ queryKey: adminKeys.users, queryFn: () => api<AdminUser[]>('/admin/users'), enabled });
+
+export function useSetUserPlan() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, plan }: { id: string; plan: SetPlanInput['plan'] }) =>
+      api(`/admin/users/${id}/plan`, { method: 'PUT', body: { plan } }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: adminKeys.users }),
+  });
+}
 
 export function useSetUserBudget() {
   const queryClient = useQueryClient();

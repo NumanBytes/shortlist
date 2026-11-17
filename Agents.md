@@ -165,10 +165,12 @@ the user chose to make it a **hosted product that anyone can sign up for**. What
 - **Sign-ups are open**, behind email verification and rate limits ([§8.7](docs/security.md)).
 - **A shared, admin-curated source catalog** that every user follows from, instead of seeding
   each account on the server ([§9.16](docs/discovery.md), built 2026-11-16).
-- **Planned, in order** ([§17.2](docs/roadmap.md)): plans and usage limits counted in product units (jobs scored,
-  resumes tailored), not dollars — Free (finding and tracking, a one-time AI trial), Starter
-  ($5/month, daily), Pro ($20/month, "Run now") — with work over a limit deferred, never
-  dropped; payments through a merchant of record (Stripe doesn't serve businesses in
+- **Plans in product units** — jobs scored and resumes tailored, never dollars: Free (finding
+  and tracking, a one-time AI trial), Starter ($5/month), Pro ($20/month, "Find new jobs" on
+  demand); work over a limit is deferred, never dropped ([§12.5](docs/ai-scoring.md), built
+  2026-11-16; an admin assigns plans until payments exist).
+- **Planned, in order** ([§17.2](docs/roadmap.md)): the Batch API and prompt caching for nightly
+  scoring; payments through a merchant of record (Stripe doesn't serve businesses in
   Pakistan); **job alerts by forwarding** to a private per-user address instead of Gmail
   OAuth (no restricted-scope verification, works with any mail provider, and only alert
   emails ever reach Shortlist; needs a domain); the application kit ([§13.5](docs/resume.md));

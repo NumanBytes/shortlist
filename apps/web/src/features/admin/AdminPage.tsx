@@ -4,7 +4,7 @@ import { useState, type FormEvent } from 'react';
 import { Navigate } from 'react-router';
 import { Button, Card, EmptyState, INPUT, Segmented, Skeleton } from '../../components/ui';
 import { PageHeader } from '../../layout/AppShell';
-import { useAdminUsers, useProfile, useSetUserBudget } from '../../lib/queries';
+import { useAdminUsers, useProfile, useSetUserBudget, useSetUserPlan } from '../../lib/queries';
 import type { AdminUser } from '../../lib/types';
 import { CatalogAdmin } from './CatalogAdmin';
 
@@ -55,7 +55,8 @@ function Accounts() {
           <ul className="space-y-2.5">
             {users.data.map((u) => (
               <li key={u.id}>
-                <AccountRow user={u} />
+                {/* Keyed by budget too: assigning a plan changes it, and the field must show the new one. */}
+                <AccountRow key={`${u.id}:${u.monthlyBudgetUsd}`} user={u} />
               </li>
             ))}
           </ul>
@@ -67,6 +68,7 @@ function Accounts() {
 
 function AccountRow({ user: u }: { user: AdminUser }) {
   const setBudget = useSetUserBudget();
+  const setPlan = useSetUserPlan();
   const [draft, setDraft] = useState(String(u.monthlyBudgetUsd));
   const [error, setError] = useState<string>();
   const id = `budget-${u.id}`;
@@ -82,7 +84,7 @@ function AccountRow({ user: u }: { user: AdminUser }) {
     setError(undefined);
     setBudget.mutate({ id: u.id, body: parsed.data });
   };
-  const message = error ?? setBudget.error?.message;
+  const message = error ?? setBudget.error?.message ?? setPlan.error?.message;
   return (
     <Card className="space-y-3 p-4">
       <div className="min-w-0">
@@ -97,6 +99,17 @@ function AccountRow({ user: u }: { user: AdminUser }) {
           {money(u.monthToDateUsd)} of {money(u.monthlyBudgetUsd)} this month
         </p>
       </div>
+      {/* Assigning a plan also sets the budget to the plan's (docs/ai-scoring.md §12.5). */}
+      <Segmented<AdminUser['plan']>
+        label={`${u.name}'s plan`}
+        value={u.plan}
+        onChange={(plan) => plan !== u.plan && setPlan.mutate({ id: u.id, plan })}
+        options={[
+          { value: 'FREE', label: 'Free' },
+          { value: 'STARTER', label: 'Starter' },
+          { value: 'PRO', label: 'Pro' },
+        ]}
+      />
       <form onSubmit={onSubmit} className="flex items-end gap-2">
         <div className="min-w-0 flex-1 space-y-1.5">
           <label htmlFor={id} className="block text-footnote font-medium text-muted">

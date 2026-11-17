@@ -20,3 +20,4 @@ export * from './remote-boards.js';
 export * from './careers-page.schema.js';
 export * from './notification.schema.js';
 export * from './source-catalog.schema.js';
+export * from './plans.js';

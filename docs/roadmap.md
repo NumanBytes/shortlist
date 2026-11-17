@@ -56,9 +56,9 @@ designed with the user 2026-10-12).
   [§9.16](discovery.md)): admin-curated entries tagged with places, browse and follow on Sources,
   "companies near you" in onboarding, `db:seed:catalog`. Deferred: fetching once per catalog
   source for all followers.
-- Phase 3: plans and usage limits in product units (Free / Starter $5 / Pro $20), before any
-  payment provider; the Batch API and prompt caching for nightly scoring, to keep the $5 plan
-  above cost.
+- ~~Phase 3a: plans and usage limits~~ — built 2026-11-16 (`feat/plans`, [§12.5](ai-scoring.md)):
+  Free / Starter $5 / Pro $20 in units (jobs scored, tailored resumes), assigned by an admin.
+- Phase 3b: the Batch API and prompt caching for nightly scoring, to keep the $5 plan above cost.
 - Phase 4: payments through a merchant of record (check it pays out to Pakistan first).
 - Phase 5: job alerts by email forwarding (needs a domain and an inbound-mail service).
 - Phase 6: the application kit ([§13.5](resume.md)) — the biggest gap against Job Radar.

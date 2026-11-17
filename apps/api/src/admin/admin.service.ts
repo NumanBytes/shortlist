@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { aiSettingsFromRow } from '@shortlist/shared';
+import { PLANS, aiSettingsFromRow, type PlanName } from '@shortlist/shared';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 // What an admin of hosted Shortlist sees and controls (Agents.md §2.1): the accounts, what
@@ -19,6 +19,7 @@ export class AdminService {
           email: true,
           name: true,
           role: true,
+          plan: true,
           createdAt: true,
           emailVerifiedAt: true,
           aiSettings: true,
@@ -36,6 +37,19 @@ export class AdminService {
       monthlyBudgetUsd: aiSettingsFromRow(aiSettings).monthlyBudgetUsd,
       monthToDateUsd: spent.get(u.id) ?? 0,
     }));
+  }
+
+  // Assigns a plan (until payments exist, docs/ai-scoring.md §12.5) and sets the account's dollar
+  // budget to the plan's safety stop; the budget can still be changed on its own afterwards.
+  async setPlan(userId: string, plan: PlanName) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { aiSettings: true } });
+    if (!user) throw new NotFoundException();
+    const settings = { ...aiSettingsFromRow(user.aiSettings), monthlyBudgetUsd: PLANS[plan].monthlyBudgetUsd };
+    await this.prisma.$transaction([
+      this.prisma.user.update({ where: { id: userId }, data: { plan } }),
+      this.prisma.aiSettings.upsert({ where: { userId }, create: { userId, ...settings }, update: settings }),
+    ]);
+    return { plan, monthlyBudgetUsd: settings.monthlyBudgetUsd };
   }
 
   // Sets one account's monthly AI budget. Writes a full settings row, so an account that had

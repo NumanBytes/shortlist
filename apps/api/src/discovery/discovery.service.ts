@@ -3,6 +3,7 @@ import {
   ImplementedSourceConfigSchema,
   JobSourceConfigSchema,
   MANUAL_RUN_COOLDOWN_HOURS,
+  PLANS,
   isBoardProvider,
   parseBoardAddress,
   sourceFromLink,
@@ -13,6 +14,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service.js';
 import { JobQueues } from '../queue/job-queues.js';
 import { CatalogService } from './catalog.service.js';
+import { planLimitError } from '../ai/plan-usage.js';
 
 const boardNameOf = (config: unknown): string | null => {
   const c = (config ?? {}) as Record<string, unknown>;
@@ -84,6 +86,10 @@ export class DiscoveryService {
   // user tapping the button can't break an aggregator's request limits — and, if Gmail is
   // connected, a check of the alert label too, so one button covers every source.
   async runNow(userId: string) {
+    // On demand is a Pro feature (docs/ai-scoring.md §12.5); other plans get the nightly run.
+    const { plan } = await this.prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { plan: true } });
+    if (!PLANS[plan].runNow)
+      throw planLimitError(plan, 'Finding new jobs on demand is part of Pro. Your sources are checked every night.');
     const cutoff = new Date(Date.now() - COOLDOWN_MS);
     const [sources, gmail] = await Promise.all([
       this.prisma.jobSource.findMany({
@@ -117,7 +123,7 @@ export class DiscoveryService {
   // will next queue something, when the nightly run fires, and whether a worker is running
   // at all (without one, queued work just waits — docs/architecture.md §4).
   async status(userId: string) {
-    const [sources, running, workerOnline, nextNightlyAt, jobsThisWeek] = await Promise.all([
+    const [sources, running, workerOnline, nextNightlyAt, jobsThisWeek, user] = await Promise.all([
       this.prisma.jobSource.findMany({
         where: { userId, isEnabled: true, type: { not: 'EMAIL_INBOX' } },
         select: { lastRunAt: true },
@@ -134,6 +140,7 @@ export class DiscoveryService {
       this.queue.nextNightlyDiscovery(),
       // Every job found in the last 7 days, from boards and alert emails alike.
       this.prisma.job.count({ where: { userId, discoveredAt: { gte: new Date(Date.now() - 7 * 24 * 3600 * 1000) } } }),
+      this.prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { plan: true } }),
     ]);
     const finished = sources.flatMap((s) => (s.lastRunAt ? [s.lastRunAt.getTime()] : []));
     // A source that never ran is due now; otherwise each is due once its cooldown passes.
@@ -148,6 +155,8 @@ export class DiscoveryService {
       workerOnline,
       cooldownHours: MANUAL_RUN_COOLDOWN_HOURS,
       jobsThisWeek,
+      // Whether "Find new jobs" is in the user's plan (Pro); the nightly run is for everyone.
+      canRunNow: PLANS[user.plan].runNow,
     };
   }
 

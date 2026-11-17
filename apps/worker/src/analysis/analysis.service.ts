@@ -54,8 +54,11 @@ export class AnalysisService {
     // The daily cap paces automatic scoring; a job the user asked about waits only on the
     // monthly budget, like tailoring (it once sat "deferred" behind 40 alert jobs, blocking
     // its resume).
+    // Either way it counts toward the plan's scored jobs (docs/ai-scoring.md §12.5).
     const guard = requestedByUser
-      ? await this.budget.checkMonthly(job.userId)
+      ? await this.budget
+          .checkMonthly(job.userId)
+          .then((g) => (g.allowed ? this.budget.checkPlan(job.userId, 'scoredJobs') : g))
       : await this.budget.checkAnalysis(job.userId);
     if (!guard.allowed) return this.defer(jobId, guard.reason);
 

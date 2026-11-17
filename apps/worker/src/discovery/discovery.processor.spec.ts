@@ -25,7 +25,7 @@ describe('DiscoveryProcessor', () => {
     const queue = { addBulk: vi.fn(async () => undefined) };
     const prisma = {
       discoveryRun: { findFirst: vi.fn(async () => ({ startedAt: new Date() })) },
-      jobSource: { findMany: vi.fn(async () => [{ id: 's1' }]) },
+      jobSource: { findMany: vi.fn(async () => [{ id: 's1', lastRunAt: null, user: { plan: 'PRO' } }]) },
     };
     const processor = new DiscoveryProcessor(
       {} as DiscoveryService,
@@ -42,5 +42,31 @@ describe('DiscoveryProcessor', () => {
     const nightly = { name: 'discover-all', id: 'repeat:n:1', data: {} } as unknown as Job;
     await processor.process(nightly);
     expect(queue.addBulk).toHaveBeenCalledTimes(1);
+  });
+
+  // Plans (docs/ai-scoring.md §12.5): a Free account's source that ran last night waits a night.
+  it('leaves out Free sources that ran within the last two days', async () => {
+    const queue = { addBulk: vi.fn(async () => undefined) };
+    const yesterday = new Date(Date.now() - 24 * 3600_000);
+    const prisma = {
+      jobSource: {
+        findMany: vi.fn(async () => [
+          { id: 'free-recent', lastRunAt: yesterday, user: { plan: 'FREE' } },
+          { id: 'free-new', lastRunAt: null, user: { plan: 'FREE' } },
+          { id: 'pro-recent', lastRunAt: yesterday, user: { plan: 'PRO' } },
+        ]),
+      },
+    };
+    const processor = new DiscoveryProcessor(
+      {} as DiscoveryService,
+      prisma as never,
+      queue as never,
+      {} as never,
+      { WORKER_CONCURRENCY: 1 } as never,
+    );
+    const nightly = { name: 'discover-all', id: 'repeat:n:2', data: {} } as unknown as Job;
+    await expect(processor.process(nightly)).resolves.toEqual({ enqueued: 2, notDue: 1 });
+    const queued = (queue.addBulk.mock.calls[0] as unknown as [{ data: { sourceId: string } }[]])[0];
+    expect(queued.map((j) => j.data.sourceId)).toEqual(['free-new', 'pro-recent']);
   });
 });

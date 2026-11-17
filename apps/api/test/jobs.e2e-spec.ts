@@ -153,6 +153,7 @@ describe('Jobs & discovery (e2e)', () => {
 
     it('"run now" queues due sources for the worker and skips recently-run ones', async () => {
       const user = await t.register();
+      await t.prisma.user.update({ where: { id: user.user.id }, data: { plan: 'PRO' } }); // on demand is Pro
       const due = await source(user, { name: 'Due' });
       await source(user, { name: 'Ran an hour ago', lastRunAt: new Date(Date.now() - 3600 * 1000) });
       await source(user, { name: 'Disabled', isEnabled: false });
@@ -168,6 +169,7 @@ describe('Jobs & discovery (e2e)', () => {
 
     it('"run now" joins a source already queued instead of queuing it twice', async () => {
       const user = await t.register();
+      await t.prisma.user.update({ where: { id: user.user.id }, data: { plan: 'PRO' } }); // on demand is Pro
       const s = await source(user);
       await t.http().post('/api/v1/discovery/run').set(user.auth).expect(202);
       await t.http().post('/api/v1/discovery/run').set(user.auth).expect(202);
@@ -178,6 +180,7 @@ describe('Jobs & discovery (e2e)', () => {
 
     it('"run now" also checks the Gmail alert label when Gmail is connected', async () => {
       const user = await t.register();
+      await t.prisma.user.update({ where: { id: user.user.id }, data: { plan: 'PRO' } }); // on demand is Pro
       await t.prisma.gmailConnection.create({
         data: {
           userId: user.user.id,

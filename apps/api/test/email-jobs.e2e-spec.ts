@@ -10,6 +10,7 @@ describe('Alert-email jobs (e2e)', () => {
   beforeAll(async () => {
     t = await createTestApp();
     me = await t.register();
+    await t.prisma.user.update({ where: { id: me.user.id }, data: { plan: 'PRO' } }); // "Run now" is Pro
     other = await t.register();
   });
   afterAll(async () => {

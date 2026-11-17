@@ -1,5 +1,5 @@
 import { DiscoveryJob } from '@shortlist/shared';
-import { DiscoveryScheduler, needsCatchUp } from './discovery.scheduler.js';
+import { DiscoveryScheduler, discoveryDue, needsCatchUp } from './discovery.scheduler.js';
 
 const NOW = new Date('2026-10-13T08:00:00Z');
 const hoursAgo = (h: number) => new Date(NOW.getTime() - h * 3600_000);
@@ -48,5 +48,20 @@ describe('DiscoveryScheduler', () => {
     const none = make(null, 0);
     await none.scheduler.onApplicationBootstrap();
     expect(none.queue.add).not.toHaveBeenCalled();
+  });
+});
+
+// Plans (docs/ai-scoring.md §12.5): Free accounts' sources run every other night.
+describe('discoveryDue', () => {
+  it('runs paid plans every night', () => {
+    expect(discoveryDue('STARTER', hoursAgo(2), NOW)).toBe(true);
+    expect(discoveryDue('PRO', hoursAgo(20), NOW)).toBe(true);
+  });
+
+  it('runs Free every other night, with slack for a late finish, and a new source at once', () => {
+    expect(discoveryDue('FREE', null, NOW)).toBe(true);
+    expect(discoveryDue('FREE', hoursAgo(24), NOW)).toBe(false);
+    expect(discoveryDue('FREE', hoursAgo(43), NOW)).toBe(true);
+    expect(discoveryDue('FREE', hoursAgo(48), NOW)).toBe(true);
   });
 });

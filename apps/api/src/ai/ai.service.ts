@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { aiSettingsFromRow, type AiSettingsInput, type UpdateAiSettingsInput } from '@shortlist/shared';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { planUsage } from './plan-usage.js';
 
 const DAY_MS = 24 * 3600 * 1000;
 
@@ -24,7 +25,7 @@ export class AiService {
 
   async usage(userId: string, now = new Date()) {
     const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-    const [settings, month, analysesLast24h, byStatus, day] = await Promise.all([
+    const [settings, month, analysesLast24h, byStatus, day, plan] = await Promise.all([
       this.settings(userId),
       this.prisma.aiUsage.aggregate({
         where: { userId, createdAt: { gte: monthStart } },
@@ -40,10 +41,13 @@ export class AiService {
         where: { userId, createdAt: { gte: new Date(now.getTime() - DAY_MS) } },
         _sum: { costUsd: true },
       }),
+      // The plan's units (docs/ai-scoring.md §12.5): what Profile shows next to the budget.
+      planUsage(this.prisma, userId, now),
     ]);
     const jobs = Object.fromEntries(byStatus.map((g) => [g.analysisStatus, g._count]));
     return {
       settings,
+      plan,
       monthToDateUsd: Number(month._sum.costUsd ?? 0),
       callsThisMonth: month._count,
       analysesLast24h,
