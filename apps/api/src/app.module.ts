@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AdminModule } from './admin/admin.module.js';
 import { AiModule } from './ai/ai.module.js';
+import { BillingModule } from './billing/billing.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { ConfigModule } from './config/config.module.js';
 import { DiscoveryModule } from './discovery/discovery.module.js';
@@ -42,6 +43,7 @@ import { WorkExperienceModule } from './work-experience/work-experience.module.j
     CareerImportModule,
     NotificationsModule,
     AdminModule,
+    BillingModule,
   ],
 })
 export class AppModule {}

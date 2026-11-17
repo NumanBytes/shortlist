@@ -235,7 +235,9 @@ definition; the worker enforces it, and the API refuses early and reports it.
   email" in this app. `GET /ai/usage` returns `plan` (units used and limits, period, reset);
   `GET /discovery/status` returns `canRunNow`. Profile → Settings → Plan shows it; Jobs shows
   "Checked automatically" instead of the button when the plan has no on-demand runs.
-- **Assigning:** until payments exist (roadmap phase 4), an admin assigns the plan (`PUT
+- **Buying** (2026-11-17): through Paddle (docs/billing.md §20); a paid subscription sets the plan
+  through its webhooks.
+- **Assigning:** an admin can also assign a plan (`PUT
   /admin/users/:id/plan`, Admin → Accounts), which also sets the account's dollar budget to the
   plan's; the budget can still be changed on its own. New accounts start on Free. **Accounts
   from before plans existed were moved to Pro** by the `plans` migration, so nothing they used

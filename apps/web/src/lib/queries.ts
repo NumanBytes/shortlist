@@ -22,10 +22,12 @@ import type {
   AddCatalogEntryInput,
   CatalogQuery,
   UpdateCatalogEntryInput,
+  PaidPlan,
 } from '@shortlist/shared';
 import { api } from './api';
 import type {
   ActiveTailoring,
+  BillingInfo,
   AdminCatalogEntry,
   AdminUser,
   CatalogEntry,
@@ -675,3 +677,38 @@ export const useUpdateCatalogEntry = () =>
 
 export const useRemoveCatalogEntry = () =>
   useAdminCatalogMutation((id: string) => api(`/admin/catalog/${id}`, { method: 'DELETE' }));
+
+// ── Payments (docs/billing.md §20) ───────────────────────────────────────────
+export const billingKeys = { info: ['billing'] as const };
+
+// `expecting`: the plan a payment's webhook should bring. Polls until the subscription shows it,
+// so the new plan appears by itself (docs/billing.md §20.4).
+export const useBilling = (expecting: 'STARTER' | 'PRO' | null = null) =>
+  useQuery({
+    queryKey: billingKeys.info,
+    queryFn: () => api<BillingInfo>('/billing'),
+    refetchInterval: (query) => {
+      const sub = query.state.data?.subscription;
+      const arrived = sub && sub.status !== 'CANCELED' && sub.plan === expecting;
+      return expecting && !arrived ? 3000 : false;
+    },
+  });
+
+export const useStartCheckout = () =>
+  useMutation({
+    mutationFn: (plan: PaidPlan) =>
+      api<{ checkoutId: string }>('/billing/checkout', { method: 'POST', body: { plan } }),
+  });
+
+export function useChangePlan() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (plan: PaidPlan) => api('/billing/change-plan', { method: 'POST', body: { plan } }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: billingKeys.info }),
+  });
+}
+
+export const useBillingPortal = () =>
+  useMutation({
+    mutationFn: () => api<{ overview: string; cancel: string | null }>('/billing/portal', { method: 'POST' }),
+  });

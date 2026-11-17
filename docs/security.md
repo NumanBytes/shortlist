@@ -103,6 +103,10 @@ Max-Age = 30 days`.
 - **Outbound requests** identify themselves honestly (`ShortlistBot/0.1 …`), time out
   after 20 seconds, and never impersonate a browser.
 - **Gmail access** is read-only and limited by the code to one label ([§10.3](email-alerts.md)).
+- **Payment webhooks (2026-11-17, [§20.3](billing.md)).** The one public route that changes data:
+  Paddle's signature (HMAC-SHA256 over the raw body, 5-second window, constant-time compare) is
+  its authentication, and event ids make it idempotent. The browser never names a price or a user —
+  checkouts are created on the server — and Paddle holds every card detail.
 - **Admin role (2026-11-15, [§2.1](../Agents.md)).** `User.role` is USER or ADMIN. Admin routes
   (`/admin/*`) sit behind `AdminGuard`, which reads the role **from the database on every
   request** rather than putting it in the access token: a token lives 15 minutes, and a demoted

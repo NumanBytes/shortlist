@@ -163,6 +163,7 @@ model User {
   gmail                GmailConnection?
   oauthStates          OAuthState[]
   emailMessages        EmailMessage[]
+  billingSubscription  BillingSubscription?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -838,4 +839,55 @@ enum EmailStatus {
   UNPARSED // read before parsing existed (2026-10-03); never produced now
   DEFERRED // needed the model, but the budget or API key wasn't there — retried next check
   FAILED // couldn't be read (invalid model output, a parser threw)
+}
+
+// ── Billing (docs/billing.md §20) ────────────────────────────────────────────
+// Paddle is the merchant of record; it holds cards, invoices and tax. We keep only what decides
+// the user's plan. Written by signed webhooks, never by a client request.
+
+enum BillingStatus {
+  ACTIVE
+  TRIALING
+  PAST_DUE
+  PAUSED
+  CANCELED
+}
+
+// One paid subscription per account (a new checkout is refused while one is live; plan changes
+// go through the provider). Replaced by a later subscription after a cancellation.
+model BillingSubscription {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  provider               String // "paddle"
+  providerSubscriptionId String @unique // sub_…
+  providerCustomerId     String // ctm_… — for the customer portal
+
+  plan                Plan
+  status              BillingStatus
+  currentPeriodEndsAt DateTime?
+  cancelsAt           DateTime? // a scheduled cancellation: the plan stays until then
+  // occurred_at of the newest event applied. Webhooks can arrive out of order; an older one is
+  // ignored instead of undoing a newer state.
+  lastEventAt         DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([providerCustomerId])
+}
+
+// Every webhook event received, by the provider's event id: the idempotency guard. The provider
+// retries, so the same event can arrive more than once; a second copy finds this row and does
+// nothing. No payload is kept (it holds the customer's email and address).
+model BillingEvent {
+  id         String   @id // the provider's event id (evt_…)
+  provider   String
+  type       String
+  occurredAt DateTime
+  outcome    String // applied | stale | duplicate-subscription | unknown-price | unmatched | ignored
+  receivedAt DateTime @default(now())
+
+  @@index([receivedAt])
 }

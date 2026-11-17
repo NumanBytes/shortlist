@@ -67,6 +67,12 @@ services:
       WEB_ORIGINS: https://${SITE_ADDRESS}
       WEB_APP_URL: https://${SITE_ADDRESS}
       GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-}
+      # Payments through Paddle — all five, or none (docs/billing.md §20).
+      PADDLE_API_KEY: ${PADDLE_API_KEY:-}
+      PADDLE_WEBHOOK_SECRET: ${PADDLE_WEBHOOK_SECRET:-}
+      PADDLE_CLIENT_TOKEN: ${PADDLE_CLIENT_TOKEN:-}
+      PADDLE_PRICE_STARTER: ${PADDLE_PRICE_STARTER:-}
+      PADDLE_PRICE_PRO: ${PADDLE_PRICE_PRO:-}
       # One proxy (Caddy) sits in front of the API: the client IP is one hop back in
       # X-Forwarded-For. Wrong here = one login rate limit for everyone (docs/security.md §8.1).
       TRUST_PROXY_HOPS: '1'
