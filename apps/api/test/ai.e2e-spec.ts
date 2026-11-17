@@ -186,7 +186,7 @@ describe('AI analysis API (e2e)', () => {
       await job(user, { analysisStatus: 'DEFERRED' });
       const res = await t.http().get('/api/v1/ai/usage').set(user.auth).expect(200);
       expect(res.body).toMatchObject({
-        settings: { maxAnalysesPerDay: 40, monthlyBudgetUsd: 4.5, resumeReuseMinOverlap: 0.85 },
+        settings: { maxAnalysesPerDay: 40, monthlyBudgetUsd: 1, resumeReuseMinOverlap: 0.85 },
         callsThisMonth: 2,
         analysesLast24h: 2,
         jobs: { deferred: 1, pending: 0, done: 0, failed: 0 },
@@ -194,15 +194,28 @@ describe('AI analysis API (e2e)', () => {
       expect(res.body.monthToDateUsd).toBeCloseTo(0.006);
     });
 
-    it('updates the budget settings, validating them', async () => {
+    it('updates the settings a user owns, validating them', async () => {
       const user = await t.register();
-      const res = await t.http().patch('/api/v1/ai/settings').set(user.auth).send({ monthlyBudgetUsd: 3 }).expect(200);
-      expect(res.body).toEqual({ maxAnalysesPerDay: 40, monthlyBudgetUsd: 3, resumeReuseMinOverlap: 0.85 });
+      const res = await t
+        .http()
+        .patch('/api/v1/ai/settings')
+        .set(user.auth)
+        .send({ maxAnalysesPerDay: 10 })
+        .expect(200);
+      expect(res.body).toEqual({ maxAnalysesPerDay: 10, monthlyBudgetUsd: 1, resumeReuseMinOverlap: 0.85 });
       const usage = await t.http().get('/api/v1/ai/usage').set(user.auth).expect(200);
-      expect(usage.body.settings.monthlyBudgetUsd).toBe(3);
-      await t.http().patch('/api/v1/ai/settings').set(user.auth).send({ monthlyBudgetUsd: -1 }).expect(400);
+      expect(usage.body.settings.maxAnalysesPerDay).toBe(10);
+      await t.http().patch('/api/v1/ai/settings').set(user.auth).send({ maxAnalysesPerDay: -1 }).expect(400);
       await t.http().patch('/api/v1/ai/settings').set(user.auth).send({}).expect(400);
       await t.http().patch('/api/v1/ai/settings').set(user.auth).send({ model: 'claude-fable-5-1' }).expect(400);
+    });
+
+    // The server's key pays for every call (Agents.md §2.1): only an admin sets the budget.
+    it('refuses to let a user raise their own budget', async () => {
+      const user = await t.register();
+      await t.http().patch('/api/v1/ai/settings').set(user.auth).send({ monthlyBudgetUsd: 100 }).expect(400);
+      const usage = await t.http().get('/api/v1/ai/usage').set(user.auth).expect(200);
+      expect(usage.body.settings.monthlyBudgetUsd).toBe(1);
     });
 
     it('requires authentication', async () => {

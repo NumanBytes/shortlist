@@ -17,10 +17,12 @@ import type {
   PrepareResumeInput,
   AddSourceInput,
   AddJobInput,
+  SetAiBudgetInput,
 } from '@shortlist/shared';
 import { api } from './api';
 import type {
   ActiveTailoring,
+  AdminUser,
   AiUsage,
   DiscoveryStatus,
   DiscoverySource,
@@ -572,3 +574,19 @@ export const useAuthOptions = () =>
     queryFn: () => api<{ emailEnabled: boolean }>('/auth/options'),
     staleTime: Infinity,
   });
+
+// ── Admin (hosted Shortlist, Agents.md §2.1) ─────────────────────────────────
+// The API answers 404 to anyone else, so these run only for an admin.
+export const adminKeys = { users: ['admin', 'users'] as const };
+
+export const useAdminUsers = (enabled: boolean) =>
+  useQuery({ queryKey: adminKeys.users, queryFn: () => api<AdminUser[]>('/admin/users'), enabled });
+
+export function useSetUserBudget() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id: string; body: SetAiBudgetInput }) =>
+      api(`/admin/users/${id}/ai-budget`, { method: 'PUT', body }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: adminKeys.users }),
+  });
+}

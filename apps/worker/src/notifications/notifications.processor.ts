@@ -4,6 +4,7 @@ import {
   NOTIFICATIONS_QUEUE,
   NotifyJob,
   digestMessage,
+  hourIn,
   type NotifySendData,
   type PushPayload,
 } from '@shortlist/shared';
@@ -19,9 +20,15 @@ import { PUSH_CLIENT, type PushClient } from './push-client.js';
 const TTL_SECONDS: Record<string, number> = { DIGEST: 12 * 3600, PROBLEM: 24 * 3600 };
 const DEFAULT_TTL = 6 * 3600;
 
-// The day in DISCOVERY_TZ, "2026-10-13": the digest's idempotency key.
+// The day on the user's clock, "2026-10-13": the digest's idempotency key.
 export const localDay = (date: Date, timeZone: string) =>
   new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
+
+// The hourly check sends at DIGEST_HOUR, or in the next hours if the worker was down then —
+// never later, so a restart in the evening doesn't push a "morning" digest at night.
+const DIGEST_CATCH_UP_HOURS = 2;
+export const digestDue = (localHour: number, digestHour: number) =>
+  localHour >= digestHour && localHour <= digestHour + DIGEST_CATCH_UP_HOURS;
 
 // Sends notifications (docs/notifications.md §19.3) and builds the morning digest. Sending is
 // outbound I/O to push services, so it lives in the worker, never on the API's event loop.
@@ -92,12 +99,17 @@ export class NotificationsProcessor extends WorkerHost {
   }
 
   // The morning summary of what the night found (docs/notifications.md §19.4), for every user with
-  // a device. Jobs found since the last digest (or the last day), still New.
+  // a device whose own clock says it's digest time. Jobs found since the last digest (or the
+  // last day), still New.
   async digest(now = new Date()) {
-    const users = await this.prisma.pushSubscription.findMany({ distinct: ['userId'], select: { userId: true } });
-    const day = localDay(now, this.env.DISCOVERY_TZ);
+    const users = await this.prisma.user.findMany({
+      where: { pushSubscriptions: { some: {} } },
+      select: { id: true, timeZone: true },
+    });
     let sent = 0;
-    for (const { userId } of users) {
+    for (const { id: userId, timeZone } of users) {
+      if (!digestDue(hourIn(now, timeZone), this.env.DIGEST_HOUR)) continue;
+      const day = localDay(now, timeZone);
       const last = await this.prisma.notification.findFirst({
         where: { userId, kind: 'DIGEST' },
         orderBy: { createdAt: 'desc' },

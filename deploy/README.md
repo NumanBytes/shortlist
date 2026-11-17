@@ -241,6 +241,18 @@ docker compose run --rm -w /app/packages/db -e SEED_USER_EMAIL=you@example.com m
   node --experimental-strip-types --no-warnings prisma/seed/seed-sources.ts
 ```
 
+### Making yourself an admin
+
+An admin sees every account's AI spend and sets each one's monthly budget (Profile →
+Settings → Accounts). Register in the app, then:
+
+```bash
+docker compose run --rm -w /app/packages/db migrate \
+  node --experimental-strip-types --no-warnings prisma/seed/set-role.ts you@example.com ADMIN
+```
+
+`USER` instead of `ADMIN` takes it away again; it applies at once.
+
 ## 8. Install it on your phone
 
 Open the address in Chrome (Android) → menu → **Install app**, or Safari (iPhone) →

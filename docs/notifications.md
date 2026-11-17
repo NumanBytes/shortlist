@@ -62,15 +62,17 @@ must not fail the job that produced it.
 
 | Kind | When | Where it's raised |
 |---|---|---|
-| **Morning digest** | 08:00 in `DISCOVERY_TZ` (`DIGEST_CRON`, a Redis job scheduler), after discovery (02:00) and scoring (03:00): "9 new jobs · 2 strong matches" and the top three. Only if there's something new; once a day per user. | `NotificationsProcessor.digest()` |
+| **Morning digest** | `DIGEST_HOUR` (default 08:00) **on each user's own clock** (`User.timeZone`, 2026-11-15): a Redis job scheduler fires hourly and sends to the users whose local hour has reached it, catching up for two more hours after an outage but never later. "9 new jobs · 2 strong matches" and the top three. Only if there's something new; once a day per user (key `digest:<the user's local date>`). | `NotificationsProcessor.digest()` |
 | **Strong match** | A job **from an alert email** scored at or above the user's threshold (default 80). Alerts arrive through the day, and early applications do better; board jobs arrive at night and go in the digest. | `AnalysisService` after scoring |
 | **Resume ready** | A tailored resume was stored (tailoring takes a minute or two). | `ResumeService` |
-| **Problem** | Gmail needs reconnecting; a source **failed 3 runs in a row** (a dead source otherwise looks exactly like "no new jobs"); the monthly AI budget was reached. Once a day (budget: once a month). | `EmailService`, `DiscoveryService`, `BudgetGuard` |
+| **Problem** | Gmail needs reconnecting; a source **failed 3 runs in a row** (a dead source otherwise looks exactly like "no new jobs"); the user's monthly AI budget, or the server-wide AI cap ([§12.3](ai-scoring.md)), was reached. Once a day (budgets: once a month). | `EmailService`, `DiscoveryService`, `BudgetGuard` |
 
 **Settings** (`NotificationSettings`, Profile → Notifications, saved as they change): each kind
 on/off, the strong-match threshold, and quiet hours (default 23:00–08:00) during which instant
 notifications are recorded but not pushed — the digest covers them; the digest and a
-requested resume aren't held.
+requested resume aren't held. Quiet hours are on the user's clock (`User.timeZone`, set from
+the browser at sign-up and editable on Profile → Settings → Time and paper); before
+2026-11-15 they used the server's `DISCOVERY_TZ`, which is wrong for anyone outside Lahore.
 
 ### 19.5 The phone side
 

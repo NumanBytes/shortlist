@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { PaperSize, TimeZone } from './common.schema.js';
 
 // Lowercased so "Numan@X.com" and "numan@x.com" can't become two accounts.
 const Email = z.string().trim().toLowerCase().email('Invalid email address');
@@ -15,6 +16,10 @@ export const RegisterSchema = z
     email: Email,
     password: NewPassword,
     name: z.string().trim().min(1, 'Name is required').max(100),
+    // Read from the browser at sign-up, so a new account's digest arrives in its morning and
+    // its resume prints on its paper. Both editable on Profile; the server defaults are UTC/A4.
+    timeZone: TimeZone.optional(),
+    paperSize: PaperSize.optional(),
   })
   .strict();
 

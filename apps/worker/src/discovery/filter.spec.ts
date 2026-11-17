@@ -1,4 +1,4 @@
-import { DEFAULT_DISCOVERY_PREFERENCES } from '@shortlist/shared';
+import { BUILDER_DISCOVERY_PREFERENCES } from '@shortlist/shared';
 import { compileFilter, termMatcher } from './filter.js';
 import type { Posting } from './types.js';
 
@@ -15,7 +15,7 @@ const posting = (over: Partial<Posting> = {}): Posting => ({
   ...over,
 });
 
-const filter = compileFilter(DEFAULT_DISCOVERY_PREFERENCES);
+const filter = compileFilter(BUILDER_DISCOVERY_PREFERENCES);
 const screen = (over: Partial<Posting>, enforceMaxAge = true) =>
   filter.screenListing(posting(over), { enforceMaxAge, now: NOW });
 
@@ -109,7 +109,7 @@ describe('stage A — listing screen', () => {
   });
 
   it('respects allowRemote = false', () => {
-    const noRemote = compileFilter({ ...DEFAULT_DISCOVERY_PREFERENCES, allowRemote: false });
+    const noRemote = compileFilter({ ...BUILDER_DISCOVERY_PREFERENCES, allowRemote: false });
     expect(
       noRemote.screenListing(posting({ workMode: 'REMOTE', location: 'Worldwide' }), { enforceMaxAge: true, now: NOW }),
     ).toMatchObject({ pass: false });

@@ -34,6 +34,30 @@ describe('Profile, education, and role projects (e2e)', () => {
       expect(got.body.githubUrl).toBe('https://github.com/someone');
     });
 
+    it('takes the time zone and paper size from sign-up, defaulting to UTC and A4', async () => {
+      expect(me.user).toMatchObject({ timeZone: 'UTC', paperSize: 'A4', role: 'USER' });
+      const ny = await t.register({ timeZone: 'America/New_York', paperSize: 'LETTER' });
+      expect(ny.user).toMatchObject({ timeZone: 'America/New_York', paperSize: 'LETTER' });
+      await t
+        .http()
+        .post('/api/v1/auth/register')
+        .send({ email: 'x@e2e.shortlist.test', password: 'long enough', name: 'X', timeZone: 'Mars/Olympus' })
+        .expect(400);
+    });
+
+    it('changes the time zone and paper size, and never the role', async () => {
+      const res = await t
+        .http()
+        .patch('/api/v1/profile')
+        .set(me.auth)
+        .send({ timeZone: 'Europe/Berlin', paperSize: 'LETTER' })
+        .expect(200);
+      expect(res.body).toMatchObject({ timeZone: 'Europe/Berlin', paperSize: 'LETTER' });
+      await t.http().patch('/api/v1/profile').set(me.auth).send({ timeZone: 'Nowhere/Here' }).expect(400);
+      await t.http().patch('/api/v1/profile').set(me.auth).send({ paperSize: 'LEGAL' }).expect(400);
+      await t.http().patch('/api/v1/profile').set(me.auth).send({ role: 'ADMIN' }).expect(400);
+    });
+
     it('clears a field with null and validates the rest', async () => {
       await t.http().patch('/api/v1/profile').set(me.auth).send({ phone: null }).expect(200);
       await t.http().patch('/api/v1/profile').set(me.auth).send({ phone: 'call me maybe' }).expect(400);

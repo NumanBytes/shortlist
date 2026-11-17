@@ -2,7 +2,7 @@ import type { PushPayload } from '@shortlist/shared';
 import { BudgetGuard } from '../analysis/budget-guard.js';
 import type { Env } from '../config/env.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { NotificationsProcessor } from './notifications.processor.js';
+import { NotificationsProcessor, digestDue } from './notifications.processor.js';
 import { Notifier } from './notifier.js';
 import type { PushClient } from './push-client.js';
 
@@ -10,7 +10,7 @@ process.loadEnvFile(); // DATABASE_URL from apps/worker/.env
 
 const prisma = new PrismaService();
 const createdUsers: string[] = [];
-const env = { DISCOVERY_TZ: 'Asia/Karachi' } as Env;
+const env = { DIGEST_HOUR: 11 } as Env; // 12:00 in Lahore is within its catch-up window
 const NOON_PKT = new Date('2026-10-13T07:00:00Z'); // 12:00 in Lahore
 const MIDNIGHT_PKT = new Date('2026-10-13T19:30:00Z'); // 00:30 in Lahore — quiet hours
 
@@ -31,13 +31,18 @@ class FakePush implements PushClient {
   }
 }
 
-async function setup() {
+async function setup(timeZone = 'Asia/Karachi') {
   const user = await prisma.user.create({
-    data: { email: `notify-${crypto.randomUUID()}@e2e.shortlist.test`, name: 'Notify Test', passwordHash: 'x' },
+    data: {
+      email: `notify-${crypto.randomUUID()}@e2e.shortlist.test`,
+      name: 'Notify Test',
+      passwordHash: 'x',
+      timeZone,
+    },
   });
   createdUsers.push(user.id);
   const queue = new FakeQueue();
-  const notifier = new Notifier(prisma, queue as never, env);
+  const notifier = new Notifier(prisma, queue as never);
   const push = new FakePush();
   const processor = new NotificationsProcessor(prisma, notifier, push, env);
   const device = (n: number) =>
@@ -130,6 +135,20 @@ describe('Notifier', () => {
     expect((await guard.checkMonthly(user.id)).allowed).toBe(false);
     expect(await prisma.notification.count({ where: { userId: user.id, kind: 'PROBLEM' } })).toBe(1);
   });
+
+  // One Anthropic key pays for every account (Agents.md §2.1).
+  it('stops every user once the server-wide cap is reached, without naming the spend', async () => {
+    const { user, notifier } = await setup();
+    const capped = new BudgetGuard(prisma, notifier, { AI_SERVER_MONTHLY_BUDGET_USD: 0 });
+    const decision = await capped.checkMonthly(user.id);
+    expect(decision).toEqual({ allowed: false, reason: "Shortlist's AI allowance for this month is used up" });
+    const problem = await prisma.notification.findFirstOrThrow({ where: { userId: user.id, kind: 'PROBLEM' } });
+    expect(problem.key).toMatch(/^problem:server-budget:/);
+    expect(problem.body).not.toMatch(/\$/);
+
+    const roomy = new BudgetGuard(prisma, notifier, { AI_SERVER_MONTHLY_BUDGET_USD: 1_000_000 });
+    expect(await roomy.checkMonthly(user.id)).toEqual({ allowed: true });
+  });
 });
 
 describe('NotificationsProcessor.send', () => {
@@ -191,5 +210,34 @@ describe('NotificationsProcessor.digest', () => {
       body: 'React Developer @ Acme (84)',
     });
     expect(queue.added.filter((a) => a.name === 'notify-send')).toHaveLength(1);
+  });
+
+  // Each user's own morning (Agents.md §2.1): noon in Lahore is 03:00 in New York.
+  it("waits for the user's own digest hour", async () => {
+    const { user, processor, device } = await setup('America/New_York');
+    await device(1);
+    await prisma.job.create({
+      data: { userId: user.id, title: 'React Developer', company: 'Acme', rawJD: 'x', dedupeHash: crypto.randomUUID() },
+    });
+    await processor.digest(NOON_PKT);
+    expect(await prisma.notification.count({ where: { userId: user.id, kind: 'DIGEST' } })).toBe(0);
+    await processor.digest(new Date('2026-10-13T15:30:00Z')); // 11:30 in New York
+    expect(await prisma.notification.findFirst({ where: { userId: user.id, kind: 'DIGEST' } })).toMatchObject({
+      key: 'digest:2026-10-13',
+    });
+  });
+
+  it('keeps quiet hours on the user’s clock', async () => {
+    const lahore = await setup('Asia/Karachi');
+    const ny = await setup('America/New_York');
+    // 00:30 in Lahore (quiet), 15:30 the day before in New York (not).
+    expect(await lahore.notifier.notify(lahore.user.id, note('problem:q1'), MIDNIGHT_PKT)).toBe('recorded');
+    expect(await ny.notifier.notify(ny.user.id, note('problem:q2'), MIDNIGHT_PKT)).toBe('queued');
+  });
+});
+
+describe('digestDue', () => {
+  it('is due from the digest hour through the catch-up window, never in the evening', () => {
+    expect([7, 8, 9, 10, 11, 20].map((h) => digestDue(h, 8))).toEqual([false, true, true, true, false, false]);
   });
 });

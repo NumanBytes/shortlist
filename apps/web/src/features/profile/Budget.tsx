@@ -4,10 +4,10 @@ import { SaveStatus } from '../../components/SaveStatus';
 import { useAiUsage, useUpdateAiSettings } from '../../lib/queries';
 import { Group } from './ListGroup';
 
-// The monthly AI cap (a stepper; the middle is editable), the daily limit on automatic
+// The monthly AI allowance (read-only: an admin sets it), the daily limit on automatic
 // scoring, and the resume-reuse threshold (docs/ai-scoring.md §12.3, docs/resume.md §13.2).
-// All save on change and say so; a run of stepper taps is one save, sent once they pause
-// (UI audit G13).
+// The two settings save on change and say so; a run of stepper taps is one save, sent once
+// they pause (UI audit G13).
 const STEP_SAVE_MS = 600;
 
 // Taps not yet sent, and the debounced save behind them.
@@ -30,61 +30,34 @@ function useStepper(commit: (next: number, done: () => void) => void) {
 export function Budget() {
   const usage = useAiUsage();
   const update = useUpdateAiSettings();
-  const [draft, setDraft] = useState<string | null>(null);
   const [overlap, setOverlap] = useState<number | null>(null);
-  const capStepper = useStepper((v, done) => update.mutate({ monthlyBudgetUsd: v }, { onSettled: done }));
   const dailyStepper = useStepper((v, done) => update.mutate({ maxAnalysesPerDay: v }, { onSettled: done }));
-  const stepped = capStepper.pending;
   if (!usage.data) return null;
   const u = usage.data;
   const cap = u.settings.monthlyBudgetUsd;
-  const saveCap = (value: number) => {
-    if (Number.isFinite(value) && value >= 0 && value <= 1000 && value !== cap)
-      update.mutate({ monthlyBudgetUsd: value });
-    setDraft(null);
-  };
-  const step = (delta: number) => capStepper.step(cap, delta, 0, 1000);
   const daily = dailyStepper.pending ?? u.settings.maxAnalysesPerDay;
   const pct = Math.round((overlap ?? u.settings.resumeReuseMinOverlap) * 100);
   return (
     <Group label="Budget">
-      <div className="flex items-center gap-3 px-4 py-3">
-        <div className="min-w-0 flex-1">
-          <p className="text-body font-semibold text-fg">Monthly AI cap</p>
-          <p className="text-footnote text-muted tabular-nums">${u.monthToDateUsd.toFixed(2)} used this month</p>
+      {/* The monthly allowance is read-only: Shortlist pays for the AI, so only an admin
+          changes it (Agents.md §2.1). Finding and tracking jobs never stop when it runs out. */}
+      <div className="space-y-2 px-4 py-3">
+        <div className="flex items-baseline justify-between gap-3">
+          <p className="text-body font-semibold text-fg">Monthly AI allowance</p>
+          <p className="text-body text-muted tabular-nums">
+            ${u.monthToDateUsd.toFixed(2)} of ${cap.toFixed(2)}
+          </p>
         </div>
-        <div className="flex h-11 items-center overflow-hidden rounded-md border border-input-border">
-          <button
-            type="button"
-            aria-label="Lower the cap by $1"
-            onClick={() => step(-1)}
-            className="grid h-full w-11 place-items-center text-fg"
-          >
-            <Minus className="size-4" />
-          </button>
-          <label className="sr-only" htmlFor="budget">
-            Monthly budget in dollars
-          </label>
-          <input
-            id="budget"
-            inputMode="decimal"
-            value={draft ?? `$${stepped ?? cap}`}
-            onFocus={() => setDraft(String(cap))}
-            onChange={(e) => setDraft(e.target.value)}
-            // Number('') is 0 — an emptied field must not silently set a $0 budget.
-            onBlur={() => saveCap(draft === null || draft.trim() === '' ? Number.NaN : Number(draft.replace('$', '')))}
-            onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
-            className="h-full w-16 border-x border-input-border bg-transparent text-center text-control font-semibold text-fg tabular-nums focus:outline-none"
-          />
-          <button
-            type="button"
-            aria-label="Raise the cap by $1"
-            onClick={() => step(1)}
-            className="grid h-full w-11 place-items-center text-fg"
-          >
-            <Plus className="size-4" />
-          </button>
-        </div>
+        <progress
+          aria-label="AI allowance used this month"
+          max={Math.max(cap, 0.01)}
+          value={Math.min(u.monthToDateUsd, cap)}
+          className="block h-1.5 w-full appearance-none overflow-hidden rounded-full bg-surface-2 [&::-moz-progress-bar]:rounded-full [&::-moz-progress-bar]:bg-accent [&::-webkit-progress-bar]:bg-surface-2 [&::-webkit-progress-value]:rounded-full [&::-webkit-progress-value]:bg-accent"
+        />
+        <p className="text-caption text-muted">
+          Scoring jobs and tailoring resumes use it. When it runs out they wait until the 1st; finding and tracking jobs
+          carry on.
+        </p>
       </div>
       {/* The daily limit paces automatic scoring only: a job you retry, paste a description
           for or add yourself is scored at once, within the monthly cap. */}
@@ -148,11 +121,7 @@ export function Budget() {
       {update.isError ? (
         <p className="px-4 pb-3 text-caption text-danger-fg">{update.error.message}</p>
       ) : (
-        <SaveStatus
-          {...update}
-          isPending={update.isPending || stepped !== null || dailyStepper.pending !== null}
-          className="px-4 pb-3"
-        />
+        <SaveStatus {...update} isPending={update.isPending || dailyStepper.pending !== null} className="px-4 pb-3" />
       )}
     </Group>
   );

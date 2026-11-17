@@ -1,4 +1,5 @@
 import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router';
+import { AdminPage } from './features/admin/AdminPage';
 import { ForgotPasswordPage, ResetPasswordPage, VerifyEmailGate, VerifyEmailPage } from './features/auth/AccountEmail';
 import { AuthForm } from './features/auth/AuthForm';
 import { useAuth } from './features/auth/AuthProvider';
@@ -58,6 +59,7 @@ export function App() {
             <Route path="evidence" element={<ReviewPage />} />
             <Route path="sources" element={<SourcesPage />} />
             <Route path="profile" element={<ProfilePage />} />
+            <Route path="admin" element={<AdminPage />} />
             <Route path="welcome" element={<WelcomePage />} />
           </Route>
         </Route>

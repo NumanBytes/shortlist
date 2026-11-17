@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { DEFAULT_DISCOVERY_PREFERENCES, REMOTE_BOARDS, type DiscoveryPreferencesInput } from '@shortlist/shared';
+import { REMOTE_BOARDS, STARTER_DISCOVERY_PREFERENCES, type DiscoveryPreferencesInput } from '@shortlist/shared';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 // What a user searches for, and the setup a new account needs (docs/discovery.md §9.13).
@@ -10,7 +10,7 @@ export class SearchSettingsService {
   // The rule filter's settings; `isDefault` while the user has never saved their own.
   async preferences(userId: string): Promise<{ preferences: DiscoveryPreferencesInput; isDefault: boolean }> {
     const row = await this.prisma.discoveryPreferences.findUnique({ where: { userId } });
-    if (!row) return { preferences: DEFAULT_DISCOVERY_PREFERENCES, isDefault: true };
+    if (!row) return { preferences: STARTER_DISCOVERY_PREFERENCES, isDefault: true };
     const { id: _id, userId: _u, updatedAt: _t, ...preferences } = row;
     return { preferences, isDefault: false };
   }

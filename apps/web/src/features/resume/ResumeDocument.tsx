@@ -16,6 +16,14 @@ const monthYear = (iso: string) =>
   new Date(iso).toLocaleString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
 const bare = (url: string) => url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
 
+// The user's paper (User.paperSize, Agents.md §2.1). Same 1in margins and type on both; A4 is
+// a little narrower and taller than Letter. `px` is the page width at 96 dpi, for scaling
+// the preview; `css` feeds the print stylesheet's @page size.
+export const PAGE_SIZES = {
+  LETTER: { px: 816, css: 'letter', maxWidth: 'max-w-[8.5in]' },
+  A4: { px: 794, css: 'A4', maxWidth: 'max-w-[210mm]' },
+} as const;
+
 const LINE = 'mt-[15.5pt]'; // one blank line, as between the CV's sections and projects
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -109,9 +117,14 @@ export function ResumeDocument({
 }) {
   const contact = [profile.email, profile.phone, profile.location].filter((x): x is string => !!x);
   const links = [profile.linkedinUrl, profile.githubUrl].filter((x): x is string => !!x);
+  const page = PAGE_SIZES[profile.paperSize] ?? PAGE_SIZES.A4;
 
   return (
-    <div className="relative mx-auto w-full max-w-[8.5in] bg-paper px-[1in] py-[1in] font-[Arial,Helvetica,sans-serif] text-[11pt] leading-[15.5pt] text-ink shadow-sm ring-1 ring-border print:max-w-none print:p-0 print:shadow-none print:ring-0">
+    <div
+      className={`relative mx-auto w-full ${page.maxWidth} bg-paper px-[1in] py-[1in] font-[Arial,Helvetica,sans-serif] text-[11pt] leading-[15.5pt] text-ink shadow-sm ring-1 ring-border print:max-w-none print:p-0 print:shadow-none print:ring-0`}
+    >
+      {/* Overrides the stylesheet's default page (index.css) with the user's paper. */}
+      <style>{`@page { size: ${page.css}; }`}</style>
       {draft && (
         <>
           <p className="mb-3 hidden border border-ink py-1 text-center text-xs font-bold tracking-widest print:block">

@@ -297,7 +297,13 @@ and had no sources unless the seed scripts were run. Now:
   the device (`shortlist:onboarding-done`), so the gate never sends the user back.
 - **Search settings** (`GET`/`PUT /discovery/preferences`) — the rule filter's settings (§9.6)
   as a form, also on Profile → "What I'm looking for". Saved whole, not patched: it's one form,
-  and a partial update could leave a filter the user never saw. A new user starts from
+  and a partial update could leave a filter the user never saw. **A user with no saved settings
+  is filtered with `STARTER_DISCOVERY_PREFERENCES`** (2026-11-15) — by the worker and in what
+  the API shows. Before, the fallback was the builder's own Lahore/frontend filter, so a user who
+  skipped onboarding was quietly searched for someone else's jobs. That filter is now
+  `BUILDER_DISCOVERY_PREFERENCES`, kept only as a realistic test example; the
+  `hosted_groundwork` migration copied it into the rows of accounts that were running discovery
+  on it, so nothing changed for them. A new user starts from
   `STARTER_DISCOVERY_PREFERENCES` (no city, stack or titles — only near-universal exclusions and
   the "worldwide" remote terms), not from `DEFAULT_DISCOVERY_PREFERENCES`, which stays the
   fallback for accounts that never saved their own. `roleTitleTerms` is rebuilt on each save

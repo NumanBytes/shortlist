@@ -1,5 +1,5 @@
 import { InjectQueue } from '@nestjs/bullmq';
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import {
   DEFAULT_NOTIFICATION_SETTINGS,
   NOTIFICATIONS_QUEUE,
@@ -12,8 +12,6 @@ import {
 } from '@shortlist/shared';
 import type { NotificationKind } from '@shortlist/db';
 import type { Queue } from 'bullmq';
-import { ENV } from '../config/config.module.js';
-import type { Env } from '../config/env.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 export interface NewNotification {
@@ -46,7 +44,6 @@ export class Notifier {
   constructor(
     private readonly prisma: PrismaService,
     @InjectQueue(NOTIFICATIONS_QUEUE) private readonly queue: Queue,
-    @Inject(ENV) private readonly env: Env,
   ) {}
 
   async settings(userId: string): Promise<NotificationSettingsInput> {
@@ -77,11 +74,11 @@ export class Notifier {
       const s = await this.settings(userId);
       const flag = FLAG[n.kind];
       if (flag && !s[flag]) return 'recorded';
-      if (
-        !IGNORES_QUIET_HOURS.has(n.kind) &&
-        inQuietHours(hourIn(now, this.env.DISCOVERY_TZ), s.quietStart, s.quietEnd)
-      )
-        return 'recorded';
+      if (!IGNORES_QUIET_HOURS.has(n.kind)) {
+        // Quiet hours are on the user's own clock (User.timeZone), not the server's.
+        const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { timeZone: true } });
+        if (inQuietHours(hourIn(now, user?.timeZone ?? 'UTC'), s.quietStart, s.quietEnd)) return 'recorded';
+      }
 
       await this.queue.add(
         NotifyJob.Send,

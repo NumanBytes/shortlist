@@ -8,5 +8,24 @@ export const PastDate = z.coerce.date().refine((d) => d.getTime() <= Date.now(),
 // an XSS hole the moment the web app renders one as a link.
 export const WebUrl = z.url({ protocol: /^https?$/, message: 'Must be an http(s) URL' });
 
+// An IANA time zone the runtime knows ("Asia/Karachi", "America/New_York", "UTC"): the user's
+// clock for the morning digest and quiet hours (docs/notifications.md §19.4).
+export const TimeZone = z
+  .string()
+  .trim()
+  .max(64)
+  .refine((tz) => {
+    try {
+      new Intl.DateTimeFormat('en-US', { timeZone: tz });
+      return true;
+    } catch {
+      return false;
+    }
+  }, 'Unknown time zone');
+
+// The printed resume's page (docs/resume.md §13.1).
+export const PaperSize = z.enum(['LETTER', 'A4']);
+export type PaperSizeValue = z.infer<typeof PaperSize>;
+
 export const nonEmptyUpdate = (data: object) => Object.keys(data).length > 0;
 export const NON_EMPTY_UPDATE_MESSAGE = 'Provide at least one field to update';

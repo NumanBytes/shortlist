@@ -48,6 +48,19 @@ Discovery Milestones 2 and 3 — built 2026-10-13 (`feat/discovery-milestone-2`,
 separate branch (daily digest, instant strong-match and resume-ready pushes, broken-source alerts —
 designed with the user 2026-10-12).
 
+**Hosted for many users (decided 2026-11-15, [§2.1](../Agents.md)), in phases:**
+- ~~Phase 1, groundwork~~ — built 2026-11-15 (`feat/hosted-groundwork`): new users get the starter
+  filter, an admin role and Accounts page, admin-only AI budgets ($1 default) with a server-wide
+  cap, per-user time zone (digest and quiet hours) and paper size (A4/Letter).
+- Phase 2: a shared source catalog, curated by an admin, replacing per-user seeding by CLI.
+- Phase 3: plans and usage limits in product units (Free / Starter $5 / Pro $20), before any
+  payment provider; the Batch API and prompt caching for nightly scoring, to keep the $5 plan
+  above cost.
+- Phase 4: payments through a merchant of record (check it pays out to Pakistan first).
+- Phase 5: job alerts by email forwarding (needs a domain and an inbound-mail service).
+- Phase 6: the application kit ([§13.5](resume.md)) — the biggest gap against Job Radar.
+- Before a public launch: privacy policy, terms, account deletion and data export.
+
 1. **User:** review the 44 unverified items from the CV reconciliation ([§7.5](career-data.md)) in the
    Evidence screen — fix the placeholder ones with Edit before verifying. Everything AI
    reads only verified evidence.
