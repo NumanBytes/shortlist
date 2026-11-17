@@ -18,6 +18,7 @@
     "capture:emails": "node dist/cli/capture-emails.js",
     "scrub:email": "node dist/cli/scrub-email.js",
     "preview:resume": "node dist/cli/preview-resume.js",
+    "compare:analysis": "node dist/cli/compare-analysis.js",
     "vapid:keys": "node dist/cli/vapid-keys.js"
   },
   "dependencies": {

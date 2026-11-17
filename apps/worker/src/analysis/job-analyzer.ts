@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { AI_MODELS, JOB_ANALYSIS_JSON_SCHEMA } from '@shortlist/shared';
+import { AI_EFFORT, AI_MODELS, JOB_ANALYSIS_JSON_SCHEMA, type AiEffort } from '@shortlist/shared';
 
 export interface AnalyzerUsage {
   inputTokens: number;
@@ -32,7 +32,12 @@ export class OutOfCreditError extends Error {}
 export class AnthropicJobAnalyzer implements JobAnalyzer {
   private readonly client: Anthropic | null;
 
-  constructor(apiKey: string | undefined) {
+  // `model`/`effort` default to the configured ones; compare:analysis passes others to measure
+  // a model change on real jobs before making it (docs/ai-scoring.md §12.6).
+  constructor(
+    apiKey: string | undefined,
+    private readonly options: { model?: string; effort?: AiEffort | null } = {},
+  ) {
     // The SDK retries 429 / 5xx / connection errors twice on its own; our queue retries
     // on top of that with longer backoff.
     this.client = apiKey ? new Anthropic({ apiKey, maxRetries: 2, timeout: 60_000 }) : null;
@@ -44,8 +49,10 @@ export class AnthropicJobAnalyzer implements JobAnalyzer {
 
   async analyze({ system, user }: { system: string; user: string }): Promise<AnalyzerResult> {
     return structuredCall(this.client, {
-      model: AI_MODELS.analyzeJob,
-      maxTokens: 4096,
+      model: this.options.model ?? AI_MODELS.analyzeJob,
+      effort: this.options.effort === undefined ? AI_EFFORT.analyzeJob : this.options.effort,
+      // Room for Haiku 5.5's thinking and its ~30% larger token counts (docs/ai-scoring.md §12.6).
+      maxTokens: 6000,
       system,
       user,
       schema: JOB_ANALYSIS_JSON_SCHEMA,
@@ -59,6 +66,8 @@ export async function structuredCall(
   client: Anthropic | null,
   opts: {
     model: string;
+    // Models with effort levels only (docs/ai-scoring.md §12.6); null/undefined = leave it out.
+    effort?: AiEffort | null;
     maxTokens: number;
     system: string;
     user: string;
@@ -76,7 +85,10 @@ export async function structuredCall(
         messages: [{ role: 'user', content: opts.user }],
         // Structured output: the response is guaranteed to match this schema (enums
         // included). We still validate it with Zod before storing anything.
-        output_config: { format: { type: 'json_schema', schema: opts.schema } },
+        output_config: {
+          format: { type: 'json_schema', schema: opts.schema },
+          ...(opts.effort ? { effort: opts.effort } : {}),
+        },
       },
       opts.timeoutMs ? { timeout: opts.timeoutMs } : undefined,
     );
