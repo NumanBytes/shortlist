@@ -1,9 +1,9 @@
-import { STARTER_DISCOVERY_PREFERENCES } from '@shortlist/shared';
-import { ChevronLeft, Globe, Mail } from 'lucide-react';
+import { STARTER_DISCOVERY_PREFERENCES, regionMatches } from '@shortlist/shared';
+import { Building2, ChevronLeft, Globe, Mail } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { Button, Card, Skeleton, buttonStyles } from '../../components/ui';
 import { PushLink } from '../../components/PushLink';
-import { useAddRemoteBoards, useLatestImport, usePreferences } from '../../lib/queries';
+import { useAddRemoteBoards, useCatalog, useFollowPlaces, useLatestImport, usePreferences } from '../../lib/queries';
 import { ResumeImport } from '../profile/ResumeImport';
 import { SearchSettingsForm } from '../profile/SearchSettingsForm';
 
@@ -94,10 +94,47 @@ function SearchStep({ onDone }: { onDone: () => void }) {
   return <SearchSettingsForm initial={initial} onDone={onDone} submitLabel="Save and continue" />;
 }
 
+// Companies in the shared catalog (docs/discovery.md §9.16) that hire where the user said they
+// can work on site — followed in one tap. Hidden when they named no places or none match.
+function NearbyCompanies() {
+  const prefs = usePreferences();
+  const catalog = useCatalog({});
+  const follow = useFollowPlaces();
+  const places = prefs.data && !prefs.data.isDefault ? prefs.data.preferences.onsiteLocations : [];
+  const matches = (catalog.data ?? []).filter((e) => e.type !== 'AGGREGATOR_API' && regionMatches(e.regions, places));
+  if (places.length === 0 || matches.length === 0) return null;
+  const done = follow.isSuccess;
+  return (
+    <Card className="space-y-2 p-4">
+      <p className="flex items-center gap-2 font-semibold text-fg">
+        <Building2 className="size-4" aria-hidden="true" /> Companies near you
+      </p>
+      <p className="text-footnote text-muted">
+        {matches.length} {matches.length === 1 ? 'company hires' : 'companies hire'} where you work on site:{' '}
+        {matches
+          .slice(0, 4)
+          .map((e) => e.name)
+          .join(', ')}
+        {matches.length > 4 ? ' and more' : ''}. Pick others any time on Sources.
+      </p>
+      <Button
+        className="w-full"
+        variant={done ? 'secondary' : 'tinted'}
+        disabled={follow.isPending || done}
+        onClick={() => follow.mutate(places)}
+      >
+        {done ? 'Following them' : `Follow ${matches.length} ${matches.length === 1 ? 'company' : 'companies'}`}
+      </Button>
+      {follow.isError && <p className="text-caption text-danger-fg">{follow.error.message}</p>}
+    </Card>
+  );
+}
+
 function SourcesStep({ onDone }: { onDone: () => void }) {
   const boards = useAddRemoteBoards();
   return (
     <div className="space-y-3">
+      <NearbyCompanies />
       <Card className="space-y-2 p-4">
         <p className="flex items-center gap-2 font-semibold text-fg">
           <Globe className="size-4" aria-hidden="true" /> Remote job boards

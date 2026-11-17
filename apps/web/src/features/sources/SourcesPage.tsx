@@ -1,10 +1,10 @@
 import { AddSourceSchema } from '@shortlist/shared';
-import { ChevronDown, Pencil, Plus, RotateCw } from 'lucide-react';
+import { ChevronDown, Pencil, Plus, RotateCw, Search } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { PageHeader } from '../../layout/AppShell';
+import { CatalogBrowser } from './CatalogBrowser';
 import { GmailCard } from './GmailCard';
-import { AdminCode, AdminNote } from '../../components/AdminNote';
 import { useToast } from '../../components/Toast';
 import { Badge, Button, Card, IconButton, SectionLabel, Sheet, Skeleton, Switch, TextField } from '../../components/ui';
 import { providerLabel, timeAgo } from '../../lib/format';
@@ -303,6 +303,7 @@ export function SourcesPage() {
   const sources = useSources();
   const [showPlanned, setShowPlanned] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [browsing, setBrowsing] = useState(false);
   const active = (sources.data ?? []).filter((s) => s.supported);
   const planned = (sources.data ?? []).filter((s) => !s.supported);
   const attention = active.filter(needsAttention);
@@ -319,13 +320,10 @@ export function SourcesPage() {
       {sources.isPending && <Skeleton className="h-64 w-full rounded-lg" />}
       {sources.isError && <p className="text-danger-fg">Couldn't load sources: {sources.error.message}</p>}
       {sources.isSuccess && sources.data.length === 0 && (
-        <div className="text-footnote text-muted">
-          <p>No sources yet. Add a company's jobs page, or connect Gmail below to read your job alerts.</p>
-          <AdminNote>
-            <p>Load the starter list of job boards:</p>
-            <AdminCode>pnpm --filter @shortlist/db db:seed:sources</AdminCode>
-          </AdminNote>
-        </div>
+        <p className="text-footnote text-muted">
+          No sources yet. Browse companies and job boards to follow, add a company's jobs page, or connect Gmail below
+          to read your job alerts.
+        </p>
       )}
 
       {attention.length > 0 && (
@@ -366,6 +364,13 @@ export function SourcesPage() {
           ),
       )}
 
+      {/* The shared catalog first (docs/discovery.md §9.16): an admin keeps its addresses working. */}
+      <Button variant="tinted" className="w-full" onClick={() => setBrowsing(true)}>
+        <Search className="size-4" /> Browse companies and job boards
+      </Button>
+      <Sheet open={browsing} onClose={() => setBrowsing(false)} title="Browse sources">
+        {browsing && <CatalogBrowser />}
+      </Sheet>
       <Button variant="secondary" className="w-full" onClick={() => setAdding(true)}>
         <Plus className="size-4" /> Add a company's jobs page
       </Button>

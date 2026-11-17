@@ -18,8 +18,8 @@ export function Account() {
             <Users className="size-[18px]" />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-body font-semibold text-fg">Accounts</span>
-            <span className="block truncate text-footnote text-muted">Everyone’s AI spend and budgets</span>
+            <span className="block text-body font-semibold text-fg">Admin</span>
+            <span className="block truncate text-footnote text-muted">AI budgets and the source catalog</span>
           </span>
           <ChevronRight className="size-4 text-muted" />
         </Link>

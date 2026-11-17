@@ -1,11 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import { REMOTE_BOARDS, STARTER_DISCOVERY_PREFERENCES, type DiscoveryPreferencesInput } from '@shortlist/shared';
+import { STARTER_DISCOVERY_PREFERENCES, type DiscoveryPreferencesInput } from '@shortlist/shared';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { CatalogService } from './catalog.service.js';
 
 // What a user searches for, and the setup a new account needs (docs/discovery.md §9.13).
 @Injectable()
 export class SearchSettingsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly catalog: CatalogService,
+  ) {}
 
   // The rule filter's settings; `isDefault` while the user has never saved their own.
   async preferences(userId: string): Promise<{ preferences: DiscoveryPreferencesInput; isDefault: boolean }> {
@@ -24,20 +28,10 @@ export class SearchSettingsService {
     return this.preferences(userId);
   }
 
-  // Follows the remote-job aggregators (REMOTE_BOARDS). Idempotent: boards already there —
-  // even ones the user switched off — are left alone.
-  async addRemoteBoards(userId: string) {
-    const { count } = await this.prisma.jobSource.createMany({
-      data: REMOTE_BOARDS.map((b) => ({
-        userId,
-        key: b.key,
-        name: b.name,
-        type: 'AGGREGATOR_API' as const,
-        config: b.config,
-      })),
-      skipDuplicates: true,
-    });
-    return { added: count };
+  // Follows the remote-job boards listed in the shared catalog (docs/discovery.md §9.16).
+  // Idempotent: boards already there — even ones the user switched off — are left on or off.
+  addRemoteBoards(userId: string) {
+    return this.catalog.followRemoteBoards(userId);
   }
 
   // Whether a new account still needs setting up: no search settings saved, no career data

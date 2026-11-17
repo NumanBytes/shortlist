@@ -305,6 +305,12 @@ model JobSource {
   type   JobSourceType
   config Json // validated by JobSourceConfigSchema in @shortlist/shared
 
+  // Followed from the shared catalog (docs/discovery.md §9.16). While linked, the catalog
+  // decides the name and address: an admin's fix reaches every follower. Null = the user's
+  // own source (added by link, or detached by editing its address).
+  catalogEntryId String?
+  catalogEntry   SourceCatalogEntry? @relation(fields: [catalogEntryId], references: [id], onDelete: SetNull)
+
   isEnabled     Boolean             @default(true)
   lastRunAt     DateTime?
   lastRunStatus DiscoveryRunStatus?
@@ -318,6 +324,29 @@ model JobSource {
 
   @@unique([userId, key])
   @@index([userId])
+  @@index([catalogEntryId])
+}
+
+// The shared, admin-curated list of job sources every user can follow (hosted Shortlist,
+// Agents.md §2.1; docs/discovery.md §9.16). Replaces seeding each account from the CLI.
+// A follower gets its own JobSource row linked here, so discovery, runs and health stay
+// per user and the worker doesn't change.
+model SourceCatalogEntry {
+  id       String        @id @default(uuid())
+  key      String        @unique // same scheme as JobSource.key, e.g. "greenhouse:gomotive"
+  name     String
+  type     JobSourceType
+  config   Json // ImplementedSourceConfigSchema: only sources the worker can run are listed
+  // Where it hires, lowercased ("lahore", "pakistan"; "remote" for remote boards): what
+  // browsing filters on and what onboarding matches against the user's places.
+  regions  String[]
+  // Hidden from browsing (a board that broke, a duplicate). Followers keep their copy.
+  isListed Boolean       @default(true)
+
+  sources JobSource[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // The change watcher's memory for one careers page (docs/discovery.md §9.14): a fingerprint of

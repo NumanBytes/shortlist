@@ -303,17 +303,18 @@ and had no sources unless the seed scripts were run. Now:
   skipped onboarding was quietly searched for someone else's jobs. That filter is now
   `BUILDER_DISCOVERY_PREFERENCES`, kept only as a realistic test example; the
   `hosted_groundwork` migration copied it into the rows of accounts that were running discovery
-  on it, so nothing changed for them. A new user starts from
-  `STARTER_DISCOVERY_PREFERENCES` (no city, stack or titles — only near-universal exclusions and
-  the "worldwide" remote terms), not from `DEFAULT_DISCOVERY_PREFERENCES`, which stays the
-  fallback for accounts that never saved their own. `roleTitleTerms` is rebuilt on each save
+  on it, so nothing changed for them. Onboarding's form starts from
+  `STARTER_DISCOVERY_PREFERENCES` too (no city, stack or titles — only near-universal exclusions
+  and the "worldwide" remote terms). `roleTitleTerms` is rebuilt on each save
   from the starter terms plus the current titles, so alert emails without a description still
   pass on title — and a removed title stops letting them in.
-- **Remote boards in one tap** (`POST /discovery/sources/remote-boards`) — the aggregators,
-  now listed once in `REMOTE_BOARDS` (shared) and used by both onboarding and the seed;
-  idempotent, and never re-enables a board the user switched off.
-- Gmail alerts stay a pointer to the Sources page: each user needs the Google setup of
-  [docs/email-alerts.md §10.6](email-alerts.md), since the app is self-hosted (decided 2026-10-12).
+- **Remote boards in one tap** (`POST /discovery/sources/remote-boards`) — follows the job
+  boards in the shared catalog (§9.16; seeded from `REMOTE_BOARDS`); idempotent, and never
+  re-enables a board the user switched off.
+- **Companies near you in one tap** (2026-11-16, `POST /discovery/catalog/follow-places`) — the
+  catalog's companies that hire in the places the user just named for on-site work (§9.16).
+- Gmail alerts stay a pointer to the Sources page. On hosted Shortlist they will arrive by
+  forwarding instead (Agents.md §2.1, roadmap phase 5).
 
 ### 9.14 Custom careers pages — the change watcher (built 2026-10-13)
 
@@ -385,6 +386,43 @@ way to add or change one without the seed script.
   also refuses an obviously internal link when it's saved (`sourceFromLink`, no DNS), for a
   clear message; the worker's check is the guard. Worker tests stub DNS
   (`test/setup-dns.ts`) so they stay offline.
+
+### 9.16 The shared source catalog (built 2026-11-16)
+
+Hosted Shortlist (Agents.md §2.1) can't seed every new account from a script on the server, and
+a company's board that moves shouldn't need every user to fix it. So the sources live once, in a
+catalog an admin curates, and users follow from it.
+
+- **`SourceCatalogEntry`**: `key` (unique, the `JobSource.key` scheme), name, type, config (only
+  configs the worker can run), `regions` — lowercased places it hires in ("lahore", "pakistan";
+  "remote" for job boards) — and `isListed`.
+- **Following makes the user's own `JobSource`, linked by `catalogEntryId`.** Discovery, run
+  history, health, cooldowns and the worker are unchanged: each follower still has its own row.
+  **Fetching once per catalog source and fanning the postings out to followers was considered
+  and deferred**: it would save requests and careers-page model calls once many users follow
+  the same source, but it changes who owns runs, snapshots and job attribution. Revisit when
+  follower counts make the duplicate fetches matter.
+- **While linked, the catalog decides the name and address.** An admin's new name or address
+  (`PATCH /admin/catalog/:id`) is copied to every linked follower in one transaction, and a new
+  address clears their cooldown so the fixed source can run at once. A user who edits a linked
+  source's address detaches it (`catalogEntryId` null): their own fix must not be undone later.
+- **Users** (`GET /discovery/catalog`, `POST /discovery/catalog/:id/follow`): browse by name and
+  place (Sources → "Browse companies and job boards"), follow; following a source the user
+  paused turns it back on. A paused follow shows as not followed. Following over the user's own
+  source with the same key but another address is a 409 — their source stays theirs. "Add a
+  source" with a link the catalog has (same key and address) becomes a follow of that entry.
+  Onboarding offers the companies matching the places the user just named (`regionMatches()`,
+  whole words, so "pk" doesn't match "pakistan").
+- **Admins** (`/admin/catalog`, Admin → Source catalog): add from a link (`sourceFromLink()`, the
+  same parsing as a user's "Add a source"), edit name, address, places and listing, remove. Hiding
+  an entry takes it out of browsing and following; followers keep their copies running. Removing
+  it leaves followers' copies as their own sources.
+- **Seeding** (`pnpm --filter @shortlist/db db:seed:catalog`, replacing the per-account
+  `db:seed:sources`): adds the runnable, enabled sources in `job-sources.ts` (the builder's Lahore
+  companies, tagged lahore/pakistan, and the remote boards) and links existing accounts' sources
+  with the same key and address as followers. Additive: existing entries — an admin's edits —
+  are never changed. The `source_catalog` migration itself inserts the remote boards, so a fresh
+  server's onboarding has boards to follow before anyone runs the seed.
 
 ## 11. Manual job intake — "Add a job" (planned 2026-10-02, built 2026-10-14)
 

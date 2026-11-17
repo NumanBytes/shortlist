@@ -18,11 +18,16 @@ import type {
   AddSourceInput,
   AddJobInput,
   SetAiBudgetInput,
+  AddCatalogEntryInput,
+  CatalogQuery,
+  UpdateCatalogEntryInput,
 } from '@shortlist/shared';
 import { api } from './api';
 import type {
   ActiveTailoring,
+  AdminCatalogEntry,
   AdminUser,
+  CatalogEntry,
   AiUsage,
   DiscoveryStatus,
   DiscoverySource,
@@ -590,3 +595,73 @@ export function useSetUserBudget() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: adminKeys.users }),
   });
 }
+
+// ── The shared source catalog (docs/discovery.md §9.16) ──────────────────────
+export const catalogKeys = {
+  browse: (q: CatalogQuery) => ['catalog', q] as const,
+  all: ['catalog'] as const,
+  admin: ['admin', 'catalog'] as const,
+};
+
+export const useCatalog = (query: CatalogQuery, enabled = true) =>
+  useQuery({
+    queryKey: catalogKeys.browse(query),
+    queryFn: () => {
+      const params = new URLSearchParams(Object.entries(query).filter((e): e is [string, string] => !!e[1]));
+      return api<CatalogEntry[]>(`/discovery/catalog${params.size ? `?${params}` : ''}`);
+    },
+    enabled,
+  });
+
+function useCatalogFollowMutation<T, R>(fn: (arg: T) => Promise<R>) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: catalogKeys.all });
+      void queryClient.invalidateQueries({ queryKey: jobKeys.sources });
+      void queryClient.invalidateQueries({ queryKey: jobKeys.discoveryStatus });
+      void queryClient.invalidateQueries({ queryKey: onboardingKeys.status });
+    },
+  });
+}
+
+export const useFollowCatalogEntry = () =>
+  useCatalogFollowMutation((id: string) =>
+    api<{ status: 'followed' | 'resumed' | 'already'; name: string }>(`/discovery/catalog/${id}/follow`, {
+      method: 'POST',
+    }),
+  );
+
+export const useFollowPlaces = () =>
+  useCatalogFollowMutation((regions: string[]) =>
+    api<{ followed: number }>('/discovery/catalog/follow-places', { method: 'POST', body: { regions } }),
+  );
+
+export const useAdminCatalog = (enabled: boolean) =>
+  useQuery({ queryKey: catalogKeys.admin, queryFn: () => api<AdminCatalogEntry[]>('/admin/catalog'), enabled });
+
+function useAdminCatalogMutation<T, R>(fn: (arg: T) => Promise<R>) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: catalogKeys.admin });
+      void queryClient.invalidateQueries({ queryKey: catalogKeys.all });
+      void queryClient.invalidateQueries({ queryKey: jobKeys.sources });
+    },
+  });
+}
+
+export const useAddCatalogEntry = () =>
+  useAdminCatalogMutation((body: AddCatalogEntryInput) =>
+    api<AdminCatalogEntry>('/admin/catalog', { method: 'POST', body }),
+  );
+
+export const useUpdateCatalogEntry = () =>
+  useAdminCatalogMutation(({ id, body }: { id: string; body: UpdateCatalogEntryInput }) =>
+    api(`/admin/catalog/${id}`, { method: 'PATCH', body }),
+  );
+
+export const useRemoveCatalogEntry = () =>
+  useAdminCatalogMutation((id: string) => api(`/admin/catalog/${id}`, { method: 'DELETE' }));
