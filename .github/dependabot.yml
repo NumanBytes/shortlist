@@ -30,6 +30,10 @@ updates:
       # rule below); newer majors describe APIs Node 22 doesn't have.
       - dependency-name: '@types/node'
         update-types: ['version-update:semver-major']
+      # TypeScript 7.0 has no compiler API, which the Nest CLI builds through (#39 broke
+      # main). Upgrade by hand once 7.1 brings it back (docs/development.md §15.6).
+      - dependency-name: typescript
+        update-types: ['version-update:semver-major']
 
   - package-ecosystem: github-actions
     directory: /
