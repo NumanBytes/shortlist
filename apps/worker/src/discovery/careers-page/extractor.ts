@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { AI_MODELS, CAREERS_PAGE_EXTRACTION_JSON_SCHEMA } from '@shortlist/shared';
+import { AI_EFFORT, AI_MODELS, CAREERS_PAGE_EXTRACTION_JSON_SCHEMA } from '@shortlist/shared';
 import { structuredCall, type AnalyzerResult } from '../../analysis/job-analyzer.js';
 import type { PageText } from './page.js';
 
@@ -22,7 +22,9 @@ export class AnthropicCareersPageExtractor implements CareersPageExtractor {
   extract({ system, user }: { system: string; user: string }) {
     return structuredCall(this.client, {
       model: AI_MODELS.extractCareersPage,
-      maxTokens: 6000,
+      effort: AI_EFFORT.extractCareersPage,
+      // Room for Haiku 5.5's thinking and its ~30% larger token counts (docs/ai-scoring.md §12.6).
+      maxTokens: 8000,
       system,
       user,
       schema: CAREERS_PAGE_EXTRACTION_JSON_SCHEMA,

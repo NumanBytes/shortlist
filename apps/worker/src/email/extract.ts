@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { AI_MODELS, EMAIL_EXTRACTION_JSON_SCHEMA, type EmailExtraction } from '@shortlist/shared';
+import { AI_EFFORT, AI_MODELS, EMAIL_EXTRACTION_JSON_SCHEMA, type EmailExtraction } from '@shortlist/shared';
 import { structuredCall, type AnalyzerResult } from '../analysis/job-analyzer.js';
 import type { AlertEmail, EmailPosting } from './alert-email.js';
 import { workModeOf } from './alert-email.js';
@@ -25,7 +25,9 @@ export class AnthropicEmailExtractor implements EmailExtractor {
   extract({ system, user }: { system: string; user: string }) {
     return structuredCall(this.client, {
       model: AI_MODELS.extractEmail,
-      maxTokens: 4096,
+      effort: AI_EFFORT.extractEmail,
+      // Room for Haiku 5.5's thinking and its ~30% larger token counts (docs/ai-scoring.md §12.6).
+      maxTokens: 6000,
       system,
       user,
       schema: EMAIL_EXTRACTION_JSON_SCHEMA,

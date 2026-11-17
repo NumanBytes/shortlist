@@ -222,6 +222,37 @@ export class AnalysisService {
     return { rescored, needsReanalysis };
   }
 
+  // Development: score one job with another analyzer (model / effort) WITHOUT saving anything to
+  // the job — for measuring a model change on real jobs first (compare:analysis, docs/ai-scoring.md
+  // §12.6). The call is real, so it's logged to AiUsage like any other; no budget check, since a
+  // person runs it by hand.
+  async preview(jobId: string, analyzer: JobAnalyzer) {
+    const job = await this.prisma.job.findUniqueOrThrow({ where: { id: jobId } });
+    const skills = await this.verifiedSkills(job.userId);
+    const prompt = buildAnalysisPrompt(job, skills);
+    const started = Date.now();
+    const result = await analyzer.analyze(prompt);
+    const ms = Date.now() - started;
+    const cost = costUsd(result.model, result.usage);
+    const parsed = parseModelOutput(result.text, result.stopReason, JobAnalysisOutputSchema, 'analyse this posting');
+    await this.prisma.aiUsage.create({
+      data: {
+        userId: job.userId,
+        jobId,
+        purpose: 'ANALYZE_JOB',
+        model: result.model,
+        ...result.usage,
+        costUsd: cost,
+        succeeded: parsed.ok,
+      },
+    });
+    const base = { model: result.model, usage: result.usage, costUsd: cost, ms, stopReason: result.stopReason };
+    if (!parsed.ok) return { ok: false as const, reason: parsed.reason, ...base };
+    const requirements = promoteExactNameMatches(this.resolveRefs(parsed.value, prompt.refs), skills);
+    const score = this.score(await this.scoringContext(job.userId), requirements, parsed.value);
+    return { ok: true as const, requirements, score, ...base };
+  }
+
   private async verifiedSkills(userId: string) {
     const skills = await this.prisma.skill.findMany({
       where: { userId, evidence: { some: { isVerified: true } } },

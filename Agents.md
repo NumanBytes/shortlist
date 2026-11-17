@@ -169,8 +169,9 @@ the user chose to make it a **hosted product that anyone can sign up for**. What
   and tracking, a one-time AI trial), Starter ($5/month), Pro ($20/month, "Find new jobs" on
   demand); work over a limit is deferred, never dropped ([§12.5](docs/ai-scoring.md), built
   2026-11-16; an admin assigns plans until payments exist).
-- **Planned, in order** ([§17.2](docs/roadmap.md)): the Batch API and prompt caching for nightly
-  scoring; payments through a merchant of record (Stripe doesn't serve businesses in
+- **Cheaper scoring** by moving the Haiku readers to Haiku 5.5 ([§12.6](docs/ai-scoring.md),
+  2026-11-17).
+- **Planned, in order** ([§17.2](docs/roadmap.md)): payments through a merchant of record (Stripe doesn't serve businesses in
   Pakistan); **job alerts by forwarding** to a private per-user address instead of Gmail
   OAuth (no restricted-scope verification, works with any mail provider, and only alert
   emails ever reach Shortlist; needs a domain); the application kit ([§13.5](docs/resume.md));

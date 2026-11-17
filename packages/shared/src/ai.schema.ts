@@ -1,22 +1,39 @@
 import { z } from 'zod';
 
 // ── Models and prices (checked 2026-10-02, docs/ai-scoring.md §12.2) ───────────────────
+// The three structured readers moved from Haiku 4.5 to Haiku 5.5 on 2026-11-17 (§12.6): about
+// a tenth of the price. Not measured side by side first (the user's call); compare:analysis
+// does that on real jobs.
 export const AI_MODELS = {
-  analyzeJob: 'claude-haiku-4-5',
+  analyzeJob: 'claude-haiku-5-5',
   // Writing is where quality shows; still ~$0.03 per resume (docs/resume.md §13.1).
   tailorResume: 'claude-sonnet-5-5',
   // Reading jobs out of alert emails no code parser handles: short, structured, cheap.
-  extractEmail: 'claude-haiku-4-5',
+  extractEmail: 'claude-haiku-5-5',
   // Reading a whole resume into roles, projects and quoted evidence, once per import:
   // accuracy matters more than the few cents (docs/career-data.md §7.6).
   importResume: 'claude-sonnet-5-5',
   // Listing the openings on a company careers page, only when the page changed (§9.14).
-  extractCareersPage: 'claude-haiku-4-5',
+  extractCareersPage: 'claude-haiku-5-5',
 } as const;
 
-// USD per million tokens. Batch API halves these (not used yet — §12.1).
+// Effort for models that have it (Haiku 5.5 and later); null = a model without effort levels.
+// Thinking is on by default on those models and counts toward max_tokens. `low` for all three:
+// they're short structured readings, the closest to Haiku 4.5 without thinking, and the
+// cheapest; raise one only if compare:analysis (or production) shows it misses things.
+export type AiEffort = 'low' | 'medium' | 'high';
+export const AI_EFFORT: Record<'analyzeJob' | 'extractEmail' | 'extractCareersPage', AiEffort | null> = {
+  analyzeJob: 'low',
+  extractEmail: 'low',
+  extractCareersPage: 'low',
+};
+
+// USD per million tokens. Batch API halves these (not used — §12.6). Haiku 4.5 stays for
+// pricing the AiUsage rows it already wrote.
 export const MODEL_PRICES: Record<string, { input: number; output: number; cacheRead: number; cacheWrite: number }> = {
   'claude-haiku-4-5': { input: 1, output: 5, cacheRead: 0.1, cacheWrite: 1.25 },
+  // Prompts up to 100K tokens (every Shortlist prompt); longer ones cost $0.50 / $2.50.
+  'claude-haiku-5-5': { input: 0.1, output: 0.5, cacheRead: 0.01, cacheWrite: 0.125 },
   'claude-sonnet-5-5': { input: 2, output: 10, cacheRead: 0.2, cacheWrite: 2.5 },
 };
 

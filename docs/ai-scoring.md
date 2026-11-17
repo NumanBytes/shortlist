@@ -32,7 +32,7 @@ analyze-job:
   2. no verified evidence → DEFERRED (no call)
   3. prompt: VERIFIED skills only (name + category, as refs) + the posting in
      <job_posting> tags, marked as untrusted data (prompt-injection hygiene)
-  4. Haiku 4.5, structured output (hand-written JSON schema)
+  4. Haiku 5.5 at low effort (Haiku 4.5 until 2026-11-17, §12.6), structured output (hand-written JSON schema)
   5. log tokens + cost to AiUsage — always, even if the output is then rejected
   6. Zod-validate; drop unknown refs; score in code; store requirements/match/gaps → DONE
 ```
@@ -113,10 +113,11 @@ became five separate gaps, pulling a fitting role below the SKIP line.
 - **Separate `analysis` queue** with concurrency 2 (`ANALYSIS_CONCURRENCY`), so model
   calls never compete with discovery and rate-limit pressure stays low.
 - **No prompt caching:** Haiku 4.5 caches only prefixes ≥ 4,096 tokens; ours is ~2–3K,
-  so a cache marker would do nothing. Revisit if the prompt grows or the model changes.
-- **No Batch API yet:** at ~10 jobs/night it would save ~$1/month while adding a
-  submit-and-poll state machine; manual "Add a job" needs immediate results anyway.
-  Revisit if volume grows.
+  so a cache marker would do nothing. On Haiku 5.5 (§12.6) the input is already cheap
+  enough that caching isn't worth a change.
+- **No Batch API:** it would halve the price but add a submit-and-poll state machine, and
+  manual "Add a job" needs immediate results anyway. Moving to Haiku 5.5 cut the price far
+  more with no change to the flow (§12.6).
 
 **First live call (2026-10-02):** Septem Systems' *Full Stack Software Engineer (MERN)*
 on a test profile — mapped React/TS/JS/MongoDB/Express/Node exactly, NestJS → related
@@ -131,7 +132,8 @@ on the user's real scored jobs rather than one sample.
 
 | | Standard | Batch API (50% off) |
 |---|---|---|
-| Claude Haiku 4.5 — extraction, scoring | $1 in / $5 out per MTok | $0.50 / $2.50 |
+| Claude Haiku 5.5 — extraction, scoring (since 2026-11-17, §12.6) | $0.10 in / $0.50 out per MTok (prompts ≤ 100K tokens) | $0.05 / $0.25 |
+| Claude Haiku 4.5 — extraction, scoring until 2026-11-17 | $1 in / $5 out per MTok | $0.50 / $2.50 |
 | Claude Sonnet 5.5 — tailoring | $2 in / $10 out per MTok | $1 / $5 |
 | Cache reads (the career database — identical every call) | 0.1× input price | stacks with batch |
 | Web search (server tool) | $10 per 1,000 searches + result tokens | — |
@@ -238,7 +240,44 @@ definition; the worker enforces it, and the API refuses early and reports it.
   plan's; the budget can still be changed on its own. New accounts start on Free. **Accounts
   from before plans existed were moved to Pro** by the `plans` migration, so nothing they used
   (on-demand runs, nightly discovery) disappeared; their budgets were left as they were.
-- **Margin:** at measured costs, a fully used Starter plan costs about $2.55 in AI against $5
-  (before payment fees). The Batch API and prompt caching for nightly scoring (next, roadmap
-  phase 3b) should roughly halve the scoring part.
+- **Margin:** on Haiku 4.5, a fully used Starter plan cost about $2.55 in AI against $5 (before
+  payment fees). With scoring on Haiku 5.5 (§12.6), its 300 scored jobs come to ~$0.30 instead of
+  ~$1.80, so ~$1.05 in all (an estimate).
+
+### 12.6 Haiku 5.5 for the structured readers (2026-11-17)
+
+Roadmap phase 3b was meant to cut scoring cost with the Batch API and prompt caching. Checking
+the facts changed the plan:
+- **Caching can't work on Haiku 4.5:** its minimum cacheable prefix is 4,096 tokens and a
+  scoring prompt is ~2,800 (§12.1).
+- **The Batch API** halves the price but makes nightly scoring asynchronous (submit, wait up to
+  24 hours, collect) — a new state machine for ~$0.003 a job.
+- **Claude Haiku 5.5**, the current Haiku, costs $0.10 / $0.50 per million tokens against
+  $1 / $5 for Haiku 4.5: about a tenth, with no change to the flow.
+
+So job scoring, alert-email reading and careers-page reading (`AI_MODELS` in shared) moved to
+`claude-haiku-5-5`. Tailoring and resume import stay on Sonnet 5.5.
+
+- **Effort `low` for all three** (`AI_EFFORT`): short structured readings, the nearest to Haiku
+  4.5 (which ran without thinking), and the cheapest. Haiku 5.5 thinks by default and its
+  default effort is `medium`; effort is the lever, not turning thinking off. Effort is sent only
+  for models that have it (`structuredCall()`), since Haiku 4.5 rejects it.
+- **What changed for the code:** thinking counts toward `max_tokens` and the newer tokenizer
+  counts the same text as ~30% more tokens, so the caps rose (scoring and email 4,096 → 6,000,
+  careers pages 6,000 → 8,000; only tokens used are billed). Answers can follow `thinking`
+  blocks — the code already reads text blocks by type. No `temperature` or prefill was used, both
+  of which Haiku 5.5 rejects. Haiku 5.5 can decline a request on safety grounds
+  (`stop_reason: refusal`, no server-side fallback for this model); `parseModelOutput()` already
+  turns that into a clear failure ("Model declined to …").
+- **Expected cost:** ~$0.001 a scored job (≈ 3.6K input + ~1.3K output and thinking tokens at
+  Haiku 5.5's counts) against a measured $0.006 on Haiku 4.5 — an estimate, not yet measured.
+  The plan units (§12.5) don't change; the dollar budgets now leave far more headroom.
+- **Not measured side by side first — the user's decision.** `pnpm --filter @shortlist/worker
+  compare:analysis [jobs]` scores the same real jobs on Haiku 4.5 twice (its own run-to-run
+  disagreement is the noise floor) and on Haiku 5.5 at `low` and `medium`, reporting score
+  differences, verdict agreement, skill-mapping overlap, failures, tokens, cost and speed, without
+  saving anything to the jobs (`AnalysisService.preview()`; calls are real and logged to
+  `AiUsage`, ~$0.16 for 12 jobs). Run it once a valid key is in `apps/worker/.env` — the local key
+  was rejected (401) on 2026-11-17 — and after deploying, watch the share of FAILED analyses and
+  the verdict mix for a week. If scoring misses things, raise `AI_EFFORT.analyzeJob` to `medium`.
 
