@@ -8,6 +8,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import { Button, INPUT, SELECTED, TextField } from '../../components/ui';
 import { ApiError } from '../../lib/api';
 import { useAuthOptions } from '../../lib/queries';
+import { PolicyLinks } from '../../components/PolicyLinks';
 
 // Login and register share one form. Validation uses the same Zod schemas the API
 // enforces, so the browser rejects exactly what the server would — before a round trip.
@@ -161,7 +162,22 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
         <Button type="submit" size="lg" disabled={submitting} className="w-full">
           {submitting ? 'Please wait…' : isRegister ? 'Create account' : 'Sign in'}
         </Button>
+        {isRegister && (
+          <p className="text-center text-footnote text-muted">
+            By creating an account you agree to the{' '}
+            <Link to="/terms" className="font-medium text-accent-fg">
+              Terms
+            </Link>{' '}
+            and{' '}
+            <Link to="/privacy" className="font-medium text-accent-fg">
+              Privacy policy
+            </Link>
+            .
+          </p>
+        )}
       </form>
+      {/* The policies are public pages (docs/security.md §8.9), reachable before signing up. */}
+      <PolicyLinks className="mt-6" />
     </div>
   );
 }

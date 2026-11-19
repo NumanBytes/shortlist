@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
+  DeleteAccountInput,
   NotificationSettingsInput,
   DiscoveryPreferencesInput,
   ImportResumeInput,
@@ -51,6 +52,7 @@ import type {
   WorkExperience,
   GmailStatus,
   JobResume,
+  LegalInfo,
 } from './types';
 
 export const keys = {
@@ -711,4 +713,29 @@ export function useChangePlan() {
 export const useBillingPortal = () =>
   useMutation({
     mutationFn: () => api<{ overview: string; cancel: string | null }>('/billing/portal', { method: 'POST' }),
+  });
+
+// ── Your data and the policy pages (docs/security.md §8.8, §8.9) ──
+
+export const useLegal = () =>
+  useQuery({ queryKey: ['legal'], queryFn: () => api<LegalInfo>('/legal'), staleTime: Infinity });
+
+// Fetched with the session like any request, then handed to the browser as a file — the
+// export is never stored anywhere but the user's download.
+export const useExportAccount = () =>
+  useMutation({
+    mutationFn: async () => {
+      const data = await api<unknown>('/account/export');
+      const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `shortlist-export-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    },
+  });
+
+export const useDeleteAccount = () =>
+  useMutation({
+    mutationFn: (input: DeleteAccountInput) => api<void>('/account', { method: 'DELETE', body: input }),
   });

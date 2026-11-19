@@ -4,6 +4,10 @@ import { ForgotPasswordPage, ResetPasswordPage, VerifyEmailGate, VerifyEmailPage
 import { AuthForm } from './features/auth/AuthForm';
 import { useAuth } from './features/auth/AuthProvider';
 import { ReviewPage } from './features/evidence/ReviewPage';
+import { PricingPage } from './features/legal/PricingPage';
+import { PrivacyPage } from './features/legal/PrivacyPage';
+import { RefundsPage } from './features/legal/RefundsPage';
+import { TermsPage } from './features/legal/TermsPage';
 import { JobsLayout, NoJobSelected } from './features/jobs/JobsPage';
 import { JobDetailPage } from './features/jobs/job-detail/JobDetailPage';
 import { ONBOARDING_DONE_KEY, WelcomePage } from './features/onboarding/WelcomePage';
@@ -72,6 +76,11 @@ export function App() {
       <Route path="verify-email" element={<VerifyEmailPage />} />
       <Route path="forgot-password" element={<ForgotPasswordPage />} />
       <Route path="reset-password" element={<ResetPasswordPage />} />
+      {/* Public policy pages (docs/security.md §8.9): Paddle reviews them signed out. */}
+      <Route path="pricing" element={<PricingPage />} />
+      <Route path="terms" element={<TermsPage />} />
+      <Route path="privacy" element={<PrivacyPage />} />
+      <Route path="refunds" element={<RefundsPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

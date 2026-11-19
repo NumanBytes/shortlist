@@ -152,3 +152,75 @@ account being made with someone else's address.
   (Resend, "I've confirmed it", Sign out); pages `/verify-email`, `/forgot-password`,
   `/reset-password` work signed in or out (links open on phones).
 
+
+### 8.8 Account deletion and data export (built 2026-11-19)
+
+Before a public launch every user must be able to take their data and leave without writing to
+anyone (roadmap §17.2). Both are self-serve on Profile → Settings → Your data, and both are
+allowed before the email is verified: someone who signed up with a typo must still be able to
+leave.
+- **Export** (`GET /account/export`): one JSON document (`format: shortlist-export-v1`) with the
+  account and everything in it — career data and evidence, jobs with their requirements, matches
+  and resumes, sources, settings, notifications, alert-email metadata, AI usage, the
+  subscription record. Sent with `Content-Disposition: attachment` and `Cache-Control:
+  no-store`; the web app turns it into a file download and keeps no copy. **Credentials are
+  left out**: the password hash, refresh and one-time token hashes, OAuth states, the sealed
+  Gmail token, push endpoints and keys. They are not the user's data, and a leaked export must
+  not work as a login. The omissions are an explicit list in `AccountService.export()`: a new
+  secret column must be added there (the e2e test checks the known ones).
+- **Deletion** (`DELETE /account`, body `{ password }`):
+  1. **The password again.** An open session on a shared computer must not be enough to erase
+     everything. A wrong password is a 400 on the field, not a 401 — the web client treats 401
+     as an expired session and refreshes. It is a password oracle like login, so it shares
+     login's rate limits, per IP and per account (keyed `account:<user id>`).
+  2. **A live subscription is cancelled at Paddle first** (`effective_from: immediately`;
+     decided 2026-11-19 with the user). If Paddle can't be reached, **nothing is deleted**
+     (502): a deleted account with a live subscription would keep being charged with no way to
+     stop it. No automatic refund: the refund policy (§8.9) still applies through Paddle. If
+     payments were switched off after the user subscribed, deletion is refused (409) rather
+     than leaving a subscription running.
+  3. **Gmail access is revoked** at Google, best effort, as "Disconnect" does.
+  4. **One `DELETE` of the user row.** Every table that belongs to an account cascades from
+     `User`, so nothing is missed by a hand-written list. The response clears the refresh
+     cookie; the web app signs out.
+- **What outlives an account.** `AiUsage` rows stay with `userId` null (`onDelete: SetNull`,
+  migration `20261119000000_account_deletion`): the money was spent, and the server-wide
+  monthly cap (`AI_SERVER_MONTHLY_BUDGET_USD`) must still count it, or deleting an account
+  would lift the cap for the month. They hold purpose, model, tokens and cost — no personal
+  data. `BillingEvent` rows (Paddle event ids, no user) stay as accounting records. Backups
+  hold deleted data until they expire: 14 days on the server, 30 off-site
+  ([§4](architecture.md)). Test cleanups delete their own `AiUsage` rows before their users.
+- **Rejected:** a grace period with "undo" (a scheduled job and a half-deleted state, for a
+  rare regret — the export is the safety net); emailing the operator to delete (not
+  self-serve); soft delete (the data would still be there).
+
+### 8.9 Legal pages: terms, privacy, refunds, pricing (built 2026-11-19)
+
+Paddle reviews a domain before it takes real payments, and its review needs public pages for
+**terms**, **privacy** and **refunds**, plus visible **pricing** (docs/billing.md §20.5). They
+are the web app's `/terms`, `/privacy`, `/refunds` and `/pricing`: public routes outside the
+sign-in guard, linked from the sign-in screens and from Profile → Your data. Registering says
+"By creating an account you agree to the Terms and Privacy policy".
+- **Who runs the server is configuration, not page text** (decided 2026-11-19 with the user):
+  `LEGAL_NAME`, `LEGAL_ADDRESS`, `LEGAL_EMAIL`, `LEGAL_JURISDICTION` on the API, all or none,
+  served by the public `GET /legal`. No one's name or address is committed, and a self-hoster's
+  pages name them, not the builder. Unset, the pages show bracketed placeholders and an
+  `AdminNote`; the API **refuses to start with a live Paddle key and no legal settings**.
+- **What Paddle checks**, and where it is: the seller's exact legal name in the terms and
+  privacy notice (`LEGAL_NAME`); the sentence naming Paddle.com as reseller and **Merchant of
+  Record** (Terms, shown when payments are on); acceptable use, IP, no uptime guarantee,
+  suspension, contact; a refund window of 14–90 days with requests through Paddle and no "no
+  refunds" wording; the privacy notice's controller, contact, data categories with purpose and
+  legal basis, recipients (Paddle named), retention, rights, cookies and security.
+- **Refund window: 14 days** (`REFUND_WINDOW_DAYS` in shared; decided 2026-11-19 with the
+  user) — the shortest Paddle accepts, matching the EU/UK withdrawal period. A refund does not
+  cancel the subscription by itself; the page says so.
+- **The privacy page must match the code.** It names what is stored and sent where:
+  Anthropic (the job and the needed career data, resume text or alert email per task), Paddle,
+  Google (Gmail, if connected), an email provider, browser push services (payload encrypted,
+  §19), hosting and backups. Sections for Gmail, payments and account emails show only when
+  this server has them (`GET /legal` says which). Change the page in the same change as the
+  code it describes.
+- **Not legal advice.** The text is a plain-language starting point written against Paddle's
+  published requirements; the operator should have it reviewed where they live before taking
+  real payments (deploy/README.md "Payments").

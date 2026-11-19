@@ -30,5 +30,7 @@ import { BillingService } from './billing.service.js';
           : null,
     },
   ],
+  // Account deletion cancels a live subscription first (docs/security.md §8.8).
+  exports: [BILLING_PROVIDER],
 })
 export class BillingModule {}

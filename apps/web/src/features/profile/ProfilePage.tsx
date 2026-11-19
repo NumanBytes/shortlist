@@ -14,6 +14,7 @@ import { ImportFromResume, JobSearch } from './JobSearch';
 import { ContactForm } from './ContactForm';
 import { NeverClaimList } from './NeverClaimList';
 import { Notifications } from './Notifications';
+import { YourData } from './YourData';
 
 const initialsOf = (name: string) =>
   name
@@ -97,6 +98,7 @@ export function ProfilePage() {
           <ClockAndPaper />
           <PlanCard />
           <Budget />
+          <YourData />
           <Account />
         </>
       )}

@@ -397,3 +397,13 @@ export interface BillingInfo {
     cancelsAt: string | null; // a scheduled cancellation
   } | null;
 }
+
+// GET /legal — who runs this server, for the public policy pages (docs/security.md §8.9).
+// `operator` is null until the server's LEGAL_* settings are made.
+export interface LegalInfo {
+  operator: { name: string; address: string; email: string; jurisdiction: string } | null;
+  refundWindowDays: number;
+  payments: boolean; // this server takes payments (Paddle)
+  gmail: boolean; // this server can connect Gmail
+  email: boolean; // this server sends account emails
+}

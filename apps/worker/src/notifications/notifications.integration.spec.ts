@@ -66,6 +66,8 @@ const note = (key: string, kind: 'STRONG_MATCH' | 'DIGEST' | 'PROBLEM' = 'PROBLE
 });
 
 afterAll(async () => {
+  // AI usage outlives a deleted user (docs/security.md §8.8); remove the test's rows first.
+  await prisma.aiUsage.deleteMany({ where: { userId: { in: createdUsers } } });
   await prisma.user.deleteMany({ where: { id: { in: createdUsers } } });
   await prisma.$disconnect();
 });
