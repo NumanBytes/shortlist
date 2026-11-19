@@ -66,7 +66,10 @@ designed with the user 2026-10-12).
   account review.
 - Phase 5: job alerts by email forwarding (needs a domain and an inbound-mail service).
 - Phase 6: the application kit ([§13.5](resume.md)) — the biggest gap against Job Radar.
-- Before a public launch: privacy policy, terms, account deletion and data export.
+- ~~Before a public launch: privacy policy, terms, account deletion and data export~~ — built
+  2026-11-19 (`feat/pre-launch`, [§8.8–8.9](security.md)): self-serve export and deletion, public
+  terms, privacy, refund (14 days) and pricing pages filled from `LEGAL_*` settings. To go live:
+  set them, have the text reviewed, then Paddle's domain review.
 
 1. **User:** review the 44 unverified items from the CV reconciliation ([§7.5](career-data.md)) in the
    Evidence screen — fix the placeholder ones with Edit before verifying. Everything AI

@@ -17,6 +17,9 @@ export interface BillingProvider {
   changePlan(subscriptionId: string, plan: PaidPlan): Promise<void>;
   // Short-lived links to the provider's customer portal (cancel, card, invoices). Never stored.
   portal(customerId: string, subscriptionId: string): Promise<{ overview: string; cancel: string | null }>;
+  // End a subscription now, not at the end of the period — the account is being deleted
+  // (docs/security.md §8.8). Nothing more is charged; no refund is made here.
+  cancelNow(subscriptionId: string): Promise<void>;
   // A webhook: verified, then turned into a subscription change, or null when it isn't one.
   // Throws WebhookRejected when it isn't authentic or can't be read.
   readWebhook(
@@ -82,6 +85,12 @@ export class PaddleBillingProvider implements BillingProvider {
     }>('POST', `/customers/${encodeURIComponent(customerId)}/portal-sessions`, { subscription_ids: [subscriptionId] });
     const sub = res.data.urls.subscriptions.find((s) => s.id === subscriptionId);
     return { overview: res.data.urls.general.overview, cancel: sub?.cancel_subscription ?? null };
+  }
+
+  async cancelNow(subscriptionId: string) {
+    await this.call('POST', `/subscriptions/${encodeURIComponent(subscriptionId)}/cancel`, {
+      effective_from: 'immediately',
+    });
   }
 
   readWebhook(signatureHeader: string | undefined, rawBody: Buffer) {

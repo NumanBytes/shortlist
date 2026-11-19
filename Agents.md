@@ -29,7 +29,7 @@ and the alternatives that were rejected.
 | §4 Runtime architecture · §5 Data model · §14 Technology | [docs/architecture.md](docs/architecture.md) | API / worker / web, queues, deployment and hosting, the schema's design, stack choices |
 | §6 Truthfulness rules | this file | Non-negotiable: verified evidence only, what un-verifies it, placement |
 | §7 Career database | [docs/career-data.md](docs/career-data.md) | The one-time seed and the CV reconciliation |
-| §8 Authentication and security | [docs/security.md](docs/security.md) | Hand-rolled JWT, refresh cookie, rate limits, other security decisions |
+| §8 Authentication and security | [docs/security.md](docs/security.md) | Hand-rolled JWT, refresh cookie, rate limits, other security decisions, account deletion and export (§8.8), the legal pages (§8.9) |
 | §8.4 Web UI design | [docs/web-design.md](docs/web-design.md) | Design system, mobile design, interactions and motion, the app icon, error screens, the UI audit (§8.6) |
 | §9 Job discovery · §11 Manual intake | [docs/discovery.md](docs/discovery.md) | Board adapters, filtering, dedupe, scheduling; "Add a job" (planned) |
 | §10 Email job alerts | [docs/email-alerts.md](docs/email-alerts.md) | Gmail read-only OAuth, parsers and the model fallback, partial jobs |

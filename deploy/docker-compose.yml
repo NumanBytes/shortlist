@@ -73,6 +73,11 @@ services:
       PADDLE_CLIENT_TOKEN: ${PADDLE_CLIENT_TOKEN:-}
       PADDLE_PRICE_STARTER: ${PADDLE_PRICE_STARTER:-}
       PADDLE_PRICE_PRO: ${PADDLE_PRICE_PRO:-}
+      # Who runs this server, for the public policy pages — all four, or none (docs/security.md §8.9).
+      LEGAL_NAME: ${LEGAL_NAME:-}
+      LEGAL_ADDRESS: ${LEGAL_ADDRESS:-}
+      LEGAL_EMAIL: ${LEGAL_EMAIL:-}
+      LEGAL_JURISDICTION: ${LEGAL_JURISDICTION:-}
       # One proxy (Caddy) sits in front of the API: the client IP is one hop back in
       # X-Forwarded-For. Wrong here = one login rate limit for everyone (docs/security.md §8.1).
       TRUST_PROXY_HOPS: '1'

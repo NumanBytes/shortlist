@@ -79,6 +79,8 @@ export async function createTestApp(configure: (b: TestingModuleBuilder) => Test
   }
 
   async function close() {
+    // AI usage outlives a deleted user (docs/security.md §8.8), so a test's rows go first.
+    await prisma.aiUsage.deleteMany({ where: { userId: { in: createdUserIds } } });
     await prisma.user.deleteMany({ where: { id: { in: createdUserIds } } });
     await app.close();
   }

@@ -78,4 +78,38 @@ describe('loadEnv', () => {
       );
     });
   });
+
+  describe('legal details (all or none; required for live payments)', () => {
+    const legal = {
+      LEGAL_NAME: 'Example Operator',
+      LEGAL_ADDRESS: '1 Example Road, Example City',
+      LEGAL_EMAIL: 'support@example.com',
+      LEGAL_JURISDICTION: 'Exampleland',
+    };
+    const paddle = (key: string, token: string) => ({
+      PADDLE_API_KEY: key,
+      PADDLE_WEBHOOK_SECRET: 'pdl_ntfset_x',
+      PADDLE_CLIENT_TOKEN: token,
+      PADDLE_PRICE_STARTER: 'pri_a',
+      PADDLE_PRICE_PRO: 'pri_b',
+    });
+
+    it('accepts the full set, or none', () => {
+      expect(loadEnv({ ...valid, ...legal }).LEGAL_NAME).toBe('Example Operator');
+      expect(loadEnv(valid).LEGAL_NAME).toBeUndefined();
+    });
+
+    it('refuses a partial set', () => {
+      const { LEGAL_ADDRESS: _, ...partial } = legal;
+      expect(() => loadEnv({ ...valid, ...partial })).toThrow(/or none/);
+    });
+
+    it('needs them for a live Paddle key, not for the sandbox', () => {
+      expect(() => loadEnv({ ...valid, ...paddle('pdl_live_apikey_x', 'live_x') })).toThrow(/Live payments need/);
+      expect(loadEnv({ ...valid, ...legal, ...paddle('pdl_live_apikey_x', 'live_x') }).LEGAL_EMAIL).toBe(
+        'support@example.com',
+      );
+      expect(loadEnv({ ...valid, ...paddle('pdl_sdbx_apikey_x', 'test_x') }).PADDLE_API_KEY).toBe('pdl_sdbx_apikey_x');
+    });
+  });
 });

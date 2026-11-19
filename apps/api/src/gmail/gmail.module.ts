@@ -24,5 +24,7 @@ import { GMAIL_API, GOOGLE_OAUTH, GmailService } from './gmail.service.js';
     },
     { provide: GMAIL_API, useValue: new HttpGmailApi() },
   ],
+  // Account deletion revokes Gmail access like "Disconnect" does.
+  exports: [GmailService],
 })
 export class GmailModule {}

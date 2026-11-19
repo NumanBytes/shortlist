@@ -600,10 +600,12 @@ model AiSettings {
 
 // One row per model call: what it cost and why it was made. The budget guard sums these;
 // the Sources page shows month-to-date spend from them.
+// Deleting an account keeps its rows with userId null (docs/security.md §8.8): the money was
+// spent, and the server-wide monthly cap must still count it. They hold no personal data.
 model AiUsage {
   id     String  @id @default(uuid())
-  userId String
-  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
   jobId  String?
   job    Job?    @relation(fields: [jobId], references: [id], onDelete: SetNull)
 

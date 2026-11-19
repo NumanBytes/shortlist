@@ -85,6 +85,14 @@ const EnvSchema = z
     // The monthly prices of the two paid plans (pri_…), set up in Paddle's catalog.
     PADDLE_PRICE_STARTER: z.string().startsWith('pri_', 'PADDLE_PRICE_STARTER must be a price id (pri_…)').optional(),
     PADDLE_PRICE_PRO: z.string().startsWith('pri_', 'PADDLE_PRICE_PRO must be a price id (pri_…)').optional(),
+    // Who runs this server, shown on the public Terms, Privacy and Refund pages (docs/security.md
+    // §8.9). Settings, not page text, so no one's name or address is committed. Optional as a
+    // group, but required with a live Paddle key: Paddle reviews these pages before it takes
+    // real payments. JURISDICTION is the country whose law governs the terms ("Pakistan").
+    LEGAL_NAME: z.string().min(1).optional(),
+    LEGAL_ADDRESS: z.string().min(1).optional(),
+    LEGAL_EMAIL: z.email('LEGAL_EMAIL must be an email address').optional(),
+    LEGAL_JURISDICTION: z.string().min(1).optional(),
     GOOGLE_CLIENT_ID: z.string().min(1).optional(),
     GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
     GOOGLE_REDIRECT_URI: z.url().optional(),
@@ -120,6 +128,21 @@ const EnvSchema = z
           message: 'PADDLE_API_KEY and PADDLE_CLIENT_TOKEN must both be sandbox (sdbx / test_) or both live',
         });
       }
+    }
+    const legal = [env.LEGAL_NAME, env.LEGAL_ADDRESS, env.LEGAL_EMAIL, env.LEGAL_JURISDICTION];
+    if (legal.some(Boolean) && !legal.every(Boolean)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['LEGAL_NAME'],
+        message: 'Set all of LEGAL_NAME, LEGAL_ADDRESS, LEGAL_EMAIL and LEGAL_JURISDICTION, or none',
+      });
+    } else if (env.PADDLE_API_KEY?.startsWith('pdl_live_') && !legal.every(Boolean)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['LEGAL_NAME'],
+        message:
+          'Live payments need LEGAL_NAME, LEGAL_ADDRESS, LEGAL_EMAIL and LEGAL_JURISDICTION for the public policy pages',
+      });
     }
     const google = [env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET, env.GOOGLE_REDIRECT_URI, env.TOKEN_ENCRYPTION_KEY];
     if (google.some(Boolean) && !google.every(Boolean)) {

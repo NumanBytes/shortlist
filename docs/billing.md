@@ -22,8 +22,9 @@ Plans and their limits are in [§12.5](ai-scoring.md). Choosing who takes the mo
 
 **Paddle, chosen 2026-11-17.** As merchant of record, Paddle is the seller in law: it charges the
 card, handles sales tax and VAT, issues receipts and refunds. Shortlist never sees card details.
-Going live needs Paddle's review of a live website on our own domain with pricing, terms and a
-privacy policy (roadmap); until then everything runs in Paddle's sandbox.
+Going live needs Paddle's review of a live website on our own domain with public pricing, terms,
+privacy and refund pages — built, filled from the `LEGAL_*` settings ([§8.9](security.md)); until
+then everything runs in Paddle's sandbox.
 
 **Stripe-ready by design.** What employers ask about Stripe is the patterns — hosted checkout,
 signature-checked webhooks, idempotent event handling, a subscription state machine. They're the
@@ -100,6 +101,10 @@ can still assign a plan to a subscriber; the next webhook overrides it.
   (202). Refused while past due (Paddle refuses it too) or after a scheduled cancellation.
 - **Manage billing** (`POST /billing/portal`): a Paddle customer portal session — cancel, change
   card, invoices. Its links carry a short-lived token, so they're fetched on tap and never stored.
+- **Deleting the account** cancels a live subscription immediately (`POST
+  /subscriptions/:id/cancel`, `effective_from: immediately`, `BillingProvider.cancelNow()`) before
+  anything is deleted; if Paddle refuses, nothing is deleted ([§8.8](security.md)). The later
+  `subscription.canceled` webhook finds no account and is recorded as `unmatched`.
 - **Who can buy:** a signed-in account with a verified email (the global guard). Plans' prices and
   limits shown in the app come from `PLANS` in shared; the amounts charged come from Paddle's
   catalog — keep them the same.

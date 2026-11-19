@@ -35,6 +35,8 @@ async function setup(verified = false) {
 const tokenIn = (m: MailMessage) => /token=([A-Za-z0-9_-]{43})/.exec(m.text)![1]!;
 
 afterAll(async () => {
+  // AI usage outlives a deleted user (docs/security.md §8.8); remove the test's rows first.
+  await prisma.aiUsage.deleteMany({ where: { userId: { in: createdUsers } } });
   await prisma.user.deleteMany({ where: { id: { in: createdUsers } } });
   await prisma.$disconnect();
 });

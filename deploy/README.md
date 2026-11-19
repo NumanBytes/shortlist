@@ -298,8 +298,22 @@ takes the payment, handles tax and sends receipts (docs/billing.md §20). Start 
    payments"); the plan changes within seconds of the webhook.
 
 Going live: Paddle reviews the account first. It wants a live website on your own domain with
-pricing, terms and a privacy policy. Then repeat steps 2–5 in the live dashboard and replace the
-five values with live ones (`pdl_live_apikey_…`, `live_…`).
+public pricing, terms, privacy and refund pages. Shortlist has them at `/pricing`, `/terms`,
+`/privacy` and `/refunds` (docs/security.md §8.9); they fill in who runs the server from four
+settings in `deploy/.env`:
+
+```
+LEGAL_NAME="Your exact legal name, as on the Paddle account"
+LEGAL_ADDRESS="Street, City, Postcode, Country"
+LEGAL_EMAIL=support@your-domain
+LEGAL_JURISDICTION=Pakistan
+```
+
+Set them, `docker compose up -d`, and open the four pages signed out to check them. Submit the
+domain in Paddle (**Checkout → Website approval**). Then repeat steps 2–5 in the live dashboard and
+replace the five values with live ones (`pdl_live_apikey_…`, `live_…`). The API refuses to start
+with a live key and no `LEGAL_*` settings. The policy text is a starting point, not legal advice:
+have it read by someone qualified where you live before taking real payments.
 
 ## Updating after new code is merged
 

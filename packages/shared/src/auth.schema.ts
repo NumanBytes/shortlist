@@ -45,3 +45,8 @@ export type ForgotPasswordInput = z.infer<typeof ForgotPasswordSchema>;
 
 export const ResetPasswordSchema = z.object({ token: OneTimeToken, password: NewPassword }).strict();
 export type ResetPasswordInput = z.infer<typeof ResetPasswordSchema>;
+
+// Deleting the account (docs/security.md §8.8) asks for the password again: a session left open
+// on a shared computer must not be enough to erase everything.
+export const DeleteAccountSchema = z.object({ password: z.string().min(1, 'Enter your password') }).strict();
+export type DeleteAccountInput = z.infer<typeof DeleteAccountSchema>;

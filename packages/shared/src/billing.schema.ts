@@ -6,6 +6,10 @@ import type { PlanName } from './plans.js';
 // everything after that (who the user is, which plan they get) is ours.
 
 // What a user can buy. Free isn't sold; it's what you have without a subscription.
+// Change-of-mind refunds through Paddle, in days from the payment (docs/security.md §8.9). Paddle
+// requires 14–90; the refund policy page shows this number.
+export const REFUND_WINDOW_DAYS = 14;
+
 export const PaidPlan = z.enum(['STARTER', 'PRO']);
 export type PaidPlan = z.infer<typeof PaidPlan>;
 
