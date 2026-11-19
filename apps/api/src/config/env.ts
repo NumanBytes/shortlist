@@ -63,6 +63,28 @@ const EnvSchema = z
       .string()
       .regex(/^[A-Za-z0-9_-]{87}$/, 'VAPID_PUBLIC_KEY must be a base64url P-256 public key')
       .optional(),
+    // Payments through Paddle (docs/billing.md §20). Optional as a group: without them the app
+    // works, nobody can buy a plan, and an admin assigns plans. The key's `sdbx`/`live` part picks
+    // Paddle's sandbox or live API; the client-side token (public by design) must match it.
+    PADDLE_API_KEY: z
+      .string()
+      .regex(
+        /^pdl_(sdbx|live)_apikey_/,
+        'PADDLE_API_KEY must be a Paddle API key (pdl_sdbx_apikey_… or pdl_live_apikey_…)',
+      )
+      .optional(),
+    // The notification destination's secret: verifies that a webhook really came from Paddle.
+    PADDLE_WEBHOOK_SECRET: z
+      .string()
+      .startsWith('pdl_ntfset_', 'PADDLE_WEBHOOK_SECRET must start with pdl_ntfset_')
+      .optional(),
+    PADDLE_CLIENT_TOKEN: z
+      .string()
+      .regex(/^(test|live)_/, 'PADDLE_CLIENT_TOKEN must be a client-side token (test_… or live_…)')
+      .optional(),
+    // The monthly prices of the two paid plans (pri_…), set up in Paddle's catalog.
+    PADDLE_PRICE_STARTER: z.string().startsWith('pri_', 'PADDLE_PRICE_STARTER must be a price id (pri_…)').optional(),
+    PADDLE_PRICE_PRO: z.string().startsWith('pri_', 'PADDLE_PRICE_PRO must be a price id (pri_…)').optional(),
     GOOGLE_CLIENT_ID: z.string().min(1).optional(),
     GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
     GOOGLE_REDIRECT_URI: z.url().optional(),
@@ -74,6 +96,31 @@ const EnvSchema = z
       .optional(),
   })
   .superRefine((env, ctx) => {
+    const paddle = [
+      env.PADDLE_API_KEY,
+      env.PADDLE_WEBHOOK_SECRET,
+      env.PADDLE_CLIENT_TOKEN,
+      env.PADDLE_PRICE_STARTER,
+      env.PADDLE_PRICE_PRO,
+    ];
+    if (paddle.some(Boolean) && !paddle.every(Boolean)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['PADDLE_API_KEY'],
+        message:
+          'Set all of PADDLE_API_KEY, PADDLE_WEBHOOK_SECRET, PADDLE_CLIENT_TOKEN, PADDLE_PRICE_STARTER and PADDLE_PRICE_PRO, or none',
+      });
+    } else if (env.PADDLE_API_KEY && env.PADDLE_CLIENT_TOKEN) {
+      // A sandbox key with a live token (or the reverse) would open checkouts nobody can complete.
+      const sandbox = env.PADDLE_API_KEY.startsWith('pdl_sdbx_');
+      if (sandbox !== env.PADDLE_CLIENT_TOKEN.startsWith('test_')) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['PADDLE_CLIENT_TOKEN'],
+          message: 'PADDLE_API_KEY and PADDLE_CLIENT_TOKEN must both be sandbox (sdbx / test_) or both live',
+        });
+      }
+    }
     const google = [env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET, env.GOOGLE_REDIRECT_URI, env.TOKEN_ENCRYPTION_KEY];
     if (google.some(Boolean) && !google.every(Boolean)) {
       ctx.addIssue({

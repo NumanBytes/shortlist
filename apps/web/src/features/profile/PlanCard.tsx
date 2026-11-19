@@ -1,6 +1,7 @@
 import { useAiUsage } from '../../lib/queries';
 import type { PlanUsage } from '../../lib/types';
 import { Group } from './ListGroup';
+import { PlanBilling } from './PlanBilling';
 
 const dayMonth = (iso: string) => new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 
@@ -32,8 +33,8 @@ const periodText = (p: PlanUsage) =>
   p.period === 'trial' ? 'A one-time trial' : p.resetsAt ? `Resets ${dayMonth(p.resetsAt)}` : 'This month';
 
 // The user's plan in their own terms (docs/ai-scoring.md §12.5): jobs scored and resumes
-// tailored, how often sources are checked, and whether "Find new jobs" is included. Plans
-// can't be bought in the app yet (roadmap phase 4).
+// tailored, how often sources are checked, and whether "Find new jobs" is included — then buying
+// or managing it (docs/billing.md §20).
 export function PlanCard() {
   const usage = useAiUsage();
   const p = usage.data?.plan;
@@ -53,6 +54,7 @@ export function PlanCard() {
           jobs never stop.
         </p>
       </div>
+      <PlanBilling />
     </Group>
   );
 }

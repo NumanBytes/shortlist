@@ -6,7 +6,8 @@ import { loadEnv } from './config/env.js';
 async function bootstrap() {
   const env = loadEnv(); // fail fast, before anything else starts
 
-  const app = configureApp(await NestFactory.create(AppModule));
+  // rawBody: payment webhooks are verified on the exact bytes received (docs/billing.md §20.3).
+  const app = configureApp(await NestFactory.create(AppModule, { rawBody: true }));
   app.enableShutdownHooks(); // close DB connections cleanly on deploy restarts
 
   await app.listen(env.PORT);

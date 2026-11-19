@@ -61,7 +61,9 @@ designed with the user 2026-10-12).
 - ~~Phase 3b: cheaper scoring~~ — done 2026-11-17 (`feat/haiku-5-5`, [§12.6](ai-scoring.md)) by
   moving the Haiku readers to Haiku 5.5, not with the Batch API or caching. Still to do: run
   `compare:analysis` with a valid key, and watch failures and verdicts after deploy.
-- Phase 4: payments through a merchant of record (check it pays out to Pakistan first).
+- ~~Phase 4: payments~~ — built 2026-11-17 (`feat/billing`, [§20](billing.md)) on Paddle, in its
+  sandbox. To go live: a domain, a public pricing page, terms and a privacy policy, then Paddle's
+  account review.
 - Phase 5: job alerts by email forwarding (needs a domain and an inbound-mail service).
 - Phase 6: the application kit ([§13.5](resume.md)) — the biggest gap against Job Radar.
 - Before a public launch: privacy policy, terms, account deletion and data export.

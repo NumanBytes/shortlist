@@ -278,6 +278,29 @@ with `docker compose up -d`. Then on the phone: Profile → Notifications → Tu
 (docs/notifications.md §19). Keep the same pair afterwards — a new one makes every device turn
 notifications on again.
 
+## Payments (optional)
+
+Shortlist sells plans through [Paddle](https://www.paddle.com), the merchant of record: Paddle
+takes the payment, handles tax and sends receipts (docs/billing.md §20). Start in Paddle's
+**sandbox** — no real money — and switch to live once Paddle approves your account.
+
+1. Create a sandbox account at `sandbox-login.paddle.com`.
+2. **Catalog → Products:** one product "Shortlist" with two monthly prices, $5 (Starter) and
+   $20 (Pro). Copy the two price ids (`pri_…`).
+3. **Authentication** (in the dashboard's developer settings): an API key (`pdl_sdbx_apikey_…`) with permission to write
+   transactions, subscriptions and customer portal sessions, and a client-side token (`test_…`).
+4. **Notifications** (same place): a destination at
+   `https://YOUR_SITE_ADDRESS/api/v1/billing/webhook` for the `subscription.*` events. Copy its
+   secret (`pdl_ntfset_…`).
+5. **Checkout → Checkout settings:** set the default payment link to `https://YOUR_SITE_ADDRESS/`.
+6. Put the five values in `deploy/.env` and run `docker compose up -d`. Profile → Settings → Plan now
+   offers Starter and Pro. Pay with one of the test cards listed in Paddle's docs ("Test
+   payments"); the plan changes within seconds of the webhook.
+
+Going live: Paddle reviews the account first. It wants a live website on your own domain with
+pricing, terms and a privacy policy. Then repeat steps 2–5 in the live dashboard and replace the
+five values with live ones (`pdl_live_apikey_…`, `live_…`).
+
 ## Updating after new code is merged
 
 ```bash

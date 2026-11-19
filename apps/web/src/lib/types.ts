@@ -384,3 +384,16 @@ export interface AdminCatalogEntry {
   createdAt: string;
   updatedAt: string;
 }
+
+// Payments (GET /billing, docs/billing.md §20).
+export interface BillingInfo {
+  enabled: boolean; // false: this server has no payment provider; an admin assigns plans
+  client: { environment: 'sandbox' | 'production'; token: string } | null; // for Paddle.js
+  plan: PlanUsage['name'];
+  subscription: {
+    plan: 'STARTER' | 'PRO';
+    status: 'ACTIVE' | 'TRIALING' | 'PAST_DUE' | 'PAUSED' | 'CANCELED';
+    currentPeriodEndsAt: string | null;
+    cancelsAt: string | null; // a scheduled cancellation
+  } | null;
+}

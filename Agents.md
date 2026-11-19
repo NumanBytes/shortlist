@@ -40,6 +40,7 @@ and the alternatives that were rejected.
 | §17 Build state and roadmap | [docs/roadmap.md](docs/roadmap.md) | What's built, what's next, open decisions |
 | §18 Working agreements | this file | How the builder and assistants work together |
 | §19 Push notifications | [docs/notifications.md](docs/notifications.md) | Hand-rolled Web Push, what is sent and when, settings, setup |
+| §20 Payments | [docs/billing.md](docs/billing.md) | Paddle as merchant of record, signed webhooks, idempotency and ordering, checkout, plan changes |
 
 ---
 
@@ -171,8 +172,10 @@ the user chose to make it a **hosted product that anyone can sign up for**. What
   2026-11-16; an admin assigns plans until payments exist).
 - **Cheaper scoring** by moving the Haiku readers to Haiku 5.5 ([§12.6](docs/ai-scoring.md),
   2026-11-17).
-- **Planned, in order** ([§17.2](docs/roadmap.md)): payments through a merchant of record (Stripe doesn't serve businesses in
-  Pakistan); **job alerts by forwarding** to a private per-user address instead of Gmail
+- **Payments through Paddle**, the merchant of record (Stripe doesn't accept businesses in
+  Pakistan): checkout, signed webhooks, plan switches and the customer portal ([§20](docs/billing.md),
+  built 2026-11-17, sandbox until Paddle approves a live account).
+- **Planned, in order** ([§17.2](docs/roadmap.md)): **job alerts by forwarding** to a private per-user address instead of Gmail
   OAuth (no restricted-scope verification, works with any mail provider, and only alert
   emails ever reach Shortlist; needs a domain); the application kit ([§13.5](docs/resume.md));
   privacy policy, terms, and account deletion with data export before a public launch.

@@ -58,7 +58,7 @@ export async function createTestApp(configure: (b: TestingModuleBuilder) => Test
       prefix: `test-rl:${crypto.randomUUID()}`,
     });
   const moduleRef = await configure(base).compile();
-  const app: INestApplication = configureApp(moduleRef.createNestApplication());
+  const app: INestApplication = configureApp(moduleRef.createNestApplication({ rawBody: true })); // as main.ts
   await app.init();
   const prisma = app.get(PrismaService);
   const createdUserIds: string[] = [];
