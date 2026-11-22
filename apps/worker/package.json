@@ -22,7 +22,7 @@
     "vapid:keys": "node dist/cli/vapid-keys.js"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.132.1",
+    "@anthropic-ai/sdk": "^1.10.0",
     "@nestjs/bullmq": "^12.0.2",
     "@nestjs/common": "^12.5.0",
     "@nestjs/core": "^12.5.0",
